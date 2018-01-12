@@ -1,0 +1,7 @@
+var _user$project$Models_Application$initialModel = function (route) {
+	return {route: route};
+};
+var _user$project$Models_Application$AppModel = function (a) {
+	return {route: a};
+};
+var _user$project$Models_Application$None = {ctor: 'None'};

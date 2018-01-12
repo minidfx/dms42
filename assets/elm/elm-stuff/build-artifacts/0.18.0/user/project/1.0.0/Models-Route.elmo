@@ -1,0 +1,6 @@
+var _user$project$Models_Route$None = {ctor: 'None'};
+var _user$project$Models_Route$Documents = {ctor: 'Documents'};
+var _user$project$Models_Route$Document = function (a) {
+	return {ctor: 'Document', _0: a};
+};
+var _user$project$Models_Route$Home = {ctor: 'Home'};

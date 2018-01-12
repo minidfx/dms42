@@ -1,4 +1,0 @@
-var _user$project$Models_Msgs$None = {ctor: 'None'};
-var _user$project$Models_Msgs$OnLocationChange = function (a) {
-	return {ctor: 'OnLocationChange', _0: a};
-};

@@ -12,7 +12,7 @@ type Route
     = Home
     | Document DocumentId
     | Documents
-    | None
+    | Settings
 
 
 matchers : Parser (Route -> a) a
@@ -21,6 +21,7 @@ matchers =
         [ map Home top
         , map Document (s "documents" </> int)
         , map Documents (s "documents")
+        , map Settings (s "settings")
         ]
 
 
@@ -31,4 +32,4 @@ parseLocation location =
             route
 
         Nothing ->
-            None
+            Home

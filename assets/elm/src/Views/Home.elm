@@ -2,10 +2,11 @@ module Views.Home exposing (..)
 
 import Html exposing (Html, div, h1, text, input)
 import Html.Attributes exposing (class, classList)
+import Models.Application exposing (..)
 
 
-index : Html msg
-index =
+index : Models.Application.AppModel -> Html msg
+index model =
     div [ class "jumbotron" ]
         [ h1 [] [ text "Search" ]
         , div [ class "row" ]

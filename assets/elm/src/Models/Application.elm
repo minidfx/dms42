@@ -18,9 +18,21 @@ type alias Document =
     }
 
 
+type alias DocumentType =
+    { name : String
+    , id : String
+    , selected : Bool
+    }
+
+
+type alias UploadDocument =
+    { fileName : String }
+
+
 type alias AppModel =
     { route : Route
     , documents : List Document
+    , documentTypes : List DocumentType
     }
 
 
@@ -70,5 +82,9 @@ initialModel route =
         , createFakeDocument 4
         , createFakeDocument 5
         , createFakeDocument 6
+        ]
+    , documentTypes =
+        [ { name = "Default", id = "xxxx", selected = True }
+        , { name = "Bill", id = "xxxx", selected = False }
         ]
     }

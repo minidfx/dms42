@@ -1,6 +1,7 @@
 .dropzone {
   border: 2px dashed rgba(0, 0, 0, 0.3) !important;
   border-color: rgba(255, 110, 0, 1) !important;
+  height: 250px !important;
 }
 
 .color-42 {
@@ -13,11 +14,28 @@
 
 .label-tile {
   font-size: 1.7em !important;
-  line-height: 6 !important;
+  line-height: 5.5 !important;
 }
 
 .tile {
- width: 140px;
- height: 140px;
- background-color: #EEE;
+   width: 140px;
+   height: 140px;
+   background-color: #EEE;
+}
+
+.tile > a {
+  color: #777 !important;
+  font-weight: 400 !important;
+  text-transform: uppercase;
+}
+
+.tile > a > div {
+  vertical-align: middle;
+  display: table-cell;
+  width: 140px;
+  height: 140px;
+}
+
+.tile a:hover, .tile a:focus {
+  text-decoration: none !important;
 }

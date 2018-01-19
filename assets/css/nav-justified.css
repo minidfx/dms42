@@ -25,6 +25,10 @@ body {
 
 /* Customize the nav-justified links to be fill the entire space of the .navbar */
 
+nav {
+  margin-bottom: 20px;
+}
+
 .nav-justified {
   background-color: #eee;
   border: 1px solid #ccc;

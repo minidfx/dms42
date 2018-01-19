@@ -10,6 +10,7 @@ import Views.Home exposing (..)
 import Views.Documents exposing (..)
 import Views.Document exposing (..)
 import Views.Settings exposing (..)
+import Views.AddDocuments exposing (..)
 
 
 init : Location -> ( Models.Application.AppModel, Cmd Models.Msgs.Msg )
@@ -31,6 +32,9 @@ view model =
     case model.route of
         Routing.Home ->
             Layout.layout model (Views.Home.index model)
+
+        Routing.AddDocuments ->
+            Layout.layout model (Views.AddDocuments.index model)
 
         Routing.Document documentId ->
             Layout.layout model (Views.Document.index model documentId)

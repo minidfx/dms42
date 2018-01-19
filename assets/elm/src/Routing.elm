@@ -10,6 +10,7 @@ type alias DocumentId =
 
 type Route
     = Home
+    | AddDocuments
     | Document DocumentId
     | Documents
     | Settings
@@ -19,6 +20,7 @@ matchers : Parser (Route -> a) a
 matchers =
     oneOf
         [ map Home top
+        , map AddDocuments (s "add-documents")
         , map Document (s "documents" </> int)
         , map Documents (s "documents")
         , map Settings (s "settings")

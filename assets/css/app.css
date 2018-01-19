@@ -1,0 +1,23 @@
+.dropzone {
+  border: 2px dashed rgba(0, 0, 0, 0.3) !important;
+  border-color: rgba(255, 110, 0, 1) !important;
+}
+
+.color-42 {
+  color: rgba(255, 110, 0, 1) !important;
+}
+
+.dropzone .dz-message {
+  font-size: 1.8em !important;
+}
+
+.label-tile {
+  font-size: 1.7em !important;
+  line-height: 6 !important;
+}
+
+.tile {
+ width: 140px;
+ height: 140px;
+ background-color: #EEE;
+}

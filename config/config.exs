@@ -7,7 +7,8 @@ use Mix.Config
 
 # General application configuration
 config :dms42,
-  ecto_repos: [Dms42.Repo]
+  ecto_repos: [Dms42.Repo],
+  documents_path: "documents"
 
 # Configures the endpoint
 config :dms42, Dms42Web.Endpoint,

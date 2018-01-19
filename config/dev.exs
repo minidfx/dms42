@@ -54,5 +54,5 @@ config :dms42, Dms42.Repo,
   username: "postgres",
   password: "postgres",
   database: "dms42_dev",
-  hostname: "localhost",
+  hostname: "couloir42.local",
   pool_size: 10

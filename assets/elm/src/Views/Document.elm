@@ -4,8 +4,9 @@ import Html exposing (Html, div, h1, text, input)
 import Html.Attributes exposing (class, classList)
 import Models.Application exposing (..)
 import Routing exposing (DocumentId)
+import Models.Msgs exposing (..)
 
 
-index : Models.Application.AppModel -> DocumentId -> Html msg
+index : Models.Application.AppModel -> DocumentId -> Html Msg
 index model documentId =
     div [] []

@@ -4,9 +4,10 @@ import Html exposing (Html, div, text, h3, nav, ul, li, a, span)
 import Html.Attributes exposing (class, classList, href)
 import Models.Application exposing (..)
 import Routing exposing (..)
+import Models.Msgs exposing (..)
 
 
-menu : String -> String -> Bool -> Html msg
+menu : String -> String -> Bool -> Html Msg
 menu name path isActive =
     li [ classList [ ( "active", isActive ) ] ]
         [ a [ href path ] [ text name ]
@@ -23,7 +24,7 @@ isDocumentsActive model =
     (isActive Routing.Documents model.route) || (isActive (Routing.Document 0) model.route) || (isActive (Routing.AddDocuments) model.route)
 
 
-layout : Models.Application.AppModel -> Html msg -> Html msg
+layout : Models.Application.AppModel -> Html Msg -> Html Msg
 layout model body =
     div [ class "container" ]
         [ div [ class "masthead" ]

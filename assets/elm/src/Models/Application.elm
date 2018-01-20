@@ -5,10 +5,6 @@ import Rfc2822Datetime exposing (..)
 import Formatting exposing (..)
 
 
-type Msg
-    = None
-
-
 type alias Document =
     { name : String
     , thumbnailPath : String

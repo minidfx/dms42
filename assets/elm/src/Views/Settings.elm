@@ -4,9 +4,10 @@ import Html exposing (Html, div, h1, text, input, img, a, span)
 import Html.Attributes exposing (class, classList, src, href, title, style)
 import Models.Application exposing (..)
 import Formatting exposing (s, float, (<>), print)
+import Models.Msgs exposing (..)
 
 
-index : Models.Application.AppModel -> Html msg
+index : Models.Application.AppModel -> Html Msg
 index model =
     div [ class "row" ]
         [ div [ class "col-md-2" ]
@@ -18,7 +19,7 @@ index model =
         ]
 
 
-tile : String -> String -> Float -> Html msg
+tile : String -> String -> Float -> Html Msg
 tile name path size =
     div [ style [ ( "vertical-align", "middle" ), ( "font-size", print (Formatting.float <> s "em") size ) ], class "img-rounded text-center tile" ]
         [ a [ href path ] [ div [] [ text name ] ]

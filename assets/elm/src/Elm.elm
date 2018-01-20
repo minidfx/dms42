@@ -27,7 +27,7 @@ subscriptions model =
     Sub.none
 
 
-view : Models.Application.AppModel -> Html msg
+view : Models.Application.AppModel -> Html Msg
 view model =
     case model.route of
         Routing.Home ->
@@ -50,11 +50,7 @@ update : Models.Msgs.Msg -> Models.Application.AppModel -> ( Models.Application.
 update msg model =
     case msg of
         Models.Msgs.OnLocationChange location ->
-            let
-                newRoute =
-                    Routing.parseLocation location
-            in
-                ( { model | route = newRoute }, Cmd.none )
+            ( { model | route = Routing.parseLocation location }, Cmd.none )
 
 
 main : Program Never Models.Application.AppModel Models.Msgs.Msg

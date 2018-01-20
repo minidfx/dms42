@@ -7,9 +7,10 @@ import Formatting exposing (s, int, any, (<>), print)
 import Rfc2822Datetime exposing (..)
 import Json.Encode as Encode
 import String exposing (padRight)
+import Models.Msgs exposing (..)
 
 
-index : Models.Application.AppModel -> Html msg
+index : Models.Application.AppModel -> Html Msg
 index model =
     div []
         [ div [ class "panel panel-default" ]
@@ -31,17 +32,17 @@ printDatetime datetime =
     print (int <> s " " <> any <> s " " <> int) datetime.date.day datetime.date.month datetime.date.year
 
 
-printPropertyKey : String -> Html msg
+printPropertyKey : String -> Html Msg
 printPropertyKey value =
     dt [] [ text value ]
 
 
-printPropertyValue : String -> Html msg
+printPropertyValue : String -> Html Msg
 printPropertyValue value =
     dd [] [ text value ]
 
 
-transformDocument : Document -> Html msg
+transformDocument : Document -> Html Msg
 transformDocument { name, comments, creationDateTime, lastUpdateDateTime } =
     div [ class "col-sm-4 col-md-2" ]
         [ div [ class "thumbnail" ]
@@ -61,7 +62,7 @@ transformDocument { name, comments, creationDateTime, lastUpdateDateTime } =
         ]
 
 
-transtormToRow : List Document -> List (Html msg) -> Html msg
+transtormToRow : List Document -> List (Html Msg) -> Html Msg
 transtormToRow documents acc =
     case documents of
         [] ->

@@ -18,10 +18,15 @@
 // Local files can be imported directly using relative
 // paths "./socket" or full ones "web/static/js/socket".
 
-// import socket from "./socket"
+import socket from "./socket"
 
 const bodyTag = document.getElementsByTagName('body');
 if (bodyTag)
 {
-  Elm.Main.embed(bodyTag[0]);
+  var app = Elm.Main.embed(bodyTag[0]);
+
+  $(window).on("load", function() {
+    // Load tags for any input with the class tags using the bootstrap-tokenfield library
+    $("input.form-tags").tokenfield();
+  });
 }

@@ -1,26 +1,29 @@
 module Views.AddDocuments exposing (..)
 
-import Html exposing (Html, div, h1, text, input, h3, select, option, span)
+import Html exposing (Html, Attribute, div, h1, text, input, h3, select, option, span)
 import Html.Attributes exposing (class, classList, src, href, title, id, value, selected)
 import Models.Application exposing (..)
+import Html.Events exposing (on)
+import Json.Decode as Json
+import Models.Msgs exposing (..)
 
 
-index : Models.Application.AppModel -> Html msg
+index : Models.Application.AppModel -> Html Msg
 index model =
     div []
         [ div [ class "row" ]
             [ div [ class "col-md-6" ]
+                [ h3 [] [ text "Document type" ]
+                , select [ class "form-control" ] (documentTypeOptions (List.reverse model.documentTypes) [])
+                ]
+            , div [ class "col-md-6" ]
                 [ h3 [] [ text "Tags" ]
                 , div [ class "input-group" ]
-                    [ input [ class "form-control" ] []
+                    [ input [ class "form-control form-tags" ] []
                     , span [ class "input-group-addon" ]
                         [ span [ class "glyphicon glyphicon-list-alt" ] []
                         ]
                     ]
-                ]
-            , div [ class "col-md-6" ]
-                [ h3 [] [ text "Document type" ]
-                , select [ class "form-control" ] (documentTypeOptions (List.reverse model.documentTypes) [])
                 ]
             ]
         , div [ class "row" ]
@@ -39,7 +42,7 @@ index model =
         ]
 
 
-documentTypeOptions : List DocumentType -> List (Html msg) -> List (Html msg)
+documentTypeOptions : List DocumentType -> List (Html Msg) -> List (Html Msg)
 documentTypeOptions documentTypes acc =
     case documentTypes of
         [] ->

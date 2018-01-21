@@ -11,8 +11,9 @@
     <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
     <script src="<%= static_path(@conn, "/js/jquery.js") %>"></script>
     <script src="<%= static_path(@conn, "/js/bootstrap-tokenfield.js") %>"></script>
+    <script src="<%= static_path(@conn, "/js/dropzone.min.js") %>"></script>
+    <script src="<%= static_path(@conn, "/js/dropzone-amd-module.min.js") %>"></script>
   </head>
-
   <body>
     <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
   </body>

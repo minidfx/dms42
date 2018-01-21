@@ -1,11 +1,17 @@
 module Views.AddDocuments exposing (..)
 
-import Html exposing (Html, Attribute, div, h1, text, input, h3, select, option, span)
-import Html.Attributes exposing (class, classList, src, href, title, id, value, selected)
+import Html exposing (Html, Attribute, div, h1, text, input, h3, select, option, span, node)
+import Html.Lazy exposing (..)
+import Html.Attributes exposing (class, classList, src, href, title, id, value, selected, type_)
 import Models.Application exposing (..)
 import Html.Events exposing (on)
 import Json.Decode as Json
 import Models.Msgs exposing (..)
+
+
+script : String -> Html Msg
+script code =
+    node "script" [ type_ "text/javascript" ] [ text code ]
 
 
 index : Models.Application.AppModel -> Html Msg
@@ -25,11 +31,12 @@ index model =
                         ]
                     ]
                 ]
+            , lazy (\a -> script "$(\"input.form-tags\").tokenfield();") model
             ]
         , div [ class "row" ]
             [ div [ class "col-md-12" ]
                 [ h3 [] [ text "Files" ]
-                , div [ id "dropzone" ]
+                , div []
                     [ div [ class "dropzone needsclick dz-clickable" ]
                         [ div [ class "dz-message needsclick" ]
                             [ span [ class "glyphicon glyphicon-save" ] []
@@ -38,6 +45,7 @@ index model =
                         ]
                     ]
                 ]
+            , lazy (\a -> script "$(\"div.dropzone\").dropzone({url: \"/api/documents\"});") model
             ]
         ]
 

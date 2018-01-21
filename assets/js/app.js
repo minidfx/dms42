@@ -24,9 +24,4 @@ const bodyTag = document.getElementsByTagName('body');
 if (bodyTag)
 {
   var app = Elm.Main.embed(bodyTag[0]);
-
-  $(window).on("load", function() {
-    // Load tags for any input with the class tags using the bootstrap-tokenfield library
-    $("input.form-tags").tokenfield();
-  });
 }

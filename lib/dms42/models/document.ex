@@ -1,19 +1,19 @@
-defmodule Dms42.Models.Document do
+defmodule Dms42.Models.DocumentsOcr do
   use Ecto.Schema
   import Ecto.Changeset
-  alias Dms42.Models.Document
+  alias Dms42.Models.DocumentsOcr
 
-  schema "documents" do
-    field :comments, :string
+  schema "documents_ocr" do
     field :document_id, :string
+    field :ocr, :string
 
     timestamps()
   end
 
   @doc false
-  def changeset(%Document{} = document, attrs) do
-    document
-    |> cast(attrs, [:comments])
-    |> validate_required([:comments])
+  def changeset(%DocumentsOcr{} = documentOcr, attrs) do
+    documentOcr
+    |> cast(attrs, [:document_id, :ocr])
+    |> validate_required([:document_id, :ocr])
   end
 end

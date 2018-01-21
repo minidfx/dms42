@@ -28,7 +28,7 @@ layout : Models.Application.AppModel -> Html Msg -> Html Msg
 layout model body =
     div [ class "container" ]
         [ div [ class "masthead" ]
-            [ h3 [ class "text-muted" ] [ text "DMS ", span [ class "color-42" ] [ text "42" ] ]
+            [ h3 [ class "text-muted app-title" ] [ a [ href "#" ] [ text "DMS ", span [ class "color-42" ] [ text "42" ] ] ]
             , nav []
                 [ ul [ classList [ ( "nav", True ), ( "nav-justified", True ) ] ]
                     [ menu "Search" "#home" (isActive Routing.Home model.route)

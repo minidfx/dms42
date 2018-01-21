@@ -1,7 +1,7 @@
 .dropzone {
   border: 2px dashed rgba(0, 0, 0, 0.3) !important;
   border-color: rgba(255, 110, 0, 1) !important;
-  height: 250px !important;
+  min-height: 250px !important;
 }
 
 .color-42 {
@@ -38,4 +38,8 @@
 
 .tile a:hover, .tile a:focus {
   text-decoration: none !important;
+}
+
+.app-title > a:hover {
+  text-decoration: none;
 }

@@ -20,7 +20,9 @@ defmodule Dms42Web.Router do
   end
 
   # Other scopes may use custom stacks.
-  # scope "/api", Dms42Web do
-  #   pipe_through :api
-  # end
+  scope "/api", Dms42Web do
+    pipe_through :api
+
+    post "/documents", DocumentsController, :upload_documents
+  end
 end

@@ -20,18 +20,18 @@ index model =
         [ div [ class "row" ]
             [ div [ class "col-md-6" ]
                 [ h3 [] [ text "Document type" ]
-                , select [ class "form-control" ] (documentTypeOptions (List.reverse model.documentTypes) [])
+                , select [ class "form-control form-control-document-type" ] (documentTypeOptions (List.reverse model.documentTypes) [])
                 ]
             , div [ class "col-md-6" ]
                 [ h3 [] [ text "Tags" ]
                 , div [ class "input-group" ]
-                    [ input [ class "form-control form-tags" ] []
+                    [ input [ class "form-control form-control-tags" ] []
                     , span [ class "input-group-addon" ]
                         [ span [ class "glyphicon glyphicon-list-alt" ] []
                         ]
                     ]
                 ]
-            , lazy (\a -> script "$(\"input.form-tags\").tokenfield();") model
+            , lazy (\a -> script "$(\"input.form-control-tags\").tokenfield();") model
             ]
         , div [ class "row" ]
             [ div [ class "col-md-12" ]
@@ -45,9 +45,18 @@ index model =
                         ]
                     ]
                 ]
-            , lazy (\a -> script "$(\"div.dropzone\").dropzone({url: \"/api/documents\"});") model
+            , lazy (\a -> script dropzoneJavascript) model
             ]
         ]
+
+
+dropzoneJavascript : String
+dropzoneJavascript =
+    """
+$("div.dropzone").dropzone({url: "/api/documents",
+                            acceptedFiles: "image/png,image/jpeg,application/pdf",
+                            params: getUploadFields });
+    """
 
 
 documentTypeOptions : List DocumentType -> List (Html Msg) -> List (Html Msg)

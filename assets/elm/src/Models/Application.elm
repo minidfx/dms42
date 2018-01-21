@@ -80,7 +80,7 @@ initialModel route =
         , createFakeDocument 6
         ]
     , documentTypes =
-        [ { name = "Default", id = "xxxx", selected = True }
-        , { name = "Bill", id = "xxxx", selected = False }
+        [ { name = "Default", id = "default", selected = True }
+        , { name = "Bill", id = "bill", selected = False }
         ]
     }

@@ -19,9 +19,17 @@
 // paths "./socket" or full ones "web/static/js/socket".
 
 import socket from "./socket"
+import "./jquery"
+import "./dropzone.min"
+import "./bootstrap-tokenfield"
 
 const bodyTag = document.getElementsByTagName('body');
 if (bodyTag)
 {
   var app = Elm.Main.embed(bodyTag[0]);
+
+  window.getUploadFields = function() {
+    return { document_type: $("select.form-control-document-type").val(),
+             tags: $("input.form-control-tags").tokenfield("getTokens").map(x => x.value) }
+   };
 }

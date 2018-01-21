@@ -73,7 +73,7 @@ defmodule Dms42.DocumentManager do
 
   @spec valid_file_type(Document) :: {:ok, Document} | {:error, reason :: String.t}
   defp valid_file_type(%Document{:mime_type => mime_type, :original_file_name => file_name} = document) do
-    allowed_types = ["application/pdf", "image/gif", "image/jpeg", "image/png"]
+    allowed_types = ["application/pdf", "image/jpeg", "image/png"]
     case Enum.any?(allowed_types, fn x -> x == mime_type end) do
       false -> {:error, " The file #{file_name} is not supported: #{mime_type}"}
       true -> {:ok, document}

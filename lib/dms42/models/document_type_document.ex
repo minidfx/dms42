@@ -4,8 +4,8 @@ defmodule Dms42.Models.DocumentTypeDocument do
   alias Dms42.Models.DocumentTypeDocument
 
   schema "documentTypeDocuments" do
-    field :document_id, :string
-    field :document_type_id, :string
+    field :document_id, :binary
+    field :document_type_id, :binary
 
     timestamps()
   end

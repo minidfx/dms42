@@ -7,6 +7,7 @@ defmodule Dms42.Repo.Migrations.CreateDocuments do
       add :document_id, :uuid
       add :original_file_name, :string
       add :file_path, :string
+      add :mime_type, :string
 
       timestamps()
     end
@@ -21,6 +22,7 @@ defmodule Dms42.Repo.Migrations.CreateDocuments do
       timestamps()
     end
 
+    create unique_index(:tags, :name)
     create unique_index(:tags, :tag_id)
 
     create table(:documents_tags) do
@@ -38,6 +40,7 @@ defmodule Dms42.Repo.Migrations.CreateDocuments do
     end
 
     create unique_index(:document_types, :document_type_id)
+    create unique_index(:document_types, :name)
 
     create table(:document_type_documents) do
       add :document_id, references(:documents, column: :document_id, type: :uuid)
@@ -52,6 +55,5 @@ defmodule Dms42.Repo.Migrations.CreateDocuments do
 
       timestamps()
     end
-
   end
 end

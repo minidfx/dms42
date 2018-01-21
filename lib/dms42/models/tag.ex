@@ -5,7 +5,7 @@ defmodule Dms42.Models.Tag do
 
   schema "tags" do
     field :name, :string
-    field :tag_id, :string
+    field :tag_id, :binary
 
     timestamps()
   end
@@ -15,5 +15,7 @@ defmodule Dms42.Models.Tag do
     tag
     |> cast(attrs, [:name, :tag_id])
     |> validate_required([:name, :tag_id])
+    |> unique_constraint(:tag_id)
+    |> unique_constraint(:name)
   end
 end

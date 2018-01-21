@@ -5,7 +5,7 @@ defmodule Dms42.Models.DocumentType do
 
   schema "documentTypes" do
     field :name, :string
-    field :document_type_id, :string
+    field :document_type_id, :binary
 
     timestamps()
   end
@@ -15,5 +15,7 @@ defmodule Dms42.Models.DocumentType do
     documentType
     |> cast(attrs, [:name, :document_type_id])
     |> validate_required([:name, :document_type_id])
+    |> unique_constraint(:document_type_id)
+    |> unique_constraint(:name)
   end
 end

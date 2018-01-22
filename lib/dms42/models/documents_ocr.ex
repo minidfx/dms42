@@ -4,8 +4,8 @@ defmodule Dms42.Models.DocumentsOcr do
   alias Dms42.Models.DocumentsOcr
 
   schema "documents_ocr" do
-    field :document_id, :binary
-    field :ocr, :string
+    field(:document_id, Ecto.UUID)
+    field(:ocr, :string)
 
     timestamps()
   end

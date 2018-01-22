@@ -4,8 +4,8 @@ defmodule Dms42.Models.Tag do
   alias Dms42.Models.Tag
 
   schema "tags" do
-    field :name, :string
-    field :tag_id, :binary
+    field(:name, :string)
+    field(:tag_id, Ecto.UUID)
 
     timestamps()
   end

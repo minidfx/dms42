@@ -4,8 +4,8 @@ defmodule Dms42.Models.DocumentTag do
   alias Dms42.Models.DocumentTag
 
   schema "documents_tags" do
-    field :document_id, :binary
-    field :tag_id, :string
+    field(:document_id, Ecto.UUID)
+    field(:tag_id, Ecto.UUID)
 
     timestamps()
   end

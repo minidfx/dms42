@@ -3,9 +3,9 @@ defmodule Dms42.Models.DocumentTypeDocument do
   import Ecto.Changeset
   alias Dms42.Models.DocumentTypeDocument
 
-  schema "documentTypeDocuments" do
-    field :document_id, :binary
-    field :document_type_id, :binary
+  schema "documentTypeDocument" do
+    field(:document_id, Ecto.UUID)
+    field(:document_type_id, Ecto.UUID)
 
     timestamps()
   end

@@ -4,7 +4,6 @@ import Html exposing (Html, div, text, h3, nav, ul, li, a, span)
 import Html.Attributes exposing (class, classList, href)
 import Models.Application exposing (..)
 import Routing exposing (..)
-import Models.Msgs exposing (..)
 
 
 menu : String -> String -> Bool -> Html Msg

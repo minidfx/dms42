@@ -3,7 +3,6 @@ module Views.Home exposing (..)
 import Html exposing (Html, div, h1, text, input)
 import Html.Attributes exposing (class, classList)
 import Models.Application exposing (..)
-import Models.Msgs exposing (..)
 
 
 index : Models.Application.AppModel -> Html Msg

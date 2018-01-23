@@ -4,7 +4,6 @@ import Html exposing (Html, div, h1, text, input, img, a, span)
 import Html.Attributes exposing (class, classList, src, href, title, style)
 import Models.Application exposing (..)
 import Formatting exposing (s, float, (<>), print)
-import Models.Msgs exposing (..)
 
 
 index : Models.Application.AppModel -> Html Msg

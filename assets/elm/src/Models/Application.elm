@@ -3,6 +3,10 @@ module Models.Application exposing (..)
 import Routing exposing (Route)
 import Rfc2822Datetime exposing (..)
 import Formatting exposing (..)
+import Phoenix.Socket
+import Phoenix.Channel
+import Navigation exposing (Location)
+import Json.Encode
 
 
 type alias Document =
@@ -17,7 +21,6 @@ type alias Document =
 type alias DocumentType =
     { name : String
     , id : String
-    , selected : Bool
     }
 
 
@@ -29,7 +32,14 @@ type alias AppModel =
     { route : Route
     , documents : List Document
     , documentTypes : List DocumentType
+    , phxSocket : Phoenix.Socket.Socket Msg
     }
+
+
+type Msg
+    = OnLocationChange Location
+    | PhoenixMsg (Phoenix.Socket.Msg Msg)
+    | DocumentTypes Json.Encode.Value
 
 
 createFakeDocument : Int -> Document
@@ -79,8 +89,9 @@ initialModel route =
         , createFakeDocument 5
         , createFakeDocument 6
         ]
-    , documentTypes =
-        [ { name = "Default", id = "default", selected = True }
-        , { name = "Bill", id = "bill", selected = False }
-        ]
+    , documentTypes = []
+    , phxSocket =
+        Phoenix.Socket.init "ws://localhost:4000/socket/websocket"
+            |> Phoenix.Socket.withDebug
+            |> Phoenix.Socket.on "documentTypes" "documents:lobby" DocumentTypes
     }

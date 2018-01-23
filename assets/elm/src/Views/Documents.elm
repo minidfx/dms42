@@ -7,7 +7,6 @@ import Formatting exposing (s, int, any, (<>), print)
 import Rfc2822Datetime exposing (..)
 import Json.Encode as Encode
 import String exposing (padRight)
-import Models.Msgs exposing (..)
 
 
 index : Models.Application.AppModel -> Html Msg

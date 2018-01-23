@@ -6,7 +6,6 @@ import Html.Attributes exposing (class, classList, src, href, title, id, value, 
 import Models.Application exposing (..)
 import Html.Events exposing (on)
 import Json.Decode as Json
-import Models.Msgs exposing (..)
 
 
 script : String -> Html Msg
@@ -65,5 +64,5 @@ documentTypeOptions documentTypes acc =
         [] ->
             acc
 
-        { name, id, selected } :: tail ->
-            documentTypeOptions tail ((option [ value id, Html.Attributes.selected selected ] [ text name ]) :: acc)
+        { name, id } :: tail ->
+            documentTypeOptions tail ((option [ value id ] [ text name ]) :: acc)

@@ -5,7 +5,7 @@ defmodule Dms42Web.UserSocket do
   ## Channels
   # channel "room:*", Dms42Web.RoomChannel
 
-  channel "documents:lobby", Dms42Web.DocumentsChannel
+  channel("documents:lobby", Dms42Web.DocumentsChannel)
 
   ## Transports
   transport(:websocket, Phoenix.Transports.WebSocket)

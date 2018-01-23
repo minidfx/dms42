@@ -4,12 +4,12 @@ defmodule Dms42.Repo.Migrations.CreateDocuments do
   def change do
     create table(:document_types) do
       add :name, :string, null: false
-      add :document_type_id, :uuid, null: false
+      add :type_id, :uuid, null: false
 
       timestamps()
     end
 
-    create unique_index(:document_types, :document_type_id)
+    create unique_index(:document_types, :type_id)
     create unique_index(:document_types, :name)
 
     create table(:documents) do
@@ -19,7 +19,7 @@ defmodule Dms42.Repo.Migrations.CreateDocuments do
       add :file_path, :string, null: false
       add :mime_type, :string, null: false
       add :hash, :string, size: 64, null: false
-      add :document_type_id, references(:document_types, column: :document_type_id, type: :uuid)
+      add :document_type_id, references(:document_types, column: :type_id, type: :uuid), null: false
 
       timestamps()
     end
@@ -41,13 +41,6 @@ defmodule Dms42.Repo.Migrations.CreateDocuments do
     create table(:documents_tags) do
       add :document_id, references(:documents, column: :document_id, type: :uuid)
       add :tag_id, references(:tags, column: :tag_id, type: :uuid)
-
-      timestamps()
-    end
-
-    create table(:document_type_documents) do
-      add :document_id, references(:documents, column: :document_id, type: :uuid)
-      add :document_type_id, references(:document_types, column: :document_type_id, type: :uuid)
 
       timestamps()
     end

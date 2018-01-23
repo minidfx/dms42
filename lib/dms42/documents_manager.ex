@@ -1,14 +1,13 @@
 defmodule Dms42.DocumentsManager do
   require Logger
   alias Dms42.Models.Document
-  alias Dms42.Models.DocumentTypeDocument
   alias Dms42.Models.DocumentTag
   alias Dms42.Models.Tag
 
   @spec add(
           file_name :: String.t(),
           mime_type :: String.t(),
-          document_type :: String.t(),
+          document_type :: Ecto.UUID,
           tags :: list(String.t()),
           bytes :: binary
         ) :: {:ok, Document} | {:error, reason :: String.t()}
@@ -68,7 +67,7 @@ defmodule Dms42.DocumentsManager do
   @spec insert_to_database({:ok, Document} | {:error, reason :: String.t()}, list(String.t())) :: {:ok, Document} | {:error, reason :: String.t()}
   defp insert_to_database({:error, _reason} = error, _tags), do: error
 
-  defp insert_to_database({:ok, %Document{:document_id => document_id, :document_type_id => document_type_id} = document}, tags) do
+  defp insert_to_database({:ok, %Document{:document_id => document_id} = document}, tags) do
     result =
       Ecto.Multi.new()
       |> Ecto.Multi.insert(
@@ -76,10 +75,6 @@ defmodule Dms42.DocumentsManager do
         Document.changeset(%Document{}, document |> Map.from_struct())
       )
       |> insert_tags(document_id, tags)
-      |> Ecto.Multi.insert(
-        :document_type_document,
-        DocumentTypeDocument.changeset(%DocumentTypeDocument{}, %{document_id: document_id, document_type_id: document_type_id})
-      )
       |> Dms42.Repo.transaction()
 
     case result do

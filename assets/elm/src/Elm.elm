@@ -16,6 +16,7 @@ import Phoenix.Push
 import Debug exposing (log)
 import Json.Decode exposing (field)
 import Updates.Documents exposing (..)
+import Updates.LocationChange exposing (dispatch)
 
 
 init : Location -> ( Models.Application.AppModel, Cmd Models.Application.Msg )
@@ -64,7 +65,7 @@ update : Models.Application.Msg -> Models.Application.AppModel -> ( Models.Appli
 update msg model =
     case msg of
         Models.Application.OnLocationChange location ->
-            ( { model | route = Routing.parseLocation location }, Cmd.none )
+            dispatch location model
 
         Models.Application.PhoenixMsg msg ->
             let
@@ -74,7 +75,10 @@ update msg model =
                 ( { model | phxSocket = phxSocket }, Cmd.map PhoenixMsg phxCmd )
 
         Models.Application.DocumentTypes json ->
-            ( updateDocumentTypes model (log "document-types" json), Cmd.none )
+            ( updateDocumentTypes model json, Cmd.none )
+
+        Models.Application.Documents json ->
+            ( updateDocuments model json, Cmd.none )
 
 
 main : Program Never Models.Application.AppModel Models.Application.Msg

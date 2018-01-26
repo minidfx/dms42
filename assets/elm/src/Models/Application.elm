@@ -10,11 +10,12 @@ import Json.Encode
 
 
 type alias Document =
-    { name : String
-    , thumbnailPath : String
-    , creationDateTime : Datetime
-    , lastUpdateDateTime : Datetime
+    { thumbnailPath : String
+    , insertedAt : Datetime
+    , updatedAt : Datetime
     , comments : String
+    , document_id : String
+    , document_type_id : String
     }
 
 
@@ -40,58 +41,18 @@ type Msg
     = OnLocationChange Location
     | PhoenixMsg (Phoenix.Socket.Msg Msg)
     | DocumentTypes Json.Encode.Value
-
-
-createFakeDocument : Int -> Document
-createFakeDocument index =
-    { name = print (s "Document " <> int) index
-    , thumbnailPath = ""
-    , creationDateTime =
-        { dayOfWeek = Just Mon
-        , date =
-            { year = 2017
-            , month = Jan
-            , day = 1
-            }
-        , time =
-            { hour = 0
-            , minute = 0
-            , second = Just 1
-            , zone = Offset 0
-            }
-        }
-    , lastUpdateDateTime =
-        { dayOfWeek = Just Mon
-        , date =
-            { year = 2017
-            , month = Jan
-            , day = 1
-            }
-        , time =
-            { hour = 0
-            , minute = 0
-            , second = Just 1
-            , zone = Offset 0
-            }
-        }
-    , comments = "Officia aute sint esse ipsum consectetur incididunt ex enim occaecat magna fugiat."
-    }
+    | Documents Json.Encode.Value
 
 
 initialModel : Route -> AppModel
 initialModel route =
     { route = route
     , documents =
-        [ createFakeDocument 1
-        , createFakeDocument 2
-        , createFakeDocument 3
-        , createFakeDocument 4
-        , createFakeDocument 5
-        , createFakeDocument 6
-        ]
+        []
     , documentTypes = []
     , phxSocket =
         Phoenix.Socket.init "ws://localhost:4000/socket/websocket"
             |> Phoenix.Socket.withDebug
             |> Phoenix.Socket.on "documentTypes" "documents:lobby" DocumentTypes
+            |> Phoenix.Socket.on "documents" "documents:lobby" Documents
     }

@@ -51,3 +51,8 @@
 .app-title > a:hover {
   text-decoration: none;
 }
+
+.thumbnail > img {
+  max-width: 150px !important;
+  max-height: 220px !important;
+}

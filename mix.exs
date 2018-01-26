@@ -20,7 +20,7 @@ defmodule Dms42.Mixfile do
   def application do
     [
       mod: {Dms42.Application, []},
-      extra_applications: [:logger, :runtime_tools, :crypto]
+      extra_applications: [:logger, :runtime_tools, :crypto, :timex]
     ]
   end
 
@@ -42,7 +42,9 @@ defmodule Dms42.Mixfile do
       {:gettext, "~> 0.11"},
       {:cowboy, "~> 1.0"},
       {:google_api_vision, "~> 0.0.1"},
-      {:swoosh, "~> 0.12.1"}
+      {:swoosh, "~> 0.12.1"},
+      {:timex, "~> 3.1"},
+      {:exmagick, "~> 0.0.1"}
     ]
   end
 

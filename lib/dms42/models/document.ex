@@ -18,8 +18,8 @@ defmodule Dms42.Models.Document do
   @doc false
   def changeset(%Document{} = document, attrs) do
     document
-    |> cast(attrs, [:comments, :original_file_name, :file_path, :document_id, :mime_type, :hash])
-    |> validate_required([:original_file_name, :file_path, :document_id, :mime_type, :hash])
+    |> cast(attrs, [:comments, :original_file_name, :file_path, :document_id, :mime_type, :hash, :document_type_id])
+    |> validate_required([:original_file_name, :file_path, :document_id, :mime_type, :hash, :document_type_id])
     |> unique_constraint(:file_path)
     |> unique_constraint(:document_id)
   end

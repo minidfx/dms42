@@ -19,9 +19,6 @@
 // paths "./socket" or full ones "web/static/js/socket".
 
 import socket from "./socket"
-import "./jquery"
-import "./dropzone.min"
-import "./bootstrap-tokenfield"
 
 const bodyTag = document.getElementsByTagName('body');
 if (bodyTag)

@@ -154,6 +154,7 @@ defmodule Dms42.DocumentsManager do
       ExMagick.init!()
       |> ExMagick.image_load!({:blob, bytes})
       |> ExMagick.thumb!(155, 220)
+      |> ExMagick.attr!(:magick, "PNG")
       |> ExMagick.image_dump(absolute_thumbnails_path)
 
     document_write_result = File.write(absolute_documents_path, bytes, [:write])

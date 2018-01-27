@@ -130,6 +130,7 @@ defmodule Dms42.DocumentsManager do
       {:ok, :ok} ->
         {:ok, uuid} = document_id |> Ecto.UUID.load()
         {:ok, %Document{document | file_path: Path.join([relative_path, uuid])}}
+
       {_, {:error, reason}} ->
         {:error, "Cannot create the folder structure #{absolute_thumbnails_directory_path}: " <> Atom.to_string(reason)}
 
@@ -149,18 +150,22 @@ defmodule Dms42.DocumentsManager do
     absolute_documents_path = Path.join([Application.get_env(:dms42, :documents_path) |> Path.absname(), file_path])
     absolute_thumbnails_path = Path.join([Application.get_env(:dms42, :thumbnails_path) |> Path.absname(), file_path])
 
-    thumbnail_write_result = ExMagick.init!()
-    |> ExMagick.image_load!({:blob, bytes})
-    |> ExMagick.thumb!(155, 220)
-    |> ExMagick.image_dump(absolute_thumbnails_path)
+    thumbnail_write_result =
+      ExMagick.init!()
+      |> ExMagick.image_load!({:blob, bytes})
+      |> ExMagick.thumb!(155, 220)
+      |> ExMagick.image_dump(absolute_thumbnails_path)
+
     document_write_result = File.write(absolute_documents_path, bytes, [:write])
 
     case {document_write_result, thumbnail_write_result} do
       {:ok, {:ok, _}} ->
         Logger.debug("File #{file_name} wrote to #{absolute_documents_path}.")
         {:ok, document}
+
       {{:error, reason}, _} ->
         {:error, "Cannot write the file #{absolute_documents_path}: " <> Atom.to_string(reason)}
+
       {_, {:error, reason}} ->
         {:error, "Cannot write the file #{absolute_thumbnails_path}: " <> reason}
     end

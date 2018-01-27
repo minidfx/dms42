@@ -42,10 +42,10 @@ propertyValue value =
 
 
 transformDocument : Document -> Html Msg
-transformDocument { comments, insertedAt, updatedAt, thumbnailPath } =
+transformDocument { comments, insertedAt, updatedAt, document_id } =
     div [ class "col-sm-4 col-md-2" ]
         [ div [ class "thumbnail" ]
-            [ img [ alt "", src thumbnailPath ] []
+            [ img [ alt "", src ("/documents/thumbnail/" ++ document_id) ] []
             , div [ class "caption" ]
                 [ h3 [] [ text (datetime insertedAt) ]
                 , div [ style [ ( "margin-left", "0" ) ] ]

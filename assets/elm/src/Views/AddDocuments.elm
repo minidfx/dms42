@@ -54,7 +54,11 @@ dropzoneJavascript =
     """
 $("div.dropzone").dropzone({url: "/api/documents",
                             acceptedFiles: "image/png,image/jpeg,application/pdf",
-                            params: getUploadFields });
+                            params: getUploadFields,
+                            autoProcessQueue: true,
+                            parallelUploads: 1000,
+                            ignoreHiddenFiles: true,
+                            acceptedFiles: "image/*,application/pdf" });
     """
 
 

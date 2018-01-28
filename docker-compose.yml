@@ -1,0 +1,13 @@
+version: '3'
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile-dev
+    image: minidfx/dms42:dev
+    volumes:
+      - .:/app
+    ports:
+      - "0.0.0.0:4000:4000/tcp"
+    entrypoint:
+      - "bash"

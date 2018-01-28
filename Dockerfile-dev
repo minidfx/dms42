@@ -1,0 +1,22 @@
+FROM elixir:1.6
+
+LABEL Burgy Benjamin aka MiniDfx
+
+# Ignore any console dialogs
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN mkdir /app && \
+    curl -sL https://deb.nodesource.com/setup_9.x | bash - && \
+    apt-get update && \
+    apt-get install -y gcc make libtool-bin libgraphicsmagick1-dev inotify-tools nodejs tesseract-ocr tesseract-ocr-eng tesseract-ocr-fra && \
+    npm install --unsafe-perm -g elm && \
+    npm install -g brunch
+
+WORKDIR /app
+
+VOLUME /app
+
+RUN mix local.hex --force && \
+    mix local.rebar --force
+
+EXPOSE 4000

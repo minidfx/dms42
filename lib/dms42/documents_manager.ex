@@ -1,7 +1,6 @@
 defmodule Dms42.DocumentsManager do
   require Logger
   alias Dms42.Models.Document
-  alias Dms42.Models.DocumentOcr
   alias Dms42.Models.DocumentTag
   alias Dms42.Models.Tag
   alias Dms42.Models.NewDocumentProcessingContext
@@ -28,10 +27,8 @@ defmodule Dms42.DocumentsManager do
     |> valid_file_path
     |> is_document_exist
     |> save_file(bytes)
-    |> ocr_document
     |> insert_to_database
     |> insert_tags(tags)
-    |> insert_ocr
     |> commit
   end
 
@@ -69,6 +66,10 @@ defmodule Dms42.DocumentsManager do
         {:error, "Cannot save the transaction."}
 
       {:ok, _} ->
+        %Document{:document_id => document_id, :file_path => file_path} = document
+        base_documents_path = Application.get_env(:dms42, :documents_path) |> Path.absname()
+        absolute_documents_path = Path.join([base_documents_path, file_path])
+        GenServer.cast(:ocr, {:process, document_id, absolute_documents_path})
         {:ok, document}
     end
   end
@@ -134,27 +135,6 @@ defmodule Dms42.DocumentsManager do
            )
      }}
   end
-
-  @spec insert_ocr({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}) ::
-          {:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}
-  defp insert_ocr({:error, _reason} = error), do: error
-
-  defp insert_ocr({:ok, %NewDocumentProcessingContext{:ocr => nil}} = result), do: result
-
-  defp insert_ocr(
-         {:ok, %NewDocumentProcessingContext{:ocr => ocr, :transaction => transaction, :document => %Document{:document_id => document_id}} = context}
-       ),
-       do:
-         {:ok,
-          %NewDocumentProcessingContext{
-            context
-            | transaction:
-                Ecto.Multi.insert(
-                  transaction,
-                  "DocumentOcr_#{document_id}",
-                  DocumentOcr.changeset(%DocumentOcr{}, %{:document_id => document_id, :ocr => ocr})
-                )
-          }}
 
   @spec update(document :: Document) :: :ok | {:error, reason :: String.t()}
   def update(%Document{}) do
@@ -244,25 +224,6 @@ defmodule Dms42.DocumentsManager do
 
       {_, {:error, reason}} ->
         {:error, "Cannot write the file #{absolute_thumbnails_path}: " <> reason}
-    end
-  end
-
-  @spec ocr_document({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}) ::
-          {:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}
-  defp ocr_document({:error, _reason} = error), do: error
-
-  defp ocr_document({:ok, %NewDocumentProcessingContext{:document => %{:file_path => file_path}} = context}) do
-    absolute_documents_path = Path.join([Application.get_env(:dms42, :documents_path) |> Path.absname(), file_path])
-
-    try do
-      case Dms42.Tesseract.scan!(absolute_documents_path) |> String.trim() do
-        "" -> {:ok, context}
-        x -> {:ok, %NewDocumentProcessingContext{context | ocr: x}}
-      end
-    rescue
-      _ ->
-        Logger.warn("Error while processing the OCR.")
-        {:ok, context}
     end
   end
 

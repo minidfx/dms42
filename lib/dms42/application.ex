@@ -11,9 +11,9 @@ defmodule Dms42.Application do
       # Start the Ecto repository
       supervisor(Dms42.Repo, []),
       # Start the endpoint when the application starts
-      supervisor(Dms42Web.Endpoint, [])
+      supervisor(Dms42Web.Endpoint, []),
       # Start your own worker by calling: Dms42.Worker.start_link(arg1, arg2, arg3)
-      # worker(Dms42.Worker, [arg1, arg2, arg3]),
+      worker(Dms42.OcrProcessor, [])
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

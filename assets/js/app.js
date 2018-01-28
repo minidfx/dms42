@@ -25,8 +25,10 @@ if (bodyTag)
 {
   var app = Elm.Main.embed(bodyTag[0]);
 
-  window.getUploadFields = function() {
+  window.getUploadFields = function(file) {
+    var file = file[0];
     return { document_type: $("select.form-control-document-type").val(),
-             tags: $("input.form-control-tags").tokenfield("getTokens").map(x => x.value) }
+             tags: $("input.form-control-tags").tokenfield("getTokens").map(x => x.value),
+             fileUnixTimestamp: file.lastModified}
    };
 }

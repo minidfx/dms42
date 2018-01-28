@@ -12,11 +12,13 @@ defmodule Dms42Web.DocumentsController do
           :path => temp_file_path
         },
         "tags" => tags,
-        "document_type" => document_type
+        "document_type" => document_type,
+        "fileUnixTimestamp" => file_timestamp
       }) do
     case DocumentsManager.add(
            original_file_name,
            mime_type,
+           file_timestamp |> String.to_integer |> Timex.from_unix(:milliseconds),
            document_type,
            tags |> String.split(",", trim: true),
            File.read!(temp_file_path)

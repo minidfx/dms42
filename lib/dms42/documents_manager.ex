@@ -8,16 +8,18 @@ defmodule Dms42.DocumentsManager do
   @spec add(
           file_name :: String.t(),
           mime_type :: String.t(),
+          original_file_datetime :: DateTime.t(),
           document_type :: Ecto.UUID,
           tags :: list(String.t()),
           bytes :: binary
         ) :: {:ok, Document} | {:error, reason :: String.t()}
-  def add(file_name, mime_type, document_type, tags, bytes) do
+  def add(file_name, mime_type, original_file_datetime, document_type, tags, bytes) do
     %NewDocumentProcessingContext{
       document: %Document{
         original_file_name: file_name,
         document_id: Ecto.UUID.bingenerate(),
         document_type_id: document_type,
+        original_file_datetime: original_file_datetime,
         mime_type: mime_type,
         hash: :crypto.hash(:sha256, bytes) |> Base.encode16()
       },

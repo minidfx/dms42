@@ -19,6 +19,7 @@ defmodule Dms42.Repo.Migrations.CreateDocuments do
       add :file_path, :string, null: false
       add :mime_type, :string, null: false
       add :hash, :string, size: 64, null: false
+      add :original_file_datetime, :naive_datetime, null: false
       add :document_type_id, references(:document_types, column: :type_id, type: :uuid), null: false
 
       timestamps()

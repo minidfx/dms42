@@ -10,6 +10,7 @@ defmodule Dms42.Models.Document do
     field(:document_id, Ecto.UUID)
     field(:mime_type, :string)
     field(:document_type_id, Ecto.UUID)
+    field(:original_file_datetime, :naive_datetime)
     field(:hash, :string)
 
     timestamps()
@@ -18,8 +19,8 @@ defmodule Dms42.Models.Document do
   @doc false
   def changeset(%Document{} = document, attrs) do
     document
-    |> cast(attrs, [:comments, :original_file_name, :file_path, :document_id, :mime_type, :hash, :document_type_id])
-    |> validate_required([:original_file_name, :file_path, :document_id, :mime_type, :hash, :document_type_id])
+    |> cast(attrs, [:comments, :original_file_name, :file_path, :document_id, :mime_type, :hash, :document_type_id, :original_file_datetime])
+    |> validate_required([:original_file_name, :file_path, :document_id, :mime_type, :hash, :document_type_id, :original_file_datetime])
     |> unique_constraint(:file_path)
     |> unique_constraint(:document_id)
     |> foreign_key_constraint(:document_type_id)

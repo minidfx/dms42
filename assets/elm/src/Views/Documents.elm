@@ -47,8 +47,7 @@ transformDocument { comments, insertedAt, updatedAt, document_id } =
         [ div [ class "thumbnail" ]
             [ img [ alt "", src ("/documents/thumbnail/" ++ document_id) ] []
             , div [ class "caption" ]
-                [ h3 [] [ text (datetime insertedAt) ]
-                , div [ style [ ( "margin-left", "0" ) ] ]
+                [ div [ style [ ( "margin-left", "0" ) ] ]
                     [ dl []
                         [ propertyKey "Last update"
                         , propertyValue (datetime updatedAt)

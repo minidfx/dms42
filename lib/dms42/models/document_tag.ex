@@ -15,5 +15,7 @@ defmodule Dms42.Models.DocumentTag do
     documentTag
     |> cast(attrs, [:document_id, :tag_id])
     |> validate_required([:document_id, :tag_id])
+    |> foreign_key_constraint(:document_id)
+    |> foreign_key_constraint(:tag_id)
   end
 end

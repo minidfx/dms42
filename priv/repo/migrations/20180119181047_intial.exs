@@ -39,15 +39,15 @@ defmodule Dms42.Repo.Migrations.CreateDocuments do
     create unique_index(:tags, :tag_id)
 
     create table(:documents_tags) do
-      add :document_id, references(:documents, column: :document_id, type: :uuid)
-      add :tag_id, references(:tags, column: :tag_id, type: :uuid)
+      add :document_id, references(:documents, column: :document_id, type: :uuid), null: false
+      add :tag_id, references(:tags, column: :tag_id, type: :uuid), null: false
 
       timestamps()
     end
 
     create table(:documents_ocr) do
-      add :document_id, references(:documents, column: :document_id, type: :uuid)
-      add :ocr, :string, null: true
+      add :document_id, references(:documents, column: :document_id, type: :uuid), null: false
+      add :ocr, :text, null: false
 
       timestamps()
     end

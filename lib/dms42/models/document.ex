@@ -22,5 +22,6 @@ defmodule Dms42.Models.Document do
     |> validate_required([:original_file_name, :file_path, :document_id, :mime_type, :hash, :document_type_id])
     |> unique_constraint(:file_path)
     |> unique_constraint(:document_id)
+    |> foreign_key_constraint(:document_type_id)
   end
 end

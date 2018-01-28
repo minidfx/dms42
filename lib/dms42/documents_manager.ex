@@ -1,8 +1,10 @@
 defmodule Dms42.DocumentsManager do
   require Logger
   alias Dms42.Models.Document
+  alias Dms42.Models.DocumentOcr
   alias Dms42.Models.DocumentTag
   alias Dms42.Models.Tag
+  alias Dms42.Models.NewDocumentProcessingContext
 
   @spec add(
           file_name :: String.t(),
@@ -12,18 +14,25 @@ defmodule Dms42.DocumentsManager do
           bytes :: binary
         ) :: {:ok, Document} | {:error, reason :: String.t()}
   def add(file_name, mime_type, document_type, tags, bytes) do
-    %Document{
-      original_file_name: file_name,
-      document_id: Ecto.UUID.bingenerate(),
-      document_type_id: document_type,
-      mime_type: mime_type,
-      hash: :crypto.hash(:sha256, bytes) |> Base.encode16()
+    %NewDocumentProcessingContext{
+      document: %Document{
+        original_file_name: file_name,
+        document_id: Ecto.UUID.bingenerate(),
+        document_type_id: document_type,
+        mime_type: mime_type,
+        hash: :crypto.hash(:sha256, bytes) |> Base.encode16()
+      },
+      transaction: Ecto.Multi.new()
     }
     |> valid_file_type
     |> valid_file_path
     |> is_document_exist
     |> save_file(bytes)
-    |> insert_to_database(tags)
+    |> ocr_document
+    |> insert_to_database
+    |> insert_tags(tags)
+    |> insert_ocr
+    |> commit
   end
 
   @spec remove(document_id :: integer) :: :ok | {:error, reason :: String.t()}
@@ -36,69 +45,130 @@ defmodule Dms42.DocumentsManager do
     {:error, "Not implemented"}
   end
 
-  @spec insert_tags(transactionMulti :: Ecto.Multi, document_id :: Ecto.UUID, list(String.t())) :: Ecto.Multi
-  defp insert_tags(transactionMulti, _document_id, []), do: transactionMulti
+  @spec commit({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}) ::
+          {:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}
+  defp commit({:error, _reason} = error), do: error
 
-  defp insert_tags(transactionMulti, document_id, [head | tail]) do
+  defp commit({:ok, %NewDocumentProcessingContext{:transaction => transaction, :document => document}}) do
+    case Dms42.Repo.transaction(transaction) do
+      {:error, table, changeset, _} ->
+        %Document{:file_path => file_path} = document
+        base_documents_path = Application.get_env(:dms42, :documents_path) |> Path.absname()
+        base_thumbnails_path = Application.get_env(:dms42, :thumbnails_path) |> Path.absname()
+        absolute_documents_path = Path.join([base_documents_path, file_path])
+        absolute_thumbnails_path = Path.join([base_thumbnails_path, file_path])
+
+        File.rm!(absolute_documents_path)
+        File.rm!(absolute_thumbnails_path)
+
+        IO.inspect(changeset)
+        {:error, "Cannot save the transaction because the table #{table} thrown an error."}
+
+      {:error, changeset} ->
+        IO.inspect(changeset)
+        {:error, "Cannot save the transaction."}
+
+      {:ok, _} ->
+        {:ok, document}
+    end
+  end
+
+  @spec insert_tags({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}, list(String.t())) ::
+          {:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}
+  defp insert_tags({:error, _reason} = error, _), do: error
+
+  defp insert_tags(result, []), do: result
+
+  defp insert_tags({:ok, %NewDocumentProcessingContext{:transaction => transaction, :document => %Document{:document_id => document_id}} = context}, [
+         head | tail
+       ]) do
     case Dms42.Repo.get_by(Tag, name: head) do
       nil ->
         tag_id = Ecto.UUID.bingenerate()
 
-        transactionMulti
-        |> Ecto.Multi.insert("Tag#{head}", Tag.changeset(%Tag{}, %{name: head, tag_id: tag_id}))
-        |> Ecto.Multi.insert(
-          "DocumentTag#{head}",
-          DocumentTag.changeset(%DocumentTag{}, %{document_id: document_id, tag_id: tag_id})
+        insert_tags(
+          {:ok,
+           %NewDocumentProcessingContext{
+             context
+             | :transaction =>
+                 transaction
+                 |> Ecto.Multi.insert("Tag#{head}", Tag.changeset(%Tag{}, %{name: head, tag_id: tag_id}))
+                 |> Ecto.Multi.insert(
+                   "DocumentTag#{head}",
+                   DocumentTag.changeset(%DocumentTag{}, %{document_id: document_id, tag_id: tag_id})
+                 )
+           }},
+          tail
         )
-        |> insert_tags(document_id, tail)
 
       %Tag{:tag_id => tag_id} ->
-        transactionMulti
-        |> Ecto.Multi.insert(
-          "DocumentTag#{head}",
-          DocumentTag.changeset(%DocumentTag{}, %{document_id: document_id, tag_id: tag_id})
+        insert_tags(
+          {:ok,
+           %NewDocumentProcessingContext{
+             context
+             | :transaction =>
+                 transaction
+                 |> Ecto.Multi.insert(
+                   "DocumentTag#{head}",
+                   DocumentTag.changeset(%DocumentTag{}, %{document_id: document_id, tag_id: tag_id})
+                 )
+           }},
+          tail
         )
-        |> insert_tags(document_id, tail)
     end
   end
 
-  @spec insert_to_database({:ok, Document} | {:error, reason :: String.t()}, list(String.t())) :: {:ok, Document} | {:error, reason :: String.t()}
-  defp insert_to_database({:error, _reason} = error, _tags), do: error
+  @spec insert_to_database({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}) ::
+          {:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}
+  defp insert_to_database({:error, _reason} = error), do: error
 
-  defp insert_to_database({:ok, %Document{:document_id => document_id} = document}, tags) do
-    result =
-      Ecto.Multi.new()
-      |> Ecto.Multi.insert(
-        :document,
-        Document.changeset(%Document{}, document |> Map.from_struct())
-      )
-      |> insert_tags(document_id, tags)
-      |> Dms42.Repo.transaction()
-
-    case result do
-      {:error, table, changeset, _} ->
-        IO.inspect(changeset)
-        {:error, "Cannot save the transaction because the table #{table} thrown an error."}
-
-      {:error, _changeset} ->
-        {:error, "Cannot save the transaction."}
-
-      {:ok, document_inserted} ->
-        {:ok, document_inserted}
-    end
+  defp insert_to_database({:ok, %NewDocumentProcessingContext{:transaction => transaction, :document => document} = context}) do
+    {:ok,
+     %NewDocumentProcessingContext{
+       context
+       | transaction:
+           transaction
+           |> Ecto.Multi.insert(
+             :document,
+             Document.changeset(%Document{}, document |> Map.from_struct())
+           )
+     }}
   end
+
+  @spec insert_ocr({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}) ::
+          {:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}
+  defp insert_ocr({:error, _reason} = error), do: error
+
+  defp insert_ocr({:ok, %NewDocumentProcessingContext{:ocr => nil}} = result), do: result
+
+  defp insert_ocr(
+         {:ok, %NewDocumentProcessingContext{:ocr => ocr, :transaction => transaction, :document => %Document{:document_id => document_id}} = context}
+       ),
+       do:
+         {:ok,
+          %NewDocumentProcessingContext{
+            context
+            | transaction:
+                Ecto.Multi.insert(
+                  transaction,
+                  "DocumentOcr_#{document_id}",
+                  DocumentOcr.changeset(%DocumentOcr{}, %{:document_id => document_id, :ocr => ocr})
+                )
+          }}
 
   @spec update(document :: Document) :: :ok | {:error, reason :: String.t()}
   def update(%Document{}) do
     {:error, "Not implemented"}
   end
 
+  @spec is_document_exist({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}) ::
+          {:ok, NewDocumentProcessingContext} | {:error, String.t()}
   defp is_document_exist({:error, _} = error), do: error
 
-  defp is_document_exist({:ok, %Document{:hash => hash} = document}) do
+  defp is_document_exist({:ok, %NewDocumentProcessingContext{:document => %{:hash => hash}} = context}) do
     case Dms42.Repo.get_by(Document, hash: hash) do
       nil ->
-        {:ok, document}
+        {:ok, context}
 
       %Document{:document_id => document_id, :original_file_name => file_name} ->
         Logger.info("The document #{file_name} conflict with the document #{document_id}")
@@ -106,10 +176,11 @@ defmodule Dms42.DocumentsManager do
     end
   end
 
-  @spec valid_file_path({:ok, Document} | {:error, reason :: String.t()}) :: {:ok, Document} | {:error, reason :: String.t()}
+  @spec valid_file_path({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}) ::
+          {:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}
   defp valid_file_path({:error, _reason} = error), do: error
 
-  defp valid_file_path({:ok, %Document{:document_id => document_id} = document}) do
+  defp valid_file_path({:ok, %NewDocumentProcessingContext{:document => %Document{:document_id => document_id} = document} = context}) do
     %{:year => year, :month => month, :day => day} = DateTime.utc_now()
     base_documents_path = Application.get_env(:dms42, :documents_path) |> Path.absname()
     base_thumbnails_path = Application.get_env(:dms42, :thumbnails_path) |> Path.absname()
@@ -129,7 +200,7 @@ defmodule Dms42.DocumentsManager do
     case {documents_directories_result, documents_thumbnails_result} do
       {:ok, :ok} ->
         {:ok, uuid} = document_id |> Ecto.UUID.load()
-        {:ok, %Document{document | file_path: Path.join([relative_path, uuid])}}
+        {:ok, %NewDocumentProcessingContext{context | document: %Document{document | file_path: Path.join([relative_path, uuid])}}}
 
       {_, {:error, reason}} ->
         {:error, "Cannot create the folder structure #{absolute_thumbnails_directory_path}: " <> Atom.to_string(reason)}
@@ -139,10 +210,14 @@ defmodule Dms42.DocumentsManager do
     end
   end
 
-  @spec save_file({:ok, Document} | {:error, reason :: String.t()}, binary) :: {:ok, Document} | {:error, reason :: String.t()}
+  @spec save_file({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}, binary) ::
+          {:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}
   defp save_file({:error, _reason} = error, _bytes), do: error
 
-  defp save_file({:ok, %Document{:original_file_name => file_name, :file_path => file_path} = document}, bytes) do
+  defp save_file(
+         {:ok, %NewDocumentProcessingContext{:document => %Document{:original_file_name => file_name, :file_path => file_path}} = context},
+         bytes
+       ) do
     if File.exists?(file_path) do
       raise "File already exists, exception currently not supported."
     end
@@ -162,7 +237,7 @@ defmodule Dms42.DocumentsManager do
     case {document_write_result, thumbnail_write_result} do
       {:ok, {:ok, _}} ->
         Logger.debug("File #{file_name} wrote to #{absolute_documents_path}.")
-        {:ok, document}
+        {:ok, context}
 
       {{:error, reason}, _} ->
         {:error, "Cannot write the file #{absolute_documents_path}: " <> Atom.to_string(reason)}
@@ -172,13 +247,32 @@ defmodule Dms42.DocumentsManager do
     end
   end
 
-  @spec valid_file_type(Document) :: {:ok, Document} | {:error, reason :: String.t()}
-  defp valid_file_type(%Document{:mime_type => mime_type, :original_file_name => file_name} = document) do
+  @spec ocr_document({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}) ::
+          {:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}
+  defp ocr_document({:error, _reason} = error), do: error
+
+  defp ocr_document({:ok, %NewDocumentProcessingContext{:document => %{:file_path => file_path}} = context}) do
+    absolute_documents_path = Path.join([Application.get_env(:dms42, :documents_path) |> Path.absname(), file_path])
+
+    try do
+      case Dms42.Tesseract.scan!(absolute_documents_path) |> String.trim() do
+        "" -> {:ok, context}
+        x -> {:ok, %NewDocumentProcessingContext{context | ocr: x}}
+      end
+    rescue
+      _ ->
+        Logger.warn("Error while processing the OCR.")
+        {:ok, context}
+    end
+  end
+
+  @spec valid_file_type(NewDocumentProcessingContext) :: {:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}
+  defp valid_file_type(%{:document => %Document{:mime_type => mime_type, :original_file_name => file_name}} = context) do
     allowed_types = ["application/pdf", "image/jpeg", "image/png"]
 
     case Enum.any?(allowed_types, fn x -> x == mime_type end) do
       false -> {:error, " The file #{file_name} is not supported: #{mime_type}"}
-      true -> {:ok, document}
+      true -> {:ok, context}
     end
   end
 end

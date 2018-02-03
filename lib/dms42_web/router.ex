@@ -25,6 +25,8 @@ defmodule Dms42Web.Router do
   scope "/api", Dms42Web do
     pipe_through(:api)
 
+    get("/documents", DocumentsController, :documents)
+    get("/document-types", DocumentsController, :document_types)
     post("/documents", DocumentsController, :upload_documents)
   end
 end

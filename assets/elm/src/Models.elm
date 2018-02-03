@@ -1,4 +1,4 @@
-module Models.Application exposing (..)
+module Models exposing (AppState, Msg, Document, DocumentType, Msg(..), initialModel)
 
 import Routing exposing (Route)
 import Rfc2822Datetime exposing (..)
@@ -7,6 +7,8 @@ import Phoenix.Socket
 import Phoenix.Channel
 import Navigation exposing (Location)
 import Json.Encode
+import Http exposing (Error)
+import Dict exposing (Dict)
 
 
 type alias Document =
@@ -25,13 +27,9 @@ type alias DocumentType =
     }
 
 
-type alias UploadDocument =
-    { fileName : String }
-
-
-type alias AppModel =
+type alias AppState =
     { route : Route
-    , documents : List Document
+    , documents : Maybe (Dict String Document)
     , documentTypes : List DocumentType
     , phxSocket : Phoenix.Socket.Socket Msg
     }
@@ -40,19 +38,21 @@ type alias AppModel =
 type Msg
     = OnLocationChange Location
     | PhoenixMsg (Phoenix.Socket.Msg Msg)
-    | DocumentTypes Json.Encode.Value
-    | Documents Json.Encode.Value
+    | OnDocumentTypes (Result Http.Error (List DocumentType))
+    | OnDocuments (Result Http.Error (List Document))
+    | OnDocument Json.Encode.Value
 
 
-initialModel : Route -> AppModel
+initialModel : Route -> AppState
 initialModel route =
     { route = route
-    , documents =
-        []
+    , documents = Nothing
     , documentTypes = []
     , phxSocket =
         Phoenix.Socket.init "ws://localhost:4000/socket/websocket"
             |> Phoenix.Socket.withDebug
-            |> Phoenix.Socket.on "documentTypes" "documents:lobby" DocumentTypes
-            |> Phoenix.Socket.on "documents" "documents:lobby" Documents
+
+    -- |> Phoenix.Socket.on "OnDocumentTypes" "documents:lobby" OnDocumentTypes
+    -- |> Phoenix.Socket.on "documents" "documents:lobby" OnDocuments
+    -- |> Phoenix.Socket.on "document" "documents:lobby" OnDocument
     }

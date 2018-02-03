@@ -3,6 +3,9 @@ defmodule Dms42Web.DocumentsController do
 
   alias Dms42.DocumentsManager
   alias Dms42.Models.Document
+  alias Dms42.Models.DocumentType
+
+  import Ecto.Query
 
   @doc false
   def upload_documents(conn, %{
@@ -43,9 +46,59 @@ defmodule Dms42Web.DocumentsController do
     |> send_file(200, absolute_file_path)
   end
 
+  @doc false
+  def documents(conn, %{"start" => start, "length" => length}) do
+    documents =
+      from(d in Document, limit: ^length, offset: ^start, order_by: d.inserted_at)
+      |> Dms42.Repo.all()
+      |> Enum.map(fn %{
+                       :comments => comments,
+                       :document_id => d_id,
+                       :document_type_id => doc_type_id,
+                       :inserted_at => inserted,
+                       :updated_at => updated,
+                       :file_path => file_path
+                     } ->
+        %{
+          "insertedAt" => inserted |> to_rfc2822,
+          "updatedAt" => updated |> to_rfc2822,
+          "thumbnailPath" => file_path |> transform_to_frontend_url,
+          "comments" => comments |> null_to_string,
+          "document_id" => d_id,
+          "document_type_id" => doc_type_id
+        }
+      end)
+
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(200, documents |> Poison.encode!)
+  end
+
+  def document_types(conn, _params) do
+    document_types =
+      DocumentType
+      |> Dms42.Repo.all()
+      |> Enum.map(fn %{:name => name, :type_id => type_id} -> %{"name" => name, "id" => type_id} end)
+
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(200, document_types |> Poison.encode!)
+  end
+
+  defp null_to_string(string) when is_nil(string), do: ""
+  defp null_to_string(string), do: string
+
+  defp transform_to_frontend_url(path), do: "/images/thumbnails/#{path}"
+
+  defp to_rfc2822(datetime) do
+    {:ok, rfc2822} = Timex.format(datetime, "%a, %d %b %Y %H:%M:%S +0000", :strftime)
+    rfc2822
+  end
+
   @spec error_plain_text(connection :: Plug.Conn, reason :: String.t()) :: no_return
   defp error_plain_text(conn, reason) do
-    conn |> put_resp_content_type("text/plain")
+    conn
+    |> put_resp_content_type("text/plain")
     |> send_resp(400, reason)
   end
 end

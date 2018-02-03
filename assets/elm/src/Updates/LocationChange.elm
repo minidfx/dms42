@@ -1,33 +1,24 @@
 module Updates.LocationChange exposing (..)
 
 import Routing exposing (..)
-import Models.Application exposing (..)
+import Models exposing (AppState, Msg, Msg(..))
 import Navigation exposing (Location)
 import Json.Encode as JE exposing (object, int)
-import Phoenix.Push
-import Phoenix.Socket
+import Phoenix.Push exposing (withPayload)
+import Phoenix.Socket exposing (push)
+import Debug exposing (log)
+import Updates.Documents exposing (fetchDocuments)
 
 
-dispatch : Location -> Models.Application.AppModel -> ( Models.Application.AppModel, Cmd Models.Application.Msg )
+dispatch : Location -> AppState -> ( AppState, Cmd Msg )
 dispatch location model =
     let
         route =
-            Routing.parseLocation location
+            Routing.parseLocation (log "location" location)
     in
         case route of
             Routing.Documents ->
-                let
-                    payload =
-                        object [ ( "start", int 0 ), ( "length", int 50 ) ]
-
-                    push_ =
-                        Phoenix.Push.init "documents" "documents:lobby"
-                            |> Phoenix.Push.withPayload payload
-
-                    ( phxSocket, phxCmd ) =
-                        Phoenix.Socket.push push_ model.phxSocket
-                in
-                    ( { model | route = route }, Cmd.map PhoenixMsg phxCmd )
+                ( { model | route = route }, fetchDocuments 0 50 )
 
             Routing.Settings ->
                 ( { model | route = route }, Cmd.none )

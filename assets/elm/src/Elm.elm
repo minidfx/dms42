@@ -1,8 +1,9 @@
 module Main exposing (..)
 
 import Layout exposing (..)
-import Html exposing (..)
-import Models.Application exposing (..)
+import Html exposing (Html)
+import Http exposing (send)
+import Models exposing (AppState, Document, Msg, Msg(..), initialModel)
 import Routing exposing (..)
 import Navigation exposing (Location)
 import Views.Home exposing (..)
@@ -14,35 +15,38 @@ import Phoenix.Socket
 import Phoenix.Channel
 import Phoenix.Push
 import Debug exposing (log)
+import Json.Encode as JE exposing (object, int)
 import Json.Decode exposing (field)
 import Updates.Documents exposing (..)
+import Updates.Document exposing (updateDocument)
 import Updates.LocationChange exposing (dispatch)
+import String exposing (words)
 
 
-init : Location -> ( Models.Application.AppModel, Cmd Models.Application.Msg )
+init : Location -> ( AppState, Cmd Msg )
 init location =
     let
         currentRoute =
             Routing.parseLocation location
 
         initialModel =
-            Models.Application.initialModel currentRoute
+            Models.initialModel currentRoute
 
         { phxSocket } =
             initialModel
 
-        ( newPhxSocket, phxCmd ) =
+        ( initPhxSocket, phxCmd ) =
             Phoenix.Socket.join (Phoenix.Channel.init "documents:lobby") phxSocket
     in
-        ( { initialModel | phxSocket = newPhxSocket }, Cmd.map PhoenixMsg phxCmd )
+        ( { initialModel | phxSocket = initPhxSocket }, Cmd.batch [ Cmd.map PhoenixMsg phxCmd, fetchDocumentTypes, fetchDocuments 0 50 ] )
 
 
-subscriptions : Models.Application.AppModel -> Sub Models.Application.Msg
+subscriptions : AppState -> Sub Msg
 subscriptions model =
     Phoenix.Socket.listen model.phxSocket PhoenixMsg
 
 
-view : Models.Application.AppModel -> Html Msg
+view : AppState -> Html Msg
 view model =
     case model.route of
         Routing.Home ->
@@ -61,29 +65,32 @@ view model =
             Layout.layout model (Views.Settings.index model)
 
 
-update : Models.Application.Msg -> Models.Application.AppModel -> ( Models.Application.AppModel, Cmd Models.Application.Msg )
+update : Msg -> AppState -> ( AppState, Cmd Msg )
 update msg model =
     case msg of
-        Models.Application.OnLocationChange location ->
+        OnLocationChange location ->
             dispatch location model
 
-        Models.Application.PhoenixMsg msg ->
+        PhoenixMsg msg ->
             let
                 ( phxSocket, phxCmd ) =
                     Phoenix.Socket.update msg model.phxSocket
             in
                 ( { model | phxSocket = phxSocket }, Cmd.map PhoenixMsg phxCmd )
 
-        Models.Application.DocumentTypes json ->
-            ( updateDocumentTypes model json, Cmd.none )
+        OnDocumentTypes result ->
+            ( updateOnDocumentTypes model result, Cmd.none )
 
-        Models.Application.Documents json ->
-            ( updateDocuments model json, Cmd.none )
+        OnDocuments result ->
+            ( updateDocuments model result, Cmd.none )
+
+        OnDocument json ->
+            ( updateDocument model json, Cmd.none )
 
 
-main : Program Never Models.Application.AppModel Models.Application.Msg
+main : Program Never AppState Msg
 main =
-    Navigation.program Models.Application.OnLocationChange
+    Navigation.program OnLocationChange
         { init = init
         , view = view
         , update = update

@@ -3,7 +3,7 @@ module Views.AddDocuments exposing (..)
 import Html exposing (Html, Attribute, div, h1, text, input, h3, select, option, span, node)
 import Html.Lazy exposing (..)
 import Html.Attributes exposing (class, classList, src, href, title, id, value, selected, type_)
-import Models.Application exposing (..)
+import Models exposing (AppState, Msg, Document, DocumentType)
 import Html.Events exposing (on)
 import Json.Decode as Json
 
@@ -13,7 +13,7 @@ script code =
     node "script" [ type_ "text/javascript" ] [ text code ]
 
 
-index : Models.Application.AppModel -> Html Msg
+index : AppState -> Html Msg
 index model =
     div []
         [ div [ class "row" ]

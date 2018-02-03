@@ -2,24 +2,35 @@ module Views.Documents exposing (..)
 
 import Html exposing (Html, div, h1, text, input, img, p, h3, span, dl, dt, dd, a)
 import Html.Attributes exposing (class, classList, src, alt, style, property, href)
-import Models.Application exposing (..)
+import Html.Events exposing (onClick)
+import Models exposing (AppState, Msg, Document)
 import Formatting exposing (s, int, any, (<>), print)
 import Rfc2822Datetime exposing (..)
 import Json.Encode as Encode
 import String exposing (padRight)
 import Views.Common exposing (waitForItems)
+import Dict exposing (Dict, toList, values)
 
 
-index : Models.Application.AppModel -> Html Msg
+index : AppState -> Html Msg
 index model =
-    div []
-        [ div [ class "panel panel-default" ]
-            [ div [ class "panel-body" ]
-                [ a [ href "#add-documents", class "btn btn-primary" ] [ text "Add documents" ]
+    let
+        documents =
+            case model.documents of
+                Nothing ->
+                    Nothing
+
+                Just x ->
+                    Just (Dict.values x)
+    in
+        div []
+            [ div [ class "panel panel-default" ]
+                [ div [ class "panel-body" ]
+                    [ a [ href "#add-documents", class "btn btn-primary" ] [ text "Add documents" ]
+                    ]
                 ]
+            , waitForItems documents documentBlocks
             ]
-        , waitForItems model.documents documentBlocks
-        ]
 
 
 datetime : Datetime -> String
@@ -39,14 +50,16 @@ propertyValue value =
 
 thumbnailBlock : Document -> Html Msg
 thumbnailBlock { comments, insertedAt, updatedAt, document_id } =
-    div [ class "col-sm-4 col-md-2" ]
-        [ div [ class "thumbnail" ]
-            [ img [ alt "", src ("/documents/thumbnail/" ++ document_id) ] []
-            , div [ class "caption" ]
-                [ div [ style [ ( "margin-left", "0" ) ] ]
-                    [ dl []
-                        [ propertyKey "Last update"
-                        , propertyValue (datetime updatedAt)
+    a [ href ("#documents/" ++ document_id) ]
+        [ div [ class "col-sm-4 col-md-2" ]
+            [ div [ class "thumbnail" ]
+                [ img [ alt "", src ("/documents/thumbnail/" ++ document_id) ] []
+                , div [ class "caption" ]
+                    [ div [ style [ ( "margin-left", "0" ) ] ]
+                        [ dl []
+                            [ propertyKey "Last update"
+                            , propertyValue (datetime updatedAt)
+                            ]
                         ]
                     ]
                 ]

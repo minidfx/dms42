@@ -2,7 +2,7 @@ module Layout exposing (..)
 
 import Html exposing (Html, div, text, h3, nav, ul, li, a, span)
 import Html.Attributes exposing (class, classList, href)
-import Models.Application exposing (..)
+import Models exposing (AppState, Msg)
 import Routing exposing (..)
 
 
@@ -18,12 +18,12 @@ isActive expectedRoute route =
     (==) expectedRoute route
 
 
-isDocumentsActive : Models.Application.AppModel -> Bool
+isDocumentsActive : AppState -> Bool
 isDocumentsActive model =
-    (isActive Routing.Documents model.route) || (isActive (Routing.Document 0) model.route) || (isActive (Routing.AddDocuments) model.route)
+    (isActive Routing.Documents model.route) || (isActive (Routing.Document "0") model.route) || (isActive (Routing.AddDocuments) model.route)
 
 
-layout : Models.Application.AppModel -> Html Msg -> Html Msg
+layout : AppState -> Html Msg -> Html Msg
 layout model body =
     div [ class "container" ]
         [ div [ class "masthead" ]

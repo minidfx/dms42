@@ -2,11 +2,11 @@ module Views.Settings exposing (..)
 
 import Html exposing (Html, div, h1, text, input, img, a, span)
 import Html.Attributes exposing (class, classList, src, href, title, style)
-import Models.Application exposing (..)
+import Models exposing (AppState, Msg)
 import Formatting exposing (s, float, (<>), print)
 
 
-index : Models.Application.AppModel -> Html Msg
+index : AppState -> Html Msg
 index model =
     div [ class "row" ]
         [ div [ class "col-md-2" ]

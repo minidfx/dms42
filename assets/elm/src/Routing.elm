@@ -4,14 +4,10 @@ import Navigation exposing (Location)
 import UrlParser exposing (..)
 
 
-type alias DocumentId =
-    Int
-
-
 type Route
     = Home
     | AddDocuments
-    | Document DocumentId
+    | Document String
     | Documents
     | Settings
 
@@ -21,7 +17,7 @@ matchers =
     oneOf
         [ map Home top
         , map AddDocuments (s "add-documents")
-        , map Document (s "documents" </> int)
+        , map Document (s "documents" </> string)
         , map Documents (s "documents")
         , map Settings (s "settings")
         ]

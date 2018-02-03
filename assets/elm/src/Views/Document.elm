@@ -2,10 +2,9 @@ module Views.Document exposing (..)
 
 import Html exposing (Html, div, h1, text, input)
 import Html.Attributes exposing (class, classList)
-import Models.Application exposing (..)
-import Routing exposing (DocumentId)
+import Models exposing (AppState, Msg)
 
 
-index : Models.Application.AppModel -> DocumentId -> Html Msg
-index model documentId =
+index : AppState -> String -> Html Msg
+index model json =
     div [] []

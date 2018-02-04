@@ -4,10 +4,14 @@ import Navigation exposing (Location)
 import UrlParser exposing (..)
 
 
+type alias DocumentId =
+    String
+
+
 type Route
     = Home
     | AddDocuments
-    | Document String
+    | Document DocumentId
     | Documents
     | Settings
 

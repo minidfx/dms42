@@ -55,7 +55,7 @@ tagsBlock items acc =
             acc
 
         head :: tail ->
-            tagsBlock tail ((span [ class "label label-info" ] [ text head ]) :: acc)
+            tagsBlock tail ((span [ class "label label-info", style [ ( "margin-right", "5px" ) ] ] [ text head ]) :: acc)
 
 
 thumbnailBlock : Document -> Html Msg

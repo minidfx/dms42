@@ -25,10 +25,31 @@ if (bodyTag)
 {
   var app = Elm.Main.embed(bodyTag[0]);
 
-  window.getUploadFields = function(file) {
+  window.getUploadFields = function(file)
+  {
     var file = file[0];
-    return { document_type: $("select.form-control-document-type").val(),
-             tags: $("input.form-control-tags").tokenfield("getTokens").map(x => x.value),
-             fileUnixTimestamp: file.lastModified}
-   };
+    return {
+      document_type: $("select.form-control-document-type")
+        .val(),
+      tags: $("input.form-control-tags")
+        .tokenfield("getTokens")
+        .map(x => x.value),
+      fileUnixTimestamp: file.lastModified
+    }
+  };
+
+  window.loadDropZone = function()
+  {
+    $("div.dropzone")
+      .dropzone(
+      {
+        url: "/api/documents",
+        acceptedFiles: "image/png,image/jpeg,application/pdf",
+        params: getUploadFields,
+        autoProcessQueue: true,
+        parallelUploads: 1000,
+        ignoreHiddenFiles: true,
+        acceptedFiles: "image/*,application/pdf"
+      });
+  };
 }

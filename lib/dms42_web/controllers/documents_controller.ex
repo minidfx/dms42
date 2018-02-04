@@ -5,6 +5,7 @@ defmodule Dms42Web.DocumentsController do
   alias Dms42.Models.Document
   alias Dms42.Models.DocumentType
   alias Dms42.Models.DocumentTag
+  alias Dms42.Models.Tag
 
   import Ecto.Query
 
@@ -41,6 +42,19 @@ defmodule Dms42Web.DocumentsController do
     %{:file_path => relative_file_path} = Dms42.Repo.get_by(Document, document_id: document_id)
     base_thumbnails_path = Application.get_env(:dms42, :thumbnails_path) |> Path.absname()
     absolute_file_path = Path.join(base_thumbnails_path, relative_file_path)
+
+    conn
+    |> put_resp_content_type("image/png")
+    |> send_file(200, absolute_file_path)
+  end
+
+  def document(conn, %{"document_id" => document_id}) do
+    query = from Document,
+            where: [document_id: ^document_id],
+            select: [:file_path]
+    %{:file_path => relative_file_path} = query |> Dms42.Repo.one
+    base_document_path = Application.get_env(:dms42, :documents_path) |> Path.absname()
+    absolute_file_path = Path.join(base_document_path, relative_file_path)
 
     conn
     |> put_resp_content_type("image/png")
@@ -91,12 +105,13 @@ defmodule Dms42Web.DocumentsController do
 
   @spec tags(document_id :: integer) :: list(String.t)
   defp tags(document_id) do
-    from dt in DocumentTag,
-    join: t in Tag,
-    on: [tag_id: dt.tag_id],
-    where: [document_id: ^document_id]
-    # select: {t.name}
-    |> Dms42.Repo.all
+    query = from dt in DocumentTag,
+            join: t in Tag,
+            on: [tag_id: dt.tag_id],
+            where: [document_id: ^document_id],
+            order_by: [dt.inserted_at],
+            select: t.name
+    query |> Dms42.Repo.all
   end
 
   defp null_to_string(string) when is_nil(string), do: ""

@@ -4,6 +4,7 @@ defmodule Dms42Web.DocumentsController do
   alias Dms42.DocumentsManager
   alias Dms42.Models.Document
   alias Dms42.Models.DocumentType
+  alias Dms42.Models.DocumentTag
 
   import Ecto.Query
 
@@ -51,13 +52,15 @@ defmodule Dms42Web.DocumentsController do
     documents =
       from(d in Document, limit: ^length, offset: ^start, order_by: d.inserted_at)
       |> Dms42.Repo.all()
+      |> Enum.map(fn %{:document_id => d_id} = document -> Map.put(document, :tags, tags(d_id)) end)
       |> Enum.map(fn %{
                        :comments => comments,
                        :document_id => d_id,
                        :document_type_id => doc_type_id,
                        :inserted_at => inserted,
                        :updated_at => updated,
-                       :file_path => file_path
+                       :file_path => file_path,
+                       :tags => tags
                      } ->
         %{
           "insertedAt" => inserted |> to_rfc2822,
@@ -65,7 +68,8 @@ defmodule Dms42Web.DocumentsController do
           "thumbnailPath" => file_path |> transform_to_frontend_url,
           "comments" => comments |> null_to_string,
           "document_id" => d_id,
-          "document_type_id" => doc_type_id
+          "document_type_id" => doc_type_id,
+          "tags" => tags
         }
       end)
 
@@ -83,6 +87,16 @@ defmodule Dms42Web.DocumentsController do
     conn
     |> put_resp_content_type("application/json")
     |> send_resp(200, document_types |> Poison.encode!)
+  end
+
+  @spec tags(document_id :: integer) :: list(String.t)
+  defp tags(document_id) do
+    from dt in DocumentTag,
+    join: t in Tag,
+    on: [tag_id: dt.tag_id],
+    where: [document_id: ^document_id]
+    # select: {t.name}
+    |> Dms42.Repo.all
   end
 
   defp null_to_string(string) when is_nil(string), do: ""

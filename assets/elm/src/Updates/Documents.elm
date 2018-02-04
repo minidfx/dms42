@@ -79,13 +79,14 @@ documentsDecoder =
 
 documentDecoder : JD.Decoder Document
 documentDecoder =
-    JD.map6 Document
+    JD.map7 Document
         (field "thumbnailPath" string)
         (field "insertedAt" datetime)
         (field "updatedAt" datetime)
         (field "comments" string)
         (field "document_id" string)
         (field "document_type_id" string)
+        (field "tags" (list string))
 
 
 documentTypesDecoder : JD.Decoder (List DocumentType)

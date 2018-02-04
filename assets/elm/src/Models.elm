@@ -18,6 +18,7 @@ type alias Document =
     , comments : String
     , document_id : String
     , document_type_id : String
+    , tags : List String
     }
 
 
@@ -51,8 +52,4 @@ initialModel route =
     , phxSocket =
         Phoenix.Socket.init "ws://localhost:4000/socket/websocket"
             |> Phoenix.Socket.withDebug
-
-    -- |> Phoenix.Socket.on "OnDocumentTypes" "documents:lobby" OnDocumentTypes
-    -- |> Phoenix.Socket.on "documents" "documents:lobby" OnDocuments
-    -- |> Phoenix.Socket.on "document" "documents:lobby" OnDocument
     }

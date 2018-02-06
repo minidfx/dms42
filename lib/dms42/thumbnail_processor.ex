@@ -3,10 +3,14 @@ defmodule Dms42.ThumbnailProcessor do
   require Logger
 
   def start_link() do
-    GenServer.start(__MODULE__,
-                    %{thumbnails_path: Application.get_env(:dms42, :thumbnails_path) |> Path.absname,
-                    documents_path: Application.get_env(:dms42, :documents_path) |> Path.absname},
-                    name: :thumbnail)
+    GenServer.start(
+      __MODULE__,
+      %{
+        thumbnails_path: Application.get_env(:dms42, :thumbnails_path) |> Path.absname(),
+        documents_path: Application.get_env(:dms42, :documents_path) |> Path.absname()
+      },
+      name: :thumbnail
+    )
   end
 
   def handle_cast({:process, file_path, "application/pdf"}, %{:thumbnails_path => tp, :documents_path => dp} = state) do
@@ -32,6 +36,7 @@ defmodule Dms42.ThumbnailProcessor do
     rescue
       x -> IO.inspect(x)
     end
+
     {:noreply, state}
   end
 
@@ -50,6 +55,7 @@ defmodule Dms42.ThumbnailProcessor do
     rescue
       x -> IO.inspect(x)
     end
+
     {:noreply, state}
   end
 

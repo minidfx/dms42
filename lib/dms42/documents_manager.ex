@@ -36,6 +36,7 @@ defmodule Dms42.DocumentsManager do
     |> insert_to_database
     |> insert_tags(tags)
     |> commit
+
     {:noreply, state}
   end
 
@@ -88,7 +89,7 @@ defmodule Dms42.DocumentsManager do
              context
              | :transaction =>
                  transaction
-                 |> Ecto.Multi.insert("Tag#{head}", Tag.changeset(%Tag{}, %{name: head |> String.trim |> String.Casing.downcase, tag_id: tag_id}))
+                 |> Ecto.Multi.insert("Tag#{head}", Tag.changeset(%Tag{}, %{name: head |> String.trim() |> String.Casing.downcase(), tag_id: tag_id}))
                  |> Ecto.Multi.insert(
                    "DocumentTag#{head}",
                    DocumentTag.changeset(%DocumentTag{}, %{document_id: document_id, tag_id: tag_id})

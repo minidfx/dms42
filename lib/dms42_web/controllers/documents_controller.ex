@@ -19,12 +19,12 @@ defmodule Dms42Web.DocumentsController do
         "document_type" => document_type,
         "fileUnixTimestamp" => file_timestamp
       }) do
-    GenServer.cast(:documents_manager, {:process, original_file_name,
-                                                  mime_type,
-                                                  file_timestamp |> String.to_integer |> Timex.from_unix(:milliseconds),
-                                                  document_type,
-                                                  tags |> String.split(",", trim: true),
-                                                  File.read!(temp_file_path)})
+    GenServer.cast(
+      :documents_manager,
+      {:process, original_file_name, mime_type, file_timestamp |> String.to_integer() |> Timex.from_unix(:milliseconds), document_type,
+       tags |> String.split(",", trim: true), File.read!(temp_file_path)}
+    )
+
     conn |> send_resp(200, "")
   end
 
@@ -44,10 +44,14 @@ defmodule Dms42Web.DocumentsController do
   end
 
   def document(conn, %{"document_id" => document_id}) do
-    query = from Document,
-            where: [document_id: ^document_id],
-            select: [:file_path]
-    %{:file_path => relative_file_path} = query |> Dms42.Repo.one
+    query =
+      from(
+        Document,
+        where: [document_id: ^document_id],
+        select: [:file_path]
+      )
+
+    %{:file_path => relative_file_path} = query |> Dms42.Repo.one()
     base_thumbnails_path = Application.get_env(:dms42, :thumbnails_path) |> Path.absname()
     absolute_file_path = Path.join(base_thumbnails_path, relative_file_path <> "_big")
 
@@ -55,9 +59,11 @@ defmodule Dms42Web.DocumentsController do
       false ->
         base_documents_path = Application.get_env(:dms42, :documents_path) |> Path.absname()
         absolute_file_path = Path.join(base_documents_path, relative_file_path)
+
         conn
         |> put_resp_content_type("image/png")
         |> send_file(200, absolute_file_path)
+
       true ->
         conn
         |> put_resp_content_type("image/png")
@@ -93,7 +99,7 @@ defmodule Dms42Web.DocumentsController do
 
     conn
     |> put_resp_content_type("application/json")
-    |> send_resp(200, documents |> Poison.encode!)
+    |> send_resp(200, documents |> Poison.encode!())
   end
 
   def document_types(conn, _params) do
@@ -104,18 +110,22 @@ defmodule Dms42Web.DocumentsController do
 
     conn
     |> put_resp_content_type("application/json")
-    |> send_resp(200, document_types |> Poison.encode!)
+    |> send_resp(200, document_types |> Poison.encode!())
   end
 
-  @spec tags(document_id :: integer) :: list(String.t)
+  @spec tags(document_id :: integer) :: list(String.t())
   defp tags(document_id) do
-    query = from dt in DocumentTag,
-            join: t in Tag,
-            on: [tag_id: dt.tag_id],
-            where: [document_id: ^document_id],
-            order_by: [dt.inserted_at],
-            select: t.name
-    query |> Dms42.Repo.all
+    query =
+      from(
+        dt in DocumentTag,
+        join: t in Tag,
+        on: [tag_id: dt.tag_id],
+        where: [document_id: ^document_id],
+        order_by: [dt.inserted_at],
+        select: t.name
+      )
+
+    query |> Dms42.Repo.all()
   end
 
   defp null_to_string(string) when is_nil(string), do: ""

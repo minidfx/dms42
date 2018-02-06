@@ -14,6 +14,7 @@ defmodule Dms42.DocumentsManager do
           bytes :: binary
         ) :: {:ok, Document} | {:error, reason :: String.t()}
   def add(file_name, mime_type, original_file_datetime, document_type, tags, bytes) do
+    IO.inspect tags
     %NewDocumentProcessingContext{
       document: %Document{
         original_file_name: file_name,
@@ -53,12 +54,9 @@ defmodule Dms42.DocumentsManager do
       {:error, table, changeset, _} ->
         %Document{:file_path => file_path} = document
         base_documents_path = Application.get_env(:dms42, :documents_path) |> Path.absname()
-        base_thumbnails_path = Application.get_env(:dms42, :thumbnails_path) |> Path.absname()
         absolute_documents_path = Path.join([base_documents_path, file_path])
-        absolute_thumbnails_path = Path.join([base_thumbnails_path, file_path])
 
         File.rm!(absolute_documents_path)
-        File.rm!(absolute_thumbnails_path)
 
         IO.inspect(changeset)
         {:error, "Cannot save the transaction because the table #{table} thrown an error."}
@@ -72,6 +70,7 @@ defmodule Dms42.DocumentsManager do
         base_documents_path = Application.get_env(:dms42, :documents_path) |> Path.absname()
         absolute_documents_path = Path.join([base_documents_path, file_path])
         GenServer.cast(:ocr, {:process, document_id, absolute_documents_path})
+        GenServer.cast(:thumbnail, {:process, absolute_documents_path})
         {:ok, document}
     end
   end
@@ -205,27 +204,15 @@ defmodule Dms42.DocumentsManager do
     end
 
     absolute_documents_path = Path.join([Application.get_env(:dms42, :documents_path) |> Path.absname(), file_path])
-    absolute_thumbnails_path = Path.join([Application.get_env(:dms42, :thumbnails_path) |> Path.absname(), file_path])
-
-    thumbnail_write_result =
-      ExMagick.init!()
-      |> ExMagick.image_load!({:blob, bytes})
-      |> ExMagick.thumb!(155, 220)
-      |> ExMagick.attr!(:magick, "PNG")
-      |> ExMagick.image_dump(absolute_thumbnails_path)
-
     document_write_result = File.write(absolute_documents_path, bytes, [:write])
 
-    case {document_write_result, thumbnail_write_result} do
-      {:ok, {:ok, _}} ->
+    case document_write_result do
+      :ok ->
         Logger.debug("File #{file_name} wrote to #{absolute_documents_path}.")
         {:ok, context}
 
-      {{:error, reason}, _} ->
+      {:error, reason} ->
         {:error, "Cannot write the file #{absolute_documents_path}: " <> Atom.to_string(reason)}
-
-      {_, {:error, reason}} ->
-        {:error, "Cannot write the file #{absolute_thumbnails_path}: " <> reason}
     end
   end
 

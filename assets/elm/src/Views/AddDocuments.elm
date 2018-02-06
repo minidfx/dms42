@@ -9,8 +9,8 @@ import Json.Decode as Json
 
 
 script : String -> Html Msg
-script functionName =
-    node "script" [ type_ "text/javascript" ] [ text (functionName ++ "();") ]
+script code =
+    node "script" [ type_ "text/javascript" ] [ text code ]
 
 
 index : AppState -> Html Msg
@@ -44,8 +44,8 @@ index model =
                         ]
                     ]
                 ]
-            , lazy (\a -> script "loadDropZone") model
             ]
+        , lazy (\a -> script "loadDropZone();") model
         ]
 
 

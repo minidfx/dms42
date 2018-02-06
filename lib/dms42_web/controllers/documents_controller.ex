@@ -41,7 +41,7 @@ defmodule Dms42Web.DocumentsController do
   def thumbnail(conn, %{"document_id" => document_id}) do
     %{:file_path => relative_file_path} = Dms42.Repo.get_by(Document, document_id: document_id)
     base_thumbnails_path = Application.get_env(:dms42, :thumbnails_path) |> Path.absname()
-    absolute_file_path = Path.join(base_thumbnails_path, relative_file_path)
+    absolute_file_path = Path.join(base_thumbnails_path, relative_file_path <> "_small")
 
     conn
     |> put_resp_content_type("image/png")
@@ -53,8 +53,8 @@ defmodule Dms42Web.DocumentsController do
             where: [document_id: ^document_id],
             select: [:file_path]
     %{:file_path => relative_file_path} = query |> Dms42.Repo.one
-    base_document_path = Application.get_env(:dms42, :documents_path) |> Path.absname()
-    absolute_file_path = Path.join(base_document_path, relative_file_path)
+    base_thumbnails_path = Application.get_env(:dms42, :thumbnails_path) |> Path.absname()
+    absolute_file_path = Path.join(base_thumbnails_path, relative_file_path <> "_big")
 
     conn
     |> put_resp_content_type("image/png")

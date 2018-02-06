@@ -44,7 +44,8 @@ defmodule Dms42.Mixfile do
       {:google_api_vision, "~> 0.0.1"},
       {:swoosh, "~> 0.12.1"},
       {:timex, "~> 3.1"},
-      {:exmagick, "~> 0.0.1"}
+      {:exmagick, "~> 0.0.1"},
+      {:temp, "~> 0.4"}
     ]
   end
 

@@ -8,7 +8,18 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN mkdir /app && \
     curl -sL https://deb.nodesource.com/setup_9.x | bash - && \
     apt-get update && \
-    apt-get install -y gcc make libtool-bin libgraphicsmagick1-dev inotify-tools nodejs tesseract-ocr tesseract-ocr-eng tesseract-ocr-fra && \
+    apt-get install -y gcc\
+                       make\
+                       libtool-bin\
+                       libgraphicsmagick1-dev\
+                       inotify-tools\
+                       nodejs\
+                       tesseract-ocr\
+                       tesseract-ocr-eng\
+                       tesseract-ocr-fra\
+                       ghostscript\
+                       libgs-dev\
+                       gs-esp && \
     npm install --unsafe-perm -g elm && \
     npm install -g brunch
 

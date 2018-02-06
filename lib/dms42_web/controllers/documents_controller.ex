@@ -1,7 +1,6 @@
 defmodule Dms42Web.DocumentsController do
   use Dms42Web, :controller
 
-  alias Dms42.DocumentsManager
   alias Dms42.Models.Document
   alias Dms42.Models.DocumentType
   alias Dms42.Models.DocumentTag
@@ -20,17 +19,13 @@ defmodule Dms42Web.DocumentsController do
         "document_type" => document_type,
         "fileUnixTimestamp" => file_timestamp
       }) do
-    case DocumentsManager.add(
-           original_file_name,
-           mime_type,
-           file_timestamp |> String.to_integer |> Timex.from_unix(:milliseconds),
-           document_type,
-           tags |> String.split(",", trim: true),
-           File.read!(temp_file_path)
-         ) do
-      {:error, reason} -> conn |> error_plain_text(reason)
-      {:ok, _document} -> conn |> send_resp(200, "")
-    end
+    GenServer.cast(:documents_manager, {:process, original_file_name,
+                                                  mime_type,
+                                                  file_timestamp |> String.to_integer |> Timex.from_unix(:milliseconds),
+                                                  document_type,
+                                                  tags |> String.split(",", trim: true),
+                                                  File.read!(temp_file_path)})
+    conn |> send_resp(200, "")
   end
 
   @doc false
@@ -56,9 +51,18 @@ defmodule Dms42Web.DocumentsController do
     base_thumbnails_path = Application.get_env(:dms42, :thumbnails_path) |> Path.absname()
     absolute_file_path = Path.join(base_thumbnails_path, relative_file_path <> "_big")
 
-    conn
-    |> put_resp_content_type("image/png")
-    |> send_file(200, absolute_file_path)
+    case File.exists?(absolute_file_path) do
+      false ->
+        base_documents_path = Application.get_env(:dms42, :documents_path) |> Path.absname()
+        absolute_file_path = Path.join(base_documents_path, relative_file_path)
+        conn
+        |> put_resp_content_type("image/png")
+        |> send_file(200, absolute_file_path)
+      true ->
+        conn
+        |> put_resp_content_type("image/png")
+        |> send_file(200, absolute_file_path)
+    end
   end
 
   @doc false
@@ -122,12 +126,5 @@ defmodule Dms42Web.DocumentsController do
   defp to_rfc2822(datetime) do
     {:ok, rfc2822} = Timex.format(datetime, "%a, %d %b %Y %H:%M:%S +0000", :strftime)
     rfc2822
-  end
-
-  @spec error_plain_text(connection :: Plug.Conn, reason :: String.t()) :: no_return
-  defp error_plain_text(conn, reason) do
-    conn
-    |> put_resp_content_type("text/plain")
-    |> send_resp(400, reason)
   end
 end

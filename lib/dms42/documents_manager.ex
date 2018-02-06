@@ -5,16 +5,19 @@ defmodule Dms42.DocumentsManager do
   alias Dms42.Models.Tag
   alias Dms42.Models.NewDocumentProcessingContext
 
-  @spec add(
-          file_name :: String.t(),
-          mime_type :: String.t(),
-          original_file_datetime :: DateTime.t(),
-          document_type :: Ecto.UUID,
-          tags :: list(String.t()),
-          bytes :: binary
-        ) :: {:ok, Document} | {:error, reason :: String.t()}
-  def add(file_name, mime_type, original_file_datetime, document_type, tags, bytes) do
-    IO.inspect tags
+  def start_link() do
+    GenServer.start(__MODULE__, %{}, name: :documents_manager)
+  end
+
+  def init(args) do
+    {:ok, args}
+  end
+
+  def terminate(reason, _) do
+    IO.inspect(reason)
+  end
+
+  def handle_cast({:process, file_name, mime_type, original_file_datetime, document_type, tags, bytes}, state) do
     %NewDocumentProcessingContext{
       document: %Document{
         original_file_name: file_name,
@@ -33,16 +36,7 @@ defmodule Dms42.DocumentsManager do
     |> insert_to_database
     |> insert_tags(tags)
     |> commit
-  end
-
-  @spec remove(document_id :: integer) :: :ok | {:error, reason :: String.t()}
-  def remove(document_id) do
-    {:error, "Not implemented"}
-  end
-
-  @spec delete(document_id :: integer) :: :ok | {:error, reason :: String.t()}
-  def delete(document_id) do
-    {:error, "Not implemented"}
+    {:noreply, state}
   end
 
   @spec commit({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}) ::
@@ -66,11 +60,11 @@ defmodule Dms42.DocumentsManager do
         {:error, "Cannot save the transaction."}
 
       {:ok, _} ->
-        %Document{:document_id => document_id, :file_path => file_path} = document
+        %Document{:document_id => document_id, :file_path => file_path, :mime_type => mime_type} = document
         base_documents_path = Application.get_env(:dms42, :documents_path) |> Path.absname()
         absolute_documents_path = Path.join([base_documents_path, file_path])
         GenServer.cast(:ocr, {:process, document_id, absolute_documents_path})
-        GenServer.cast(:thumbnail, {:process, absolute_documents_path})
+        GenServer.cast(:thumbnail, {:process, absolute_documents_path, mime_type})
         {:ok, document}
     end
   end

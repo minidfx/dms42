@@ -12,6 +12,7 @@ type Route
     = Home
     | AddDocuments
     | Document DocumentId
+    | DocumentProperties DocumentId
     | Documents
     | Settings
 

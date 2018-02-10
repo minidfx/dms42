@@ -58,6 +58,9 @@ view model =
         Routing.Document documentId ->
             Layout.layout model (Views.Document.index model documentId)
 
+        Routing.DocumentProperties documentId ->
+            Layout.layout model (Views.Document.index model documentId)
+
         Routing.Documents ->
             Layout.layout model (Views.Documents.index model)
 

@@ -1,6 +1,6 @@
 module Models exposing (AppState, Msg, Document, DocumentType, Msg(..), initialModel)
 
-import Routing exposing (Route)
+import Routing exposing (Route, DocumentId)
 import Rfc2822Datetime exposing (..)
 import Formatting exposing (..)
 import Phoenix.Socket
@@ -33,6 +33,7 @@ type alias AppState =
     , documents : Maybe (Dict String Document)
     , documentTypes : List DocumentType
     , phxSocket : Phoenix.Socket.Socket Msg
+    , documentId : Maybe DocumentId
     }
 
 
@@ -52,4 +53,5 @@ initialModel route =
     , phxSocket =
         Phoenix.Socket.init "ws://localhost:4000/socket/websocket"
             |> Phoenix.Socket.withDebug
+    , documentId = Nothing
     }

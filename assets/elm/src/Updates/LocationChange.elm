@@ -18,16 +18,19 @@ dispatch location model =
     in
         case route of
             Routing.Documents ->
-                ( { model | route = route }, fetchDocuments 0 50 )
+                ( { model | route = route, documentId = Nothing }, fetchDocuments 0 50 )
 
             Routing.Settings ->
-                ( { model | route = route }, Cmd.none )
+                ( { model | route = route, documentId = Nothing }, Cmd.none )
 
             Routing.Document documentId ->
-                ( { model | route = route }, Cmd.none )
+                ( { model | route = route, documentId = Just documentId }, Cmd.none )
+
+            Routing.DocumentProperties documentId ->
+                ( { model | route = route, documentId = Just documentId }, Cmd.none )
 
             Routing.AddDocuments ->
-                ( { model | route = route }, Cmd.none )
+                ( { model | route = route, documentId = Nothing }, Cmd.none )
 
             Routing.Home ->
-                ( { model | route = route }, Cmd.none )
+                ( { model | route = route, documentId = Nothing }, Cmd.none )

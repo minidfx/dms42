@@ -40,16 +40,19 @@ if (bodyTag)
 
   window.loadDropZone = function()
   {
-    $("div.dropzone")
-      .dropzone(
-      {
-        url: "/api/documents",
-        acceptedFiles: "image/png,image/jpeg,application/pdf",
-        params: getUploadFields,
-        autoProcessQueue: true,
-        parallelUploads: 1000,
-        ignoreHiddenFiles: true,
-        acceptedFiles: "image/*,application/pdf"
-      });
+    window.setTimeout(function()
+    {
+      $("div.dropzone")
+        .dropzone(
+        {
+          url: "/api/documents",
+          acceptedFiles: "image/png,image/jpeg,application/pdf",
+          params: getUploadFields,
+          autoProcessQueue: true,
+          parallelUploads: 1000,
+          ignoreHiddenFiles: true,
+          acceptedFiles: "image/*,application/pdf"
+        });
+    }, 500);
   };
 }

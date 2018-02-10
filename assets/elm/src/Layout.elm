@@ -20,8 +20,22 @@ isActive expectedRoute route =
 
 
 isDocumentsActive : AppState -> Bool
-isDocumentsActive appState =
-    (isActive Routing.Documents appState.route) || (isActive (Routing.Document "0") appState.route) || (isActive (Routing.AddDocuments) appState.route)
+isDocumentsActive { route } =
+    case route of
+        Routing.Documents ->
+            isActive Routing.Documents route
+
+        Routing.AddDocuments ->
+            isActive (Routing.AddDocuments) route
+
+        Routing.Document x ->
+            isActive (Routing.Document x) route
+
+        Routing.DocumentProperties x ->
+            isActive (Routing.Document x) route
+
+        _ ->
+            False
 
 
 layout : AppState -> Html Msg -> Html Msg

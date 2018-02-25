@@ -1,4 +1,4 @@
-module Models exposing (AppState, Msg, Document, DocumentType, Msg(..), initialModel)
+module Models exposing (AppState, Msg, Document, DocumentDateTimes, DocumentType, Msg(..), initialModel)
 
 import Routing exposing (Route, DocumentId)
 import Rfc2822Datetime exposing (..)
@@ -11,14 +11,21 @@ import Http exposing (Error)
 import Dict exposing (Dict)
 
 
+type alias DocumentDateTimes =
+    { inserted_datetime : Datetime
+    , updated_datetime : Datetime
+    , original_file_datetime : Datetime
+    }
+
+
 type alias Document =
-    { thumbnailPath : String
-    , insertedAt : Datetime
-    , updatedAt : Datetime
-    , comments : String
+    { comments : String
     , document_id : String
     , document_type_id : String
     , tags : List String
+    , original_file_name : String
+    , datetimes : DocumentDateTimes
+    , ocr : String
     }
 
 
@@ -33,7 +40,6 @@ type alias AppState =
     , documents : Maybe (Dict String Document)
     , documentTypes : List DocumentType
     , phxSocket : Phoenix.Socket.Socket Msg
-    , documentId : Maybe DocumentId
     }
 
 
@@ -53,5 +59,4 @@ initialModel route =
     , phxSocket =
         Phoenix.Socket.init "ws://localhost:4000/socket/websocket"
             |> Phoenix.Socket.withDebug
-    , documentId = Nothing
     }

@@ -5,6 +5,8 @@ defmodule Dms42Web.DocumentsController do
   alias Dms42.Models.DocumentType
   alias Dms42.Models.DocumentTag
   alias Dms42.Models.Tag
+  alias Dms42.Models.DocumentOcr
+  alias Dms42.DocumentPath
 
   import Ecto.Query
 
@@ -21,7 +23,7 @@ defmodule Dms42Web.DocumentsController do
       }) do
     GenServer.cast(
       :documents_manager,
-      {:process, original_file_name, mime_type, file_timestamp |> String.to_integer() |> Timex.from_unix(:milliseconds), document_type,
+      {:process, original_file_name, mime_type, file_timestamp |> String.to_integer |> Timex.from_unix(:milliseconds), document_type,
        tags |> String.split(",", trim: true), File.read!(temp_file_path)}
     )
 
@@ -34,83 +36,89 @@ defmodule Dms42Web.DocumentsController do
   end
 
   def thumbnail(conn, %{"document_id" => document_id}) do
-    %{:file_path => relative_file_path} = Dms42.Repo.get_by(Document, document_id: document_id)
-    base_thumbnails_path = Application.get_env(:dms42, :thumbnails_path) |> Path.absname()
-    absolute_file_path = Path.join(base_thumbnails_path, relative_file_path <> "_small")
-
-    conn
-    |> put_resp_content_type("image/png")
-    |> send_file(200, absolute_file_path)
+    case Ecto.UUID.dump(document_id) do
+      :error -> conn |> send_resp(400, %{reason: "The document_id is not a valid uuid."} |> Poison.encode!)
+      {:ok, uuid} -> document = Dms42.Repo.get_by(Document, document_id: uuid)
+                     absolute_file_path = DocumentPath.small_thumbnail_path!(document)
+                     conn
+                     |> put_resp_content_type("image/png")
+                     |> send_file(200, absolute_file_path)
+    end
   end
 
   def document(conn, %{"document_id" => document_id}) do
-    query =
-      from(
-        Document,
-        where: [document_id: ^document_id],
-        select: [:file_path]
-      )
+    case Ecto.UUID.dump(document_id) do
+      :error -> conn |> send_resp(400, %{reason: "The document_id is not a valid uuid."} |> Poison.encode!)
+      {:ok, uuid} -> document = Dms42.Repo.get_by(Document, document_id: uuid)
+                     [absolute_file_path] = DocumentPath.big_thumbnail_paths!(document) |> Enum.take(1)
+                     case File.exists?(absolute_file_path) do
+                       false ->
+                         conn
+                         |> put_status(404)
 
-    %{:file_path => relative_file_path} = query |> Dms42.Repo.one()
-    base_thumbnails_path = Application.get_env(:dms42, :thumbnails_path) |> Path.absname()
-    absolute_file_path = Path.join(base_thumbnails_path, relative_file_path <> "_big")
-
-    case File.exists?(absolute_file_path) do
-      false ->
-        base_documents_path = Application.get_env(:dms42, :documents_path) |> Path.absname()
-        absolute_file_path = Path.join(base_documents_path, relative_file_path)
-
-        conn
-        |> put_resp_content_type("image/png")
-        |> send_file(200, absolute_file_path)
-
-      true ->
-        conn
-        |> put_resp_content_type("image/png")
-        |> send_file(200, absolute_file_path)
+                       true ->
+                         conn
+                         |> put_resp_content_type("image/png")
+                         |> send_file(200, absolute_file_path)
+                    end
     end
   end
 
   @doc false
   def documents(conn, %{"start" => start, "length" => length}) do
-    documents =
-      from(d in Document, limit: ^length, offset: ^start, order_by: d.inserted_at)
-      |> Dms42.Repo.all()
-      |> Enum.map(fn %{:document_id => d_id} = document -> Map.put(document, :tags, tags(d_id)) end)
-      |> Enum.map(fn %{
-                       :comments => comments,
-                       :document_id => d_id,
-                       :document_type_id => doc_type_id,
-                       :inserted_at => inserted,
-                       :updated_at => updated,
-                       :file_path => file_path,
-                       :tags => tags
-                     } ->
+    documents = Document |> join(:left, [d], o in DocumentOcr, o.document_id == d.document_id)
+                         |> limit(^length)
+                         |> offset(^start)
+                         |> order_by([d], asc: :inserted_at)
+                         |> select([d, o], {d, o.ocr})
+                         |> Dms42.Repo.all()
+                         |> Enum.map(fn {%{:document_id => d_id} = document, ocr} ->
+                              Map.put(document, :tags, tags(d_id)) |> Map.put(:ocr, ocr)
+                         end)
+                         |> Enum.map(fn %{  :comments => comments,
+                                            :document_id => d_id,
+                                            :document_type_id => doc_type_id,
+                                            :inserted_at => inserted,
+                                            :updated_at => updated,
+                                            :tags => tags,
+                                            :original_file_datetime => original_file_datetime,
+                                            :original_file_name => original_file_name,
+                                            :ocr => ocr
+                                          } ->
+        {:ok, document_id_string} = Ecto.UUID.load(d_id)
+        {:ok, document_type_id_string} = Ecto.UUID.load(doc_type_id)
         %{
-          "insertedAt" => inserted |> to_rfc2822,
-          "updatedAt" => updated |> to_rfc2822,
-          "thumbnailPath" => file_path |> transform_to_frontend_url,
+          "datetimes" => %{
+            "inserted_datetime" => inserted |> to_rfc2822,
+            "updated_datetime" => updated |> to_rfc2822,
+            "original_file_datetime" => original_file_datetime |> to_rfc2822
+          },
           "comments" => comments |> null_to_string,
-          "document_id" => d_id,
-          "document_type_id" => doc_type_id,
-          "tags" => tags
+          "document_id" => document_id_string,
+          "document_type_id" => document_type_id_string,
+          "tags" => tags,
+          "original_file_name" => original_file_name,
+          "ocr" => ocr |> null_to_string
         }
       end)
 
     conn
     |> put_resp_content_type("application/json")
-    |> send_resp(200, documents |> Poison.encode!())
+    |> send_resp(200, documents |> Poison.encode!)
   end
 
   def document_types(conn, _params) do
     document_types =
       DocumentType
       |> Dms42.Repo.all()
-      |> Enum.map(fn %{:name => name, :type_id => type_id} -> %{"name" => name, "id" => type_id} end)
+      |> Enum.map(fn %{:name => name, :type_id => type_id} ->
+        {:ok, uuid} = Ecto.UUID.load(type_id)
+        %{"name" => name, "id" => uuid}
+      end)
 
     conn
     |> put_resp_content_type("application/json")
-    |> send_resp(200, document_types |> Poison.encode!())
+    |> send_resp(200, document_types |> Poison.encode!)
   end
 
   @spec tags(document_id :: integer) :: list(String.t())
@@ -130,8 +138,6 @@ defmodule Dms42Web.DocumentsController do
 
   defp null_to_string(string) when is_nil(string), do: ""
   defp null_to_string(string), do: string
-
-  defp transform_to_frontend_url(path), do: "/images/thumbnails/#{path}"
 
   defp to_rfc2822(datetime) do
     {:ok, rfc2822} = Timex.format(datetime, "%a, %d %b %Y %H:%M:%S +0000", :strftime)

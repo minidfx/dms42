@@ -6,11 +6,7 @@ import Html.Attributes exposing (class, classList, src, href, title, id, value, 
 import Models exposing (AppState, Msg, Document, DocumentType)
 import Html.Events exposing (on)
 import Json.Decode as Json
-
-
-script : String -> Html Msg
-script code =
-    node "script" [ type_ "text/javascript" ] [ text code ]
+import Views.Common exposing (script)
 
 
 index : AppState -> Html Msg
@@ -24,13 +20,13 @@ index model =
             , div [ class "col-md-6" ]
                 [ h3 [] [ text "Tags" ]
                 , div [ class "input-group" ]
-                    [ input [ class "form-control form-control-tags" ] []
+                    [ input [ class "form-control form-control-tags", id "addTokensField" ] []
                     , span [ class "input-group-addon" ]
                         [ span [ class "glyphicon glyphicon-list-alt" ] []
                         ]
                     ]
                 ]
-            , lazy (\a -> script "$(\"input.form-control-tags\").tokenfield();") model
+            , lazy (\a -> script "loadTokensFields(\"#addTokensField\")") model
             ]
         , div [ class "row" ]
             [ div [ class "col-md-12" ]

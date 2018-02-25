@@ -87,8 +87,8 @@ update msg model =
         OnDocuments result ->
             ( updateDocuments model result, Cmd.none )
 
-        OnDocument json ->
-            ( updateDocument model json, Cmd.none )
+        OnDocument result ->
+            ( updateDocument model result, Cmd.none )
 
 
 main : Program Never AppState Msg

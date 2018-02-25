@@ -16,7 +16,6 @@ defmodule Dms42.Repo.Migrations.CreateDocuments do
       add :comments, :text
       add :document_id, :uuid, null: false
       add :original_file_name, :string, null: false
-      add :file_path, :string, null: false
       add :mime_type, :string, null: false
       add :hash, :string, size: 64, null: false
       add :original_file_datetime, :naive_datetime, null: false
@@ -26,7 +25,6 @@ defmodule Dms42.Repo.Migrations.CreateDocuments do
     end
 
     create unique_index(:documents, :document_id)
-    create unique_index(:documents, :file_path)
     create unique_index(:documents, :hash)
 
     create table(:tags) do

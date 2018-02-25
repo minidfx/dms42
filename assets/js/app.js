@@ -20,10 +20,10 @@
 
 import socket from "./socket"
 
-const bodyTag = document.getElementsByTagName('body');
+const bodyTag = document.getElementsByTagName('body')
 if (bodyTag)
 {
-  var app = Elm.Main.embed(bodyTag[0]);
+  var app = Elm.Main.embed(bodyTag[0])
 
   window.getUploadFields = function(file)
   {
@@ -36,7 +36,31 @@ if (bodyTag)
         .map(x => x.value),
       fileUnixTimestamp: file.lastModified
     }
-  };
+  }
+
+  window.loadTokensFields = function(query, tags)
+  {
+    var inputTokenFields = $(query)
+
+    inputTokenFields.tokenfield()
+
+    if (tags !== undefined)
+    {
+      inputTokenFields.tokenfield("setTokens", tags)
+      inputTokenFields.on('tokenfield:createtoken', function(e)
+        {
+          var tag = e.attrs.value
+        })
+        .on('tokenfield:edittoken', function(e)
+        {
+          var tag = e.attrs.value
+        })
+        .on('tokenfield:removedtoken', function(e)
+        {
+          var tag = e.attrs.value
+        })
+    }
+  }
 
   window.loadDropZone = function()
   {
@@ -53,6 +77,6 @@ if (bodyTag)
           ignoreHiddenFiles: true,
           acceptedFiles: "image/*,application/pdf"
         });
-    }, 500);
-  };
+    }, 500)
+  }
 }

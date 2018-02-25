@@ -2,7 +2,7 @@ module Updates.Documents exposing (updateOnDocumentTypes, updateDocuments, fetch
 
 import Rfc2822Datetime exposing (..)
 import Http exposing (request, getString)
-import Models exposing (AppState, DocumentType, Document, Msg, Msg(PhoenixMsg, OnDocuments, OnDocumentTypes))
+import Models exposing (AppState, DocumentType, Document, DocumentDateTimes, Msg, Msg(PhoenixMsg, OnDocuments, OnDocumentTypes))
 import Json.Decode as JD exposing (field, list, string, bool, maybe, andThen, succeed, fail)
 import Json.Encode as JE exposing (Value, object, int)
 import Debug exposing (log)
@@ -77,16 +77,24 @@ documentsDecoder =
     (list documentDecoder)
 
 
+documentDateTimesDecoder : JD.Decoder DocumentDateTimes
+documentDateTimesDecoder =
+    JD.map3 DocumentDateTimes
+        (field "inserted_datetime" datetime)
+        (field "updated_datetime" datetime)
+        (field "original_file_datetime" datetime)
+
+
 documentDecoder : JD.Decoder Document
 documentDecoder =
     JD.map7 Document
-        (field "thumbnailPath" string)
-        (field "insertedAt" datetime)
-        (field "updatedAt" datetime)
         (field "comments" string)
         (field "document_id" string)
         (field "document_type_id" string)
         (field "tags" (list string))
+        (field "original_file_name" string)
+        (field "datetimes" documentDateTimesDecoder)
+        (field "ocr" string)
 
 
 documentTypesDecoder : JD.Decoder (List DocumentType)

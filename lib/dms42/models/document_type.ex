@@ -5,7 +5,7 @@ defmodule Dms42.Models.DocumentType do
 
   schema "document_types" do
     field(:name, :string)
-    field(:type_id, Ecto.UUID)
+    field(:type_id, :binary)
 
     timestamps()
   end

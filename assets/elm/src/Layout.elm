@@ -32,7 +32,7 @@ isDocumentsActive { route } =
             isActive (Routing.Document x) route
 
         Routing.DocumentProperties x ->
-            isActive (Routing.Document x) route
+            isActive (Routing.DocumentProperties x) route
 
         _ ->
             False
@@ -43,11 +43,15 @@ layout appState body =
     div [ class "container" ]
         [ div [ class "masthead" ]
             [ h3 [ class "text-muted app-title" ] [ a [ href "#" ] [ text "DMS ", span [ class "color-42" ] [ text "42" ] ] ]
-            , nav []
-                [ ul [ classList [ ( "nav", True ), ( "nav-justified", True ) ] ]
-                    [ menu "Search" "#home" (isActive Routing.Home appState.route)
-                    , menu "Documents" "#documents" (isDocumentsActive appState)
-                    , menu "Settings" "#settings" (isActive Routing.Settings appState.route)
+            , nav [ class "navbar navbar-default" ]
+                [ div [ class "navbar-header" ]
+                    [ a [ class "navbar-brand" ] []
+                    , ul
+                        [ class "nav nav-justified" ]
+                        [ menu "Search" "#home" (isActive Routing.Home appState.route)
+                        , menu "Documents" "#documents" (isDocumentsActive appState)
+                        , menu "Settings" "#settings" (isActive Routing.Settings appState.route)
+                        ]
                     ]
                 ]
             ]

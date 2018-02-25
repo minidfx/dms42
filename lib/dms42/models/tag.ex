@@ -5,7 +5,7 @@ defmodule Dms42.Models.Tag do
 
   schema "tags" do
     field(:name, :string)
-    field(:tag_id, Ecto.UUID)
+    field(:tag_id, :binary)
 
     timestamps()
   end

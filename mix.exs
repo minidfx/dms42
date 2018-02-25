@@ -45,7 +45,8 @@ defmodule Dms42.Mixfile do
       {:swoosh, "~> 0.12.1"},
       {:timex, "~> 3.1"},
       {:exmagick, "~> 0.0.1"},
-      {:temp, "~> 0.4"}
+      {:temp, "~> 0.4"},
+      {:ex_mock, "~> 0.1.0", only: :test}
     ]
   end
 
@@ -59,7 +60,8 @@ defmodule Dms42.Mixfile do
     [
       "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      test: ["ecto.create --quiet", "ecto.migrate", "test"]
+      test: ["test"],
+      "app.reset": ["ecto.reset", "clear.documents"]
     ]
   end
 end

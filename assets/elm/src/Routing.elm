@@ -23,6 +23,7 @@ matchers =
         [ map Home top
         , map AddDocuments (s "add-documents")
         , map Document (s "documents" </> string)
+        , map DocumentProperties (s "documents" </> string </> s "properties")
         , map Documents (s "documents")
         , map Settings (s "settings")
         ]

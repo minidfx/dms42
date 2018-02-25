@@ -16,10 +16,11 @@ defmodule Dms42.ThumbnailProcessor do
   def handle_cast({:process, file_path, "application/pdf"}, %{:thumbnails_path => tp, :documents_path => dp} = state) do
     try do
       Logger.debug("Processing the thumbnail for the document #{file_path} ...")
-      thumbnail_file_path = String.replace_prefix(file_path, dp, tp)
-      small_thumbnail_file_path = thumbnail_file_path <> "_small"
-      big_thumbnail_file_path = thumbnail_file_path <> "_big"
-      Logger.debug("Will save the thumbnail to #{thumbnail_file_path}.")
+      thumbnail_folder_path = String.replace_prefix(file_path, dp, tp)
+      :ok = thumbnail_folder_path |> File.mkdir_p
+      small_thumbnail_file_path = Path.join([thumbnail_folder_path, "small.png"])
+      big_thumbnail_file_path = Path.join([thumbnail_folder_path, "big-%0d.png"])
+      Logger.debug("Will save the thumbnail into #{thumbnail_folder_path}.")
 
       ExMagick.init!()
       |> ExMagick.attr!(:density, "300")
@@ -31,6 +32,7 @@ defmodule Dms42.ThumbnailProcessor do
       ExMagick.init!()
       |> ExMagick.attr!(:density, "300")
       |> ExMagick.image_load!(file_path)
+      |> ExMagick.attr!(:adjoin, false)
       |> ExMagick.attr!(:magick, "PNG")
       |> ExMagick.image_dump(big_thumbnail_file_path)
     rescue
@@ -43,9 +45,10 @@ defmodule Dms42.ThumbnailProcessor do
   def handle_cast({:process, file_path, _}, %{:thumbnails_path => tp, :documents_path => dp} = state) do
     try do
       Logger.debug("Processing the thumbnail for the document #{file_path} ...")
-      thumbnail_file_path = String.replace_prefix(file_path, dp, tp)
-      small_thumbnail_file_path = thumbnail_file_path <> "_small"
-      Logger.debug("Will save the thumbnail to #{thumbnail_file_path}.")
+      thumbnail_folder_path = String.replace_prefix(file_path, dp, tp)
+      :ok = thumbnail_folder_path |> File.mkdir_p
+      small_thumbnail_file_path = Path.join([thumbnail_folder_path, "small.png"])
+      Logger.debug("Will save the thumbnail into #{thumbnail_folder_path}.")
 
       ExMagick.init!()
       |> ExMagick.image_load!(file_path)

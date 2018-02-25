@@ -8,6 +8,9 @@ import Phoenix.Push exposing (withPayload)
 import Phoenix.Socket exposing (push)
 import Debug exposing (log)
 import Updates.Documents exposing (fetchDocuments)
+import Updates.Document exposing (updateDocument)
+import Ports.Document exposing (setTokens)
+import Debug exposing (log)
 
 
 dispatch : Location -> AppState -> ( AppState, Cmd Msg )
@@ -18,19 +21,23 @@ dispatch location model =
     in
         case route of
             Routing.Documents ->
-                ( { model | route = route, documentId = Nothing }, fetchDocuments 0 50 )
+                ( { model | route = route }, fetchDocuments 0 50 )
 
             Routing.Settings ->
-                ( { model | route = route, documentId = Nothing }, Cmd.none )
+                ( { model | route = route }, Cmd.none )
 
             Routing.Document documentId ->
-                ( { model | route = route, documentId = Just documentId }, Cmd.none )
+                let
+                    setTokensCmd =
+                        setTokens [ "tag1" ]
+                in
+                    ( { model | route = route }, setTokensCmd )
 
             Routing.DocumentProperties documentId ->
-                ( { model | route = route, documentId = Just documentId }, Cmd.none )
+                ( { model | route = route }, Cmd.none )
 
             Routing.AddDocuments ->
-                ( { model | route = route, documentId = Nothing }, Cmd.none )
+                ( { model | route = route }, Cmd.none )
 
             Routing.Home ->
-                ( { model | route = route, documentId = Nothing }, Cmd.none )
+                ( { model | route = route }, Cmd.none )

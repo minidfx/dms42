@@ -59,28 +59,32 @@ tagsBlock items acc =
 
 
 thumbnailBlock : Document -> Html Msg
-thumbnailBlock { comments, insertedAt, updatedAt, document_id, tags } =
-    case tags of
-        [] ->
-            a [ href ("#documents/" ++ document_id) ]
-                [ div [ class "col-sm-4 col-md-2" ]
-                    [ div [ class "thumbnail" ]
-                        [ img [ alt "", src ("/documents/thumbnail/" ++ document_id) ] []
-                        ]
-                    ]
-                ]
-
-        x ->
-            a [ href ("#documents/" ++ document_id) ]
-                [ div [ class "col-sm-4 col-md-2" ]
-                    [ div [ class "thumbnail" ]
-                        [ img [ alt "", src ("/documents/thumbnail/" ++ document_id) ] []
-                        , div [ class "caption" ]
-                            [ div [ style [ ( "margin-left", "0" ) ] ] (tagsBlock x [])
+thumbnailBlock { datetimes, comments, document_id, tags } =
+    let
+        { inserted_datetime, updated_datetime } =
+            datetimes
+    in
+        case tags of
+            [] ->
+                a [ href ("#documents/" ++ document_id) ]
+                    [ div [ class "col-sm-4 col-md-2" ]
+                        [ div [ class "thumbnail" ]
+                            [ img [ alt "", src ("/documents/thumbnail/" ++ document_id) ] []
                             ]
                         ]
                     ]
-                ]
+
+            x ->
+                a [ href ("#documents/" ++ document_id) ]
+                    [ div [ class "col-sm-4 col-md-2" ]
+                        [ div [ class "thumbnail" ]
+                            [ img [ alt "", src ("/documents/thumbnail/" ++ document_id) ] []
+                            , div [ class "caption" ]
+                                [ div [ style [ ( "margin-left", "0" ) ] ] (tagsBlock x [])
+                                ]
+                            ]
+                        ]
+                    ]
 
 
 documentBlocks : List Document -> List (Html Msg) -> Html Msg

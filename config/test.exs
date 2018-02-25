@@ -1,5 +1,9 @@
 use Mix.Config
 
+config :dms42,
+  documents_path: "documents",
+  thumbnails_path: "thumbnails"
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :dms42, Dms42Web.Endpoint,

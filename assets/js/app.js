@@ -38,7 +38,7 @@ if (bodyTag)
     }
   }
 
-  window.loadTokensFields = function(query, tags)
+  window.loadTokensFields = function(query, document_id, tags)
   {
     var inputTokenFields = $(query)
 
@@ -50,14 +50,12 @@ if (bodyTag)
       inputTokenFields.on('tokenfield:createtoken', function(e)
         {
           var tag = e.attrs.value
-        })
-        .on('tokenfield:edittoken', function(e)
-        {
-          var tag = e.attrs.value
+          app.ports.createToken.send([document_id, tag])
         })
         .on('tokenfield:removedtoken', function(e)
         {
           var tag = e.attrs.value
+          app.ports.deleteToken.send([document_id, tag])
         })
     }
   }
@@ -78,5 +76,9 @@ if (bodyTag)
           acceptedFiles: "image/*,application/pdf"
         });
     }, 500)
+  }
+
+  window.deleteDocument = function(document_id) {
+
   }
 }

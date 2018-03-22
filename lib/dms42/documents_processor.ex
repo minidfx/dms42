@@ -1,15 +1,14 @@
-defmodule Dms42.DocumentsManager do
+defmodule Dms42.DocumentsProcessor do
   require Logger
 
   alias Dms42.Models.Document
-  alias Dms42.Models.DocumentTag
-  alias Dms42.Models.Tag
   alias Dms42.Models.NewDocumentProcessingContext
   alias Dms42.Models.DocumentType
   alias Dms42.DocumentPath
+  alias Dms42.TagManager
 
   def start_link() do
-    GenServer.start(__MODULE__, %{}, name: :documents_manager)
+    GenServer.start(__MODULE__, %{}, name: :documents_processor)
   end
 
   def init(args) do
@@ -22,14 +21,13 @@ defmodule Dms42.DocumentsManager do
 
   def handle_cast({:process, file_name, mime_type, original_file_datetime, document_type, tags, bytes}, state) do
     result = %NewDocumentProcessingContext{
-      document: %Document{
-        inserted_at: DateTime.utc_now(),
-        original_file_name: file_name,
-        document_id: Ecto.UUID.bingenerate(),
-        original_file_datetime: original_file_datetime,
-        mime_type: mime_type,
-        hash: :crypto.hash(:sha256, bytes) |> Base.encode16()
-      },
+      document: %Document{ inserted_at: DateTime.utc_now(),
+                           original_file_name: file_name,
+                           document_id: Ecto.UUID.bingenerate(),
+                           original_file_datetime: original_file_datetime,
+                           mime_type: mime_type,
+                           hash: :crypto.hash(:sha256, bytes) |> Base.encode16()
+                          },
       type: document_type,
       transaction: Ecto.Multi.new()
     }
@@ -55,7 +53,6 @@ defmodule Dms42.DocumentsManager do
   @spec commit({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}) ::
           {:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}
   defp commit({:error, _reason} = error), do: error
-
   defp commit({:ok, %NewDocumentProcessingContext{:transaction => transaction, :document => document}}) do
     case Dms42.Repo.transaction(transaction) do
       {:error, table, _, _} ->
@@ -89,52 +86,20 @@ defmodule Dms42.DocumentsManager do
   @spec insert_tags({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}, list(String.t())) ::
           {:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}
   defp insert_tags({:error, _reason} = error, _), do: error
-
   defp insert_tags(result, []), do: result
-
-  defp insert_tags({:ok, %NewDocumentProcessingContext{:transaction => transaction, :document => %Document{:document_id => document_id}} = context}, [
-         head | tail
-       ]) do
-    case Dms42.Repo.get_by(Tag, name: head) do
-      nil ->
-        tag_id = Ecto.UUID.bingenerate()
-
-        insert_tags(
-          {:ok,
-           %NewDocumentProcessingContext{
-             context
-             | :transaction =>
-                 transaction
-                 |> Ecto.Multi.insert("Tag#{head}", Tag.changeset(%Tag{}, %{name: head |> String.trim |> String.downcase, tag_id: tag_id}))
-                 |> Ecto.Multi.insert(
-                   "DocumentTag#{head}",
-                   DocumentTag.changeset(%DocumentTag{}, %{document_id: document_id, tag_id: tag_id})
-                 )
-           }},
-          tail
-        )
-
-      %Tag{:tag_id => tag_id} ->
-        insert_tags(
-          {:ok,
-           %NewDocumentProcessingContext{
-             context
-             | :transaction =>
-                 transaction
-                 |> Ecto.Multi.insert(
-                   "DocumentTag#{head}",
-                   DocumentTag.changeset(%DocumentTag{}, %{document_id: document_id, tag_id: tag_id})
-                 )
-           }},
-          tail
-        )
-    end
+  defp insert_tags({:ok,
+                    %NewDocumentProcessingContext{:transaction => transaction,
+                                                  :document => %Document{:document_id => document_id}} = context},
+                   tags) do
+    [tag | tail] = tags
+    insert_tags({:ok,
+                 %NewDocumentProcessingContext{context | :transaction => transaction |> TagManager.add_or_update(document_id, tag)}},
+                 tail)
   end
 
   @spec insert_to_database({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}) ::
           {:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}
   defp insert_to_database({:error, _reason} = error), do: error
-
   defp insert_to_database({:ok, %NewDocumentProcessingContext{:transaction => transaction, :document => document} = context}) do
     {:ok,
      %NewDocumentProcessingContext{
@@ -156,7 +121,6 @@ defmodule Dms42.DocumentsManager do
   @spec is_document_exist({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}) ::
           {:ok, NewDocumentProcessingContext} | {:error, String.t()}
   defp is_document_exist({:error, _} = error), do: error
-
   defp is_document_exist({:ok, %NewDocumentProcessingContext{:document => %{:hash => hash}} = context}) do
     case Dms42.Repo.get_by(Document, hash: hash) do
       nil ->
@@ -172,7 +136,6 @@ defmodule Dms42.DocumentsManager do
   @spec valid_file_path({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}) ::
           {:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}
   defp valid_file_path({:error, _reason} = error), do: error
-
   defp valid_file_path({:ok, %NewDocumentProcessingContext{:document => document} = context}) do
     absolute_thumbnails_folder_path = DocumentPath.small_thumbnail_path!(document) |> Path.dirname
     absolute_documents_folder_path = DocumentPath.document_path!(document) |> Path.dirname
@@ -194,11 +157,9 @@ defmodule Dms42.DocumentsManager do
   @spec save_file({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}, binary) ::
           {:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}
   defp save_file({:error, _reason} = error, _bytes), do: error
-
-  defp save_file(
-         {:ok, %NewDocumentProcessingContext{:document => %Document{:original_file_name => file_name} = document} = context},
-         bytes
-       ) do
+  defp save_file({:ok, %NewDocumentProcessingContext{:document => %Document{:original_file_name => file_name} = document} = context},
+                  bytes
+                ) do
     file_path = DocumentPath.document_path!(document)
     if File.exists?(file_path) do
       raise "File already exists, exception currently not supported."

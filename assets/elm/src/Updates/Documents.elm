@@ -1,8 +1,8 @@
 module Updates.Documents exposing (updateOnDocumentTypes, updateDocuments, fetchDocuments, fetchDocumentTypes)
 
 import Rfc2822Datetime exposing (..)
-import Http exposing (request, getString)
-import Models exposing (AppState, DocumentType, Document, DocumentDateTimes, Msg, Msg(PhoenixMsg, OnDocuments, OnDocumentTypes))
+import Http
+import Models exposing (AppState, DocumentType, Document, DocumentDateTimes, Msg, Msg(PhoenixMsg, OnDocuments, OnDocumentTypes, DidTagCreated, DidTagCreated))
 import Json.Decode as JD exposing (field, list, string, bool, maybe, andThen, succeed, fail)
 import Json.Encode as JE exposing (Value, object, int)
 import Debug exposing (log)

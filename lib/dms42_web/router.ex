@@ -29,6 +29,9 @@ defmodule Dms42Web.Router do
 
     get("/documents", DocumentsController, :documents)
     post("/documents", DocumentsController, :upload_documents)
+    post("/documents/:document_id/tags/:tag", DocumentsController, :create_tag)
+    delete("/documents/:document_id/tags/:tag", DocumentsController, :delete_tag)
+    delete("/documents/:document_id", DocumentsController, :delete_document)
 
     get("/document-types", DocumentsController, :document_types)
   end

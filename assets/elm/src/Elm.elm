@@ -5,7 +5,7 @@ import Html exposing (Html)
 import Http exposing (send)
 import Models exposing (AppState, Document, Msg, Msg(..), initialModel)
 import Routing exposing (..)
-import Navigation exposing (Location)
+import Navigation exposing (Location, newUrl)
 import Views.Home exposing (..)
 import Views.Documents exposing (..)
 import Views.Document exposing (..)
@@ -18,9 +18,12 @@ import Debug exposing (log)
 import Json.Encode as JE exposing (object, int)
 import Json.Decode exposing (field)
 import Updates.Documents exposing (..)
-import Updates.Document exposing (updateDocument)
+import Updates.Document exposing (updateDocument, createTag, deleteTag, deleteDocument)
 import Updates.LocationChange exposing (dispatch)
 import String exposing (words)
+import Ports.Document exposing (createToken, deleteToken, notifyAddToken, notifyRemoveToken)
+import Debug exposing (log)
+import Dict
 
 
 init : Location -> ( AppState, Cmd Msg )
@@ -43,7 +46,11 @@ init location =
 
 subscriptions : AppState -> Sub Msg
 subscriptions model =
-    Phoenix.Socket.listen model.phxSocket PhoenixMsg
+    Sub.batch
+        [ Phoenix.Socket.listen model.phxSocket PhoenixMsg
+        , createToken CreateToken
+        , deleteToken DeleteToken
+        ]
 
 
 view : AppState -> Html Msg
@@ -89,6 +96,41 @@ update msg model =
 
         OnDocument result ->
             ( updateDocument model result, Cmd.none )
+
+        DidTagCreated result ->
+            ( model, Cmd.none )
+
+        DidTagDeleted result ->
+            ( model, Cmd.none )
+
+        CreateToken ( document_id, tag ) ->
+            ( model, createTag document_id tag )
+
+        DeleteToken ( document_id, tag ) ->
+            ( model, deleteTag document_id tag )
+
+        DeleteDocument document_id ->
+            ( model, deleteDocument document_id )
+
+        DidDocumentDeleted result ->
+            case result of
+                Ok x ->
+                    let
+                        { document_id } =
+                            x
+
+                        local_documents =
+                            case model.documents of
+                                Nothing ->
+                                    Nothing
+
+                                Just x ->
+                                    Just (Dict.remove document_id x)
+                    in
+                        ( { model | documents = local_documents }, Navigation.newUrl "#/documents" )
+
+                Err _ ->
+                    ( model, Cmd.none )
 
 
 main : Program Never AppState Msg

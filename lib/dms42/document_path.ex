@@ -120,7 +120,9 @@ defmodule Dms42.DocumentPath do
   end
 
   @callback handle_call({:big_thumbnail_paths, document :: Document}, from :: any, state :: map) :: {:reply, String.t(), state :: map}
-  def handle_call({:big_thumbnail_paths, %Document{:document_id => document_id, :inserted_at => datetime}},
+  def handle_call({:big_thumbnail_paths, %Document{:document_id => document_id,
+                                                   :inserted_at => datetime,
+                                                   :mime_type => "application/pdf"}},
                    _from,
                    %{:absolute_thumbnail_path => path} = state) do
     case datetime do
@@ -143,6 +145,25 @@ defmodule Dms42.DocumentPath do
         |> Enum.sort_by(fn {x, _} -> x end)
         |> Enum.map(fn {_, x} -> x end)
         {:reply, {:ok, files}, state}
+    end
+  end
+
+  @callback handle_call({:big_thumbnail_paths, document :: Document}, from :: any, state :: map) :: {:reply, String.t(), state :: map}
+  def handle_call({:big_thumbnail_paths, %Document{:document_id => document_id,
+                                                   :inserted_at => datetime}},
+                   _from,
+                   %{:absolute_document_path => path} = state) do
+    case datetime do
+      nil -> {:reply, {:error, "The document doesn't contain valid datetime."}, state}
+      x ->
+        {:ok, uuid} = Ecto.UUID.load(document_id)
+        %{:year => year, :month => month, :day => day} = x
+        document_file_path = Path.join([path,
+                                        year |> Integer.to_string,
+                                        month |> Integer.to_string,
+                                        day |> Integer.to_string,
+                                        uuid])
+        {:reply, {:ok, [document_file_path]}, state}
     end
   end
 
@@ -184,7 +205,7 @@ defmodule Dms42.DocumentPath do
     Returns the path of the document.
   """
   @spec document_path!(Document) :: String.t()
-  def document_path!(%Document{} = document) do
+  def document_path!(document) when is_map(document) do
     case GenServer.call(:document_path, {:document_path, document}) do
       {:error, reason} -> raise(reason)
       {:ok, x} -> x
@@ -228,7 +249,7 @@ defmodule Dms42.DocumentPath do
     Returns the big thumbnail paths of the document.
   """
   @spec big_thumbnail_paths!(Document) :: list(String.t())
-  def big_thumbnail_paths!(%Document{} = document) do
+  def big_thumbnail_paths!(document) when is_map(document) do
     case GenServer.call(:document_path, {:big_thumbnail_paths, document}) do
       {:error, reason} -> raise(reason)
       {:ok, x} -> x

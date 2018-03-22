@@ -1,10 +1,10 @@
 module Views.Document exposing (..)
 
 import Dict exposing (get)
-import Html exposing (Html, div, h1, text, input, img, a, label, textarea, span, button)
+import Html exposing (Html, div, h1, h4, text, input, img, a, label, textarea, span, button, p)
 import Html.Attributes exposing (class, classList, src, attribute, style, href, type_, id, rows, value, readonly)
 import Html.Events exposing (onClick)
-import Models exposing (AppState, Msg, Document)
+import Models exposing (AppState, Msg, Msg(..), Document)
 import Routing exposing (Route(Document, DocumentProperties))
 import Views.Common exposing (script, rfc2822String)
 import Html.Lazy exposing (..)
@@ -41,7 +41,7 @@ dispatchView appState document =
         { route } =
             appState
 
-        { original_file_name, tags, datetimes, comments, ocr } =
+        { original_file_name, tags, datetimes, comments, ocr, document_id } =
             document
 
         { original_file_datetime, inserted_datetime, updated_datetime } =
@@ -94,11 +94,46 @@ dispatchView appState document =
                                 ]
                             ]
                         ]
-                    , lazy (\a -> script ("loadTokensFields(\"#editTokensField\", '" ++ tags_for_external_js ++ "')")) appState
+                    , div [ class "form-group text-center" ]
+                        [ button
+                            [ type_ "button"
+                            , class "btn btn-danger"
+                            , attribute "data-toggle" "modal"
+                            , attribute "data-target" "#deleteDocumentModal"
+                            ]
+                            [ text "Delete" ]
+                        ]
+                    , lazy (\a -> script ("loadTokensFields(\"#editTokensField\", '" ++ document_id ++ "', '" ++ tags_for_external_js ++ "')")) appState
+                    , modalConfirmDelete document
                     ]
 
             _ ->
                 div [ class "alert alert-warning", attribute "role" "alert" ] [ text "Bad routing!" ]
+
+
+modalConfirmDelete : Document -> Html Msg
+modalConfirmDelete document =
+    let
+        { original_file_name, document_id } =
+            document
+    in
+        div [ class "modal fade", id "deleteDocumentModal", attribute "tabindex" "-1", attribute "role" "dialog", attribute "aria-labelledby" "confirmDeleteModel" ]
+            [ div [ class "modal-dialog", attribute "role" "document" ]
+                [ div [ class "modal-content" ]
+                    [ div [ class "modal-header" ]
+                        [ h4 [ class "modal-title", id "confirmDeleteModel" ] [ text ("Delete the document " ++ original_file_name) ]
+                        ]
+                    , div [ class "modal-body" ]
+                        [ p [] [ text ("You are about to delete the document " ++ original_file_name ++ ".") ]
+                        , p [] [ text "Are you sure?" ]
+                        ]
+                    , div [ class "modal-footer" ]
+                        [ button [ type_ "button", class "btn btn-default", attribute "data-dismiss" "modal" ] [ text "Cancel" ]
+                        , button [ type_ "button", class "btn btn-danger", attribute "data-dismiss" "modal", onClick (DeleteDocument document_id) ] [ text "Delete" ]
+                        ]
+                    ]
+                ]
+            ]
 
 
 content : AppState -> String -> Html Msg

@@ -1,4 +1,16 @@
-module Models exposing (AppState, Msg, Document, DocumentDateTimes, DocumentType, Msg(..), initialModel)
+module Models
+    exposing
+        ( AppState
+        , Msg
+        , Document
+        , DocumentDateTimes
+        , DocumentType
+        , Msg(..)
+        , initialModel
+        , Tag
+        , DocumentId
+        , DidDocumentDeletedResponse
+        )
 
 import Routing exposing (Route, DocumentId)
 import Rfc2822Datetime exposing (..)
@@ -43,12 +55,31 @@ type alias AppState =
     }
 
 
+type alias DidDocumentDeletedResponse =
+    { document_id : String
+    }
+
+
+type alias Tag =
+    String
+
+
+type alias DocumentId =
+    String
+
+
 type Msg
     = OnLocationChange Location
     | PhoenixMsg (Phoenix.Socket.Msg Msg)
     | OnDocumentTypes (Result Http.Error (List DocumentType))
     | OnDocuments (Result Http.Error (List Document))
     | OnDocument Json.Encode.Value
+    | DidTagCreated (Result Http.Error ())
+    | DidTagDeleted (Result Http.Error ())
+    | CreateToken ( String, Tag )
+    | DeleteToken ( String, Tag )
+    | DeleteDocument DocumentId
+    | DidDocumentDeleted (Result Http.Error DidDocumentDeletedResponse)
 
 
 initialModel : Route -> AppState

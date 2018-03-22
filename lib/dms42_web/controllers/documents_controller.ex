@@ -3,10 +3,11 @@ defmodule Dms42Web.DocumentsController do
 
   alias Dms42.Models.Document
   alias Dms42.Models.DocumentType
-  alias Dms42.Models.DocumentTag
-  alias Dms42.Models.Tag
   alias Dms42.Models.DocumentOcr
+  alias Dms42.Models.Tag
   alias Dms42.DocumentPath
+  alias Dms42.TagManager
+  alias Dms42.DocumentManager
 
   import Ecto.Query
 
@@ -22,7 +23,7 @@ defmodule Dms42Web.DocumentsController do
         "fileUnixTimestamp" => file_timestamp
       }) do
     GenServer.cast(
-      :documents_manager,
+      :documents_processor,
       {:process, original_file_name, mime_type, file_timestamp |> String.to_integer |> Timex.from_unix(:milliseconds), document_type,
        tags |> String.split(",", trim: true), File.read!(temp_file_path)}
     )
@@ -35,6 +36,7 @@ defmodule Dms42Web.DocumentsController do
     conn |> send_resp(400, "")
   end
 
+  @doc false
   def thumbnail(conn, %{"document_id" => document_id}) do
     case Ecto.UUID.dump(document_id) do
       :error -> conn |> send_resp(400, %{reason: "The document_id is not a valid uuid."} |> Poison.encode!)
@@ -46,6 +48,7 @@ defmodule Dms42Web.DocumentsController do
     end
   end
 
+  @doc false
   def document(conn, %{"document_id" => document_id}) do
     case Ecto.UUID.dump(document_id) do
       :error -> conn |> send_resp(400, %{reason: "The document_id is not a valid uuid."} |> Poison.encode!)
@@ -71,9 +74,12 @@ defmodule Dms42Web.DocumentsController do
                          |> offset(^start)
                          |> order_by([d], asc: :inserted_at)
                          |> select([d, o], {d, o.ocr})
-                         |> Dms42.Repo.all()
+                         |> Dms42.Repo.all
                          |> Enum.map(fn {%{:document_id => d_id} = document, ocr} ->
-                              Map.put(document, :tags, tags(d_id)) |> Map.put(:ocr, ocr)
+                              Map.put(document,
+                                      :tags,
+                                      TagManager.get_tags(d_id) |> Enum.map(fn %Tag{:name => tag} -> tag end))
+                              |> Map.put(:ocr, ocr)
                          end)
                          |> Enum.map(fn %{  :comments => comments,
                                             :document_id => d_id,
@@ -107,10 +113,11 @@ defmodule Dms42Web.DocumentsController do
     |> send_resp(200, documents |> Poison.encode!)
   end
 
+  @doc false
   def document_types(conn, _params) do
     document_types =
       DocumentType
-      |> Dms42.Repo.all()
+      |> Dms42.Repo.all
       |> Enum.map(fn %{:name => name, :type_id => type_id} ->
         {:ok, uuid} = Ecto.UUID.load(type_id)
         %{"name" => name, "id" => uuid}
@@ -121,19 +128,25 @@ defmodule Dms42Web.DocumentsController do
     |> send_resp(200, document_types |> Poison.encode!)
   end
 
-  @spec tags(document_id :: integer) :: list(String.t())
-  defp tags(document_id) do
-    query =
-      from(
-        dt in DocumentTag,
-        join: t in Tag,
-        on: [tag_id: dt.tag_id],
-        where: [document_id: ^document_id],
-        order_by: [dt.inserted_at],
-        select: t.name
-      )
+  @doc false
+  def create_tag(conn, %{"document_id" => document_id, "tag" => tag}) do
+    {:ok, binary_document_id} = document_id |> Ecto.UUID.dump
+    TagManager.add_or_update!(binary_document_id, tag)
+    conn |> send_resp(200, "")
+  end
 
-    query |> Dms42.Repo.all()
+  @doc false
+  def delete_tag(conn, %{"document_id" => document_id, "tag" => tag}) do
+    {:ok, binary_document_id} = document_id |> Ecto.UUID.dump
+    TagManager.remove!(binary_document_id, tag)
+    conn |> send_resp(200, %{document_id: document_id, tag: tag} |> Poison.encode!)
+  end
+
+  @doc false
+  def delete_document(conn, %{"document_id" => document_id}) do
+    {:ok, binary_document_id} = document_id |> Ecto.UUID.dump
+    DocumentManager.remove!(binary_document_id)
+    conn |> send_resp(200, %{document_id: document_id} |> Poison.encode!)
   end
 
   defp null_to_string(string) when is_nil(string), do: ""

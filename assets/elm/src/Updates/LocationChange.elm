@@ -9,7 +9,6 @@ import Phoenix.Socket exposing (push)
 import Debug exposing (log)
 import Updates.Documents exposing (fetchDocuments)
 import Updates.Document exposing (updateDocument)
-import Ports.Document exposing (setTokens)
 import Debug exposing (log)
 
 
@@ -27,11 +26,7 @@ dispatch location model =
                 ( { model | route = route }, Cmd.none )
 
             Routing.Document documentId ->
-                let
-                    setTokensCmd =
-                        setTokens [ "tag1" ]
-                in
-                    ( { model | route = route }, setTokensCmd )
+                ( { model | route = route }, Cmd.none )
 
             Routing.DocumentProperties documentId ->
                 ( { model | route = route }, Cmd.none )

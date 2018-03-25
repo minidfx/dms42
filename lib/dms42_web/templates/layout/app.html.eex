@@ -8,13 +8,16 @@
     <meta name="author" content="Burgy Benjamin aka minidfx">
 
     <title>Dms42</title>
+    <link rel="stylesheet" href="<%= static_path(@conn, "/css/bootstrap.min.css") %>">
+    <link rel="stylesheet" href="<%= static_path(@conn, "/css/bootstrap-theme.min.css") %>">
+    <link rel="stylesheet" href="<%= static_path(@conn, "/css/bootstrap-tokenfield.min.css") %>">
     <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
-    <script src="<%= static_path(@conn, "/js/jquery.js") %>"></script>
-    <script src="<%= static_path(@conn, "/js/bootstrap.js") %>"></script>
-    <script src="<%= static_path(@conn, "/js/bootstrap-tokenfield.js") %>"></script>
-    <script src="<%= static_path(@conn, "/js/dropzone.min.js") %>"></script>
-    <script src="<%= static_path(@conn, "/js/dropzone-amd-module.min.js") %>"></script>
-    <script src="<%= static_path(@conn, "/js/sizzle.js") %>"></script>
+    <script src="<%= static_path(@conn, "/js/jquery.min.js") %>"></script>
+    <script src="<%= static_path(@conn, "/js/sizzle.min.js") %>"></script>
+    <script src="<%= static_path(@conn, "/js/bootstrap.min.js") %>"></script>
+    <script src="<%= static_path(@conn, "/js/bootstrap-tokenfield.min.js") %>"></script>
+    <script src="<%= static_path(@conn, "/js/bootstrap-notify.min.js") %>"></script>
+    <script src="<%= static_path(@conn, "/js/dropzone.js") %>"></script>
   </head>
   <body>
     <script src="<%= static_path(@conn, "/js/app.js") %>"></script>

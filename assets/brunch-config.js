@@ -62,8 +62,21 @@ exports.config = {
       // Do not use ES6 compiler in vendor code
       ignore: [/vendor/]
     },
-    copyfilemon:{
-      "fonts": ["fonts"]
+    copyfilemon:
+    {
+      "fonts": ["fonts"],
+      "js": ["node_modules/bootstrap-notify/bootstrap-notify.min.js",
+             "node_modules/bootstrap/dist/js/bootstrap.min.js",
+             "node_modules/bootstrap-tokenfield/dist/bootstrap-tokenfield.min.js",
+             "node_modules/dropzone/dist/dropzone.js",
+             "node_modules/jquery/dist/jquery.min.js",
+             "node_modules/jquery/external/sizzle/dist/sizzle.min.js",
+             "node_modules/jquery/external/sizzle/dist/sizzle.min.map"],
+      "css": ["node_modules/bootstrap/dist/css/bootstrap.min.css",
+              "node_modules/bootstrap/dist/css/bootstrap-theme.min.css",
+              "node_modules/bootstrap/dist/css/bootstrap.min.css.map",
+              "node_modules/bootstrap/dist/css/bootstrap-theme.min.css.map",
+              "node_modules/bootstrap-tokenfield/dist/css/bootstrap-tokenfield.min.css"]
     }
   },
 

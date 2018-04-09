@@ -132,6 +132,9 @@ update msg model =
                 Err _ ->
                     ( model, Cmd.none )
 
+        SearchDidKeyPressed criteria ->
+            ( model, Cmd.none )
+
 
 main : Program Never AppState Msg
 main =

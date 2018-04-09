@@ -76,7 +76,9 @@ exports.config = {
               "node_modules/bootstrap/dist/css/bootstrap-theme.min.css",
               "node_modules/bootstrap/dist/css/bootstrap.min.css.map",
               "node_modules/bootstrap/dist/css/bootstrap-theme.min.css.map",
-              "node_modules/bootstrap-tokenfield/dist/css/bootstrap-tokenfield.min.css"]
+              "node_modules/bootstrap-tokenfield/dist/css/bootstrap-tokenfield.min.css",
+              "node_modules/dropzone/dist/min/dropzone.min.css",
+              "node_modules/dropzone/dist/min/basic.min.css"]
     }
   },
 

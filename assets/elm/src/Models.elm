@@ -80,6 +80,7 @@ type Msg
     | DeleteToken ( String, Tag )
     | DeleteDocument DocumentId
     | DidDocumentDeleted (Result Http.Error DidDocumentDeletedResponse)
+    | SearchDidKeyPressed String
 
 
 initialModel : Route -> AppState

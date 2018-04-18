@@ -3,13 +3,15 @@ defmodule Dms42Web.DocumentsController do
 
   alias Dms42.Models.Document
   alias Dms42.Models.DocumentType
-  alias Dms42.Models.DocumentOcr
   alias Dms42.Models.Tag
   alias Dms42.DocumentPath
   alias Dms42.TagManager
   alias Dms42.DocumentManager
+  alias Dms42.DocumentsFinder
 
   import Ecto.Query
+
+  require Logger
 
   @doc false
   def upload_documents(conn, %{
@@ -30,11 +32,7 @@ defmodule Dms42Web.DocumentsController do
 
     conn |> send_resp(200, "")
   end
-
-  @doc false
-  def upload_documents(conn, _params) do
-    conn |> send_resp(400, "")
-  end
+  def upload_documents(conn, _params), do: conn |> send_resp(400, "")
 
   @doc false
   def thumbnail(conn, %{"document_id" => document_id}) do
@@ -69,45 +67,11 @@ defmodule Dms42Web.DocumentsController do
 
   @doc false
   def documents(conn, %{"start" => start, "length" => length}) do
-    documents = Document |> join(:left, [d], o in DocumentOcr, o.document_id == d.document_id)
-                         |> limit(^length)
+    documents = Document |> limit(^length)
                          |> offset(^start)
-                         |> order_by([d], asc: :inserted_at)
-                         |> select([d, o], {d, o.ocr})
+                         |> order_by(asc: :inserted_at)
                          |> Dms42.Repo.all
-                         |> Enum.map(fn {%{:document_id => d_id} = document, ocr} ->
-                              Map.put(document,
-                                      :tags,
-                                      TagManager.get_tags(d_id) |> Enum.map(fn %Tag{:name => tag} -> tag end))
-                              |> Map.put(:ocr, ocr)
-                         end)
-                         |> Enum.map(fn %{  :comments => comments,
-                                            :document_id => d_id,
-                                            :document_type_id => doc_type_id,
-                                            :inserted_at => inserted,
-                                            :updated_at => updated,
-                                            :tags => tags,
-                                            :original_file_datetime => original_file_datetime,
-                                            :original_file_name => original_file_name,
-                                            :ocr => ocr
-                                          } ->
-        {:ok, document_id_string} = Ecto.UUID.load(d_id)
-        {:ok, document_type_id_string} = Ecto.UUID.load(doc_type_id)
-        %{
-          "datetimes" => %{
-            "inserted_datetime" => inserted |> to_rfc2822,
-            "updated_datetime" => updated |> to_rfc2822,
-            "original_file_datetime" => original_file_datetime |> to_rfc2822
-          },
-          "comments" => comments |> null_to_string,
-          "document_id" => document_id_string,
-          "document_type_id" => document_type_id_string,
-          "tags" => tags,
-          "original_file_name" => original_file_name,
-          "ocr" => ocr |> null_to_string
-        }
-      end)
-
+                         |> transform_to_viewmodels
     conn
     |> put_resp_content_type("application/json")
     |> send_resp(200, documents |> Poison.encode!)
@@ -147,6 +111,43 @@ defmodule Dms42Web.DocumentsController do
     {:ok, binary_document_id} = document_id |> Ecto.UUID.dump
     DocumentManager.remove!(binary_document_id)
     conn |> send_resp(200, %{document_id: document_id} |> Poison.encode!)
+  end
+
+  def search(conn, %{"query" => query}) do
+    conn |> put_resp_content_type("application/json")
+         |> send_resp(200, DocumentsFinder.find(query) |> transform_to_viewmodels |> Poison.encode!)
+  end
+
+  defp transform_to_viewmodels(documents) do
+    documents |> Enum.map(fn %{:document_id => d_id} = document ->
+                             Map.put(document,
+                                     :tags,
+                                     TagManager.get_tags(d_id) |> Enum.map(fn %Tag{:name => tag} -> tag end))
+                          end)
+              |> Enum.map(fn %{ :comments => comments,
+                                :document_id => d_id,
+                                :document_type_id => doc_type_id,
+                                :inserted_at => inserted,
+                                :updated_at => updated,
+                                :tags => tags,
+                                :original_file_datetime => original_file_datetime,
+                                :original_file_name => original_file_name
+                              } ->
+                          {:ok, document_id_string} = Ecto.UUID.load(d_id)
+                          {:ok, document_type_id_string} = Ecto.UUID.load(doc_type_id)
+                            %{
+                              "datetimes" => %{
+                                "inserted_datetime" => inserted |> to_rfc2822,
+                                "updated_datetime" => updated |> to_rfc2822,
+                                "original_file_datetime" => original_file_datetime |> to_rfc2822
+                              },
+                              "comments" => comments |> null_to_string,
+                              "document_id" => document_id_string,
+                              "document_type_id" => document_type_id_string,
+                              "tags" => tags,
+                              "original_file_name" => original_file_name
+                            }
+                          end)
   end
 
   defp null_to_string(string) when is_nil(string), do: ""

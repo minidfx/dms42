@@ -1,4 +1,4 @@
-defmodule Dms42.DocumentPath.DocumentsFinder do
+defmodule Dms42.DocumentsFinder do
   alias Dms42.Models.Document
   alias Dms42.Models.DocumentOcr
   alias Dms42.Models.DocumentTag

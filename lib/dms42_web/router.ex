@@ -21,7 +21,6 @@ defmodule Dms42Web.Router do
 
     get("/documents/thumbnail/:document_id", DocumentsController, :thumbnail)
     get("/documents/:document_id", DocumentsController, :document)
-    get("/documents", DocumentsController, :search)
   end
 
   # Other scopes may use custom stacks.

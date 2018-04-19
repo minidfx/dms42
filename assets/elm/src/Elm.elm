@@ -92,7 +92,27 @@ update msg model =
             ( updateOnDocumentTypes model result, Cmd.none )
 
         OnDocuments result ->
-            ( updateDocuments model result, Cmd.none )
+            let
+                currentDocuments =
+                    case model.documents of
+                        Just x ->
+                            x
+
+                        Nothing ->
+                            Dict.empty
+
+                newDocuments =
+                    case updateDocuments result of
+                        Just x ->
+                            x
+
+                        Nothing ->
+                            Dict.empty
+
+                unionDocuments =
+                    Dict.union currentDocuments newDocuments
+            in
+                ( { model | documents = Just unionDocuments }, Cmd.none )
 
         OnDocument result ->
             ( updateDocument model result, Cmd.none )
@@ -132,8 +152,20 @@ update msg model =
                 Err _ ->
                     ( model, Cmd.none )
 
-        SearchDidKeyPressed criteria ->
-            ( model, Cmd.none )
+        DidSearchKeyPressed criteria ->
+            let
+                newModel =
+                    { model | searchQuery = Just criteria }
+            in
+                case searchDocuments criteria of
+                    Ok x ->
+                        ( newModel, x )
+
+                    Err _ ->
+                        ( { newModel | searchDocumentsResult = Nothing }, Cmd.none )
+
+        DidDocumentSearched result ->
+            ( { model | searchDocumentsResult = updateDocuments result }, Cmd.none )
 
 
 main : Program Never AppState Msg

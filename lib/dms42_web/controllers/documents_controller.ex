@@ -76,6 +76,10 @@ defmodule Dms42Web.DocumentsController do
     |> put_resp_content_type("application/json")
     |> send_resp(200, documents |> Poison.encode!)
   end
+  def documents(conn, %{"query" => query}) do
+    conn |> put_resp_content_type("application/json")
+         |> send_resp(200, DocumentsFinder.find(query) |> transform_to_viewmodels |> Poison.encode!)
+  end
 
   @doc false
   def document_types(conn, _params) do
@@ -111,11 +115,6 @@ defmodule Dms42Web.DocumentsController do
     {:ok, binary_document_id} = document_id |> Ecto.UUID.dump
     DocumentManager.remove!(binary_document_id)
     conn |> send_resp(200, %{document_id: document_id} |> Poison.encode!)
-  end
-
-  def search(conn, %{"query" => query}) do
-    conn |> put_resp_content_type("application/json")
-         |> send_resp(200, DocumentsFinder.find(query) |> transform_to_viewmodels |> Poison.encode!)
   end
 
   defp transform_to_viewmodels(documents) do

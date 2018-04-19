@@ -41,7 +41,7 @@ dispatchView appState document =
         { route } =
             appState
 
-        { original_file_name, tags, datetimes, comments, ocr, document_id } =
+        { original_file_name, tags, datetimes, comments, document_id } =
             document
 
         { original_file_datetime, inserted_datetime, updated_datetime } =
@@ -73,7 +73,7 @@ dispatchView appState document =
                             [ div [ class "row" ]
                                 [ div [ class "col-md-8" ]
                                     [ label [ attribute "for" "ocr" ] [ text "OCR" ]
-                                    , textarea [ class "form-control", id "ocr", rows 10, readonly True ] [ text ocr ]
+                                    , textarea [ class "form-control", id "ocr", rows 10, readonly True ] []
                                     ]
                                 , div [ class "col-md-4", style [ ( "padding-top", "100px" ) ] ]
                                     [ button [ class "btn btn-default", style [ ( "vertical-align", "middle" ) ] ] [ text "Refresh OCR" ]

@@ -37,7 +37,7 @@ type alias Document =
     , tags : List String
     , original_file_name : String
     , datetimes : DocumentDateTimes
-    , ocr : String
+    , ocr : Maybe String
     }
 
 
@@ -52,6 +52,8 @@ type alias AppState =
     , documents : Maybe (Dict String Document)
     , documentTypes : List DocumentType
     , phxSocket : Phoenix.Socket.Socket Msg
+    , searchDocumentsResult : Maybe (Dict String Document)
+    , searchQuery : Maybe String
     }
 
 
@@ -80,7 +82,8 @@ type Msg
     | DeleteToken ( String, Tag )
     | DeleteDocument DocumentId
     | DidDocumentDeleted (Result Http.Error DidDocumentDeletedResponse)
-    | SearchDidKeyPressed String
+    | DidSearchKeyPressed String
+    | DidDocumentSearched (Result Http.Error (List Document))
 
 
 initialModel : Route -> AppState
@@ -88,6 +91,8 @@ initialModel route =
     { route = route
     , documents = Nothing
     , documentTypes = []
+    , searchDocumentsResult = Nothing
+    , searchQuery = Nothing
     , phxSocket =
         Phoenix.Socket.init "ws://localhost:4000/socket/websocket"
             |> Phoenix.Socket.withDebug

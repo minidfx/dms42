@@ -1,8 +1,30 @@
-module Updates.Documents exposing (updateOnDocumentTypes, updateDocuments, fetchDocuments, fetchDocumentTypes)
+module Updates.Documents
+    exposing
+        ( updateOnDocumentTypes
+        , updateDocuments
+        , fetchDocuments
+        , fetchDocumentTypes
+        , searchDocuments
+        )
 
 import Rfc2822Datetime exposing (..)
 import Http
-import Models exposing (AppState, DocumentType, Document, DocumentDateTimes, Msg, Msg(PhoenixMsg, OnDocuments, OnDocumentTypes, DidTagCreated, DidTagCreated))
+import Models
+    exposing
+        ( AppState
+        , DocumentType
+        , Document
+        , DocumentDateTimes
+        , Msg
+        , Msg
+            ( PhoenixMsg
+            , OnDocuments
+            , OnDocumentTypes
+            , DidTagCreated
+            , DidTagCreated
+            , DidDocumentSearched
+            )
+        )
 import Json.Decode as JD exposing (field, list, string, bool, maybe, andThen, succeed, fail)
 import Json.Encode as JE exposing (Value, object, int)
 import Debug exposing (log)
@@ -10,6 +32,7 @@ import Phoenix.Socket exposing (Socket, push)
 import Phoenix.Push exposing (withPayload)
 import Dict exposing (Dict, union, fromList)
 import List exposing (map)
+import String exposing (length)
 
 
 fetchDocumentTypes : Cmd Msg
@@ -32,29 +55,28 @@ updateOnDocumentTypes model result =
             model
 
 
-updateDocuments : AppState -> Result Http.Error (List Document) -> AppState
-updateDocuments model result =
+searchDocuments : String -> Result String (Cmd Msg)
+searchDocuments query =
+    case (length query) > 1 of
+        False ->
+            Err "Not enough character to send the query."
+
+        True ->
+            Ok (Http.send DidDocumentSearched <| Http.get ("http://localhost:4000/api/documents?query=" ++ query) documentsDecoder)
+
+
+updateDocuments : Result Http.Error (List Document) -> Maybe (Dict String Document)
+updateDocuments result =
     case result of
         Ok x ->
             let
                 newDocumentsAsDict =
                     List.map (\y -> ( y.document_id, y )) x |> Dict.fromList
-
-                documents =
-                    case model.documents of
-                        Nothing ->
-                            [] |> Dict.fromList
-
-                        Just x ->
-                            x
-
-                newDocuments =
-                    Dict.union newDocumentsAsDict documents
             in
-                { model | documents = Just newDocuments }
+                Just newDocumentsAsDict
 
         Err _ ->
-            model
+            Nothing
 
 
 datetime : JD.Decoder Datetime
@@ -94,7 +116,7 @@ documentDecoder =
         (field "tags" (list string))
         (field "original_file_name" string)
         (field "datetimes" documentDateTimesDecoder)
-        (field "ocr" string)
+        (maybe (field "ocr" string))
 
 
 documentTypesDecoder : JD.Decoder (List DocumentType)

@@ -29,8 +29,13 @@ index model =
                     [ a [ href "#add-documents", class "btn btn-primary" ] [ text "Add documents" ]
                     ]
                 ]
-            , waitForItems documents documentBlocks
+            , listDocuments documents
             ]
+
+
+listDocuments : Maybe (List Document) -> Html Msg
+listDocuments documents =
+    waitForItems documents documentBlocks
 
 
 datetime : Datetime -> String

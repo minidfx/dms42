@@ -1,6 +1,8 @@
 defmodule Dms42.Models.DocumentTag do
   use Ecto.Schema
+
   import Ecto.Changeset
+  
   alias Dms42.Models.DocumentTag
 
   schema "documents_tags" do

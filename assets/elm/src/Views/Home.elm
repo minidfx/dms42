@@ -1,7 +1,7 @@
 module Views.Home exposing (..)
 
 import Html exposing (Html, div, h1, text, input)
-import Html.Attributes exposing (class, classList, style, value)
+import Html.Attributes exposing (class, classList, style, value, attribute)
 import Models exposing (AppState, Msg, Msg(DidSearchKeyPressed))
 import Html.Events exposing (onInput)
 import Views.Documents as Documents
@@ -38,6 +38,23 @@ index model =
                     ]
                 ]
             , div [ class "row", style [ ( "margin-top", "20px" ) ] ]
-                [ Documents.listDocuments documents
+                [ displaySearchResult documents Documents.documentBlocks
                 ]
             ]
+
+
+displaySearchResult : Maybe (List any) -> (List any -> List (Html Msg) -> Html Msg) -> Html Msg
+displaySearchResult items function =
+    case items of
+        Nothing ->
+            div [] []
+
+        Just x ->
+            case x of
+                [] ->
+                    div [ class "alert alert-info", attribute "role" "alert" ]
+                        [ text "No result"
+                        ]
+
+                x ->
+                    function x []

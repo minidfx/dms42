@@ -1,6 +1,9 @@
 defmodule Dms42.OcrProcessor do
   use GenServer
+
   alias Dms42.Models.DocumentOcr
+  alias Dms42.DocumentsFinder
+
   require Logger
 
   @doc false
@@ -68,6 +71,9 @@ defmodule Dms42.OcrProcessor do
   @spec save_ocr(ocr :: String.t(), document_id :: binary) :: no_return()
   defp save_ocr(ocr, document_id) do
     Logger.debug("Saving the OCR result ...")
-    Dms42.Repo.insert_or_update!(DocumentOcr.changeset(%DocumentOcr{}, %{document_id: document_id, ocr: ocr}))
+    Dms42.Repo.insert_or_update!(DocumentOcr.changeset(%DocumentOcr{},
+                                                       %{document_id: document_id,
+                                                         ocr: ocr,
+                                                         ocr_normalized: ocr |> DocumentsFinder.normalize}))
   end
 end

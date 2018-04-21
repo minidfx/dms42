@@ -16,6 +16,7 @@ defmodule Dms42.Repo.Migrations.CreateDocuments do
       add :comments, :text
       add :document_id, :uuid, null: false
       add :original_file_name, :string, null: false
+      add :original_file_name_normalized, :string, null: false
       add :mime_type, :string, null: false
       add :hash, :string, size: 64, null: false
       add :original_file_datetime, :naive_datetime, null: false
@@ -29,6 +30,7 @@ defmodule Dms42.Repo.Migrations.CreateDocuments do
 
     create table(:tags) do
       add :name, :string, size: 32, null: false
+      add :name_normalized, :string, size: 32, null: false
       add :tag_id, :uuid, null: false
 
       timestamps()
@@ -47,6 +49,7 @@ defmodule Dms42.Repo.Migrations.CreateDocuments do
     create table(:documents_ocr) do
       add :document_id, references(:documents, column: :document_id, type: :uuid), null: false
       add :ocr, :text, null: false
+      add :ocr_normalized, :text, null: false
 
       timestamps()
     end

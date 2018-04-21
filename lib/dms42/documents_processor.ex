@@ -6,6 +6,7 @@ defmodule Dms42.DocumentsProcessor do
   alias Dms42.Models.DocumentType
   alias Dms42.DocumentPath
   alias Dms42.TagManager
+  alias Dms42.DocumentsFinder
 
   def start_link() do
     GenServer.start(__MODULE__, %{}, name: :documents_processor)
@@ -23,10 +24,11 @@ defmodule Dms42.DocumentsProcessor do
     result = %NewDocumentProcessingContext{
       document: %Document{ inserted_at: DateTime.utc_now(),
                            original_file_name: file_name,
+                           original_file_name_normalized: file_name |> DocumentsFinder.normalize,
                            document_id: Ecto.UUID.bingenerate(),
                            original_file_datetime: original_file_datetime,
                            mime_type: mime_type,
-                           hash: :crypto.hash(:sha256, bytes) |> Base.encode16()
+                           hash: :crypto.hash(:sha256, bytes) |> Base.encode16
                           },
       type: document_type,
       transaction: Ecto.Multi.new()

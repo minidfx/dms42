@@ -4,6 +4,7 @@ defmodule Dms42.TagManager do
   alias Dms42.Models.DocumentTag
   alias Dms42.Models.Tag
   alias Dms42.TransactionHelper
+  alias Dms42.DocumentsFinder
 
   @doc """
     Add or update tags on a document.
@@ -19,18 +20,20 @@ defmodule Dms42.TagManager do
   """
   @spec add_or_update(Ecto.Multi.t(), document_id :: binary, tag_name :: String.t()) :: Ecto.Multi.t()
   def add_or_update(transaction, document_id, tag_name) when is_binary(document_id) do
-    case Tag |> Dms42.Repo.get_by(name: tag_name) do
+    tag_name_normalized  = tag_name |> DocumentsFinder.normalize
+    case Tag |> Dms42.Repo.get_by(name_normalized: tag_name_normalized) do
       nil ->
         tag_id  = Ecto.UUID.bingenerate()
-        transaction |> Ecto.Multi.insert_or_update("add_tag",
+        transaction |> Ecto.Multi.insert_or_update("add_tag_#{tag_name_normalized}",
                                                    Tag.changeset(%Tag{},
                                                                  %{name: tag_name,
+                                                                   name_normalized: tag_name_normalized,
                                                                    tag_id: tag_id}))
-                    |> Ecto.Multi.insert_or_update("add_document_tag",
+                    |> Ecto.Multi.insert_or_update("add_document_tag_#{tag_name_normalized}",
                                                    DocumentTag.changeset(%DocumentTag{},
                                                                          %{document_id: document_id,
                                                                            tag_id: tag_id}))
-      %{tag_id: tid} -> transaction |> Ecto.Multi.insert_or_update("add_document_tag",
+      %{tag_id: tid} -> transaction |> Ecto.Multi.insert_or_update("add_document_tag_#{tag_name_normalized}",
                                                                    DocumentTag.changeset(%DocumentTag{},
                                                                                          %{document_id: document_id,
                                                                                            tag_id: tid}))
@@ -42,7 +45,8 @@ defmodule Dms42.TagManager do
   """
   @spec remove(Ecto.Multi.t(), document_id :: binary, tag_name :: String.t()) :: Ecto.Multi.t()
   def remove(transaction, document_id, tag_name) when is_binary(document_id) and is_bitstring(tag_name) do
-    case Dms42.Repo.get_by(Tag, name: tag_name) do
+    tag_name_normalized = tag_name |> DocumentsFinder.normalize
+    case Dms42.Repo.get_by(Tag, name_normalized: tag_name_normalized) do
       nil -> transaction
       tag -> transaction |> remove(document_id, tag)
     end
@@ -83,7 +87,7 @@ defmodule Dms42.TagManager do
   defp clean_tag(transaction, %Tag{:tag_id => tag_id} = tag) do
     result = (from dt in DocumentTag, where: dt.tag_id == ^tag_id, select: count(dt.id)) |> Dms42.Repo.all
     case result do
-      [0] -> transaction |> Ecto.Multi.delete("clean_tag", tag)
+      [0] -> transaction |> Ecto.Multi.delete("clean_tag_#{tag_id}", tag)
       _ -> transaction
     end
   end

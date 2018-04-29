@@ -11,9 +11,6 @@ import Views.Documents exposing (..)
 import Views.Document exposing (..)
 import Views.Settings exposing (..)
 import Views.AddDocuments exposing (..)
-import Phoenix.Socket
-import Phoenix.Channel
-import Phoenix.Push
 import Debug exposing (log)
 import Json.Encode as JE exposing (object, int)
 import Json.Decode exposing (field)
@@ -34,21 +31,14 @@ init location =
 
         initialModel =
             Models.initialModel currentRoute
-
-        { phxSocket } =
-            initialModel
-
-        ( initPhxSocket, phxCmd ) =
-            Phoenix.Socket.join (Phoenix.Channel.init "documents:lobby") phxSocket
     in
-        ( { initialModel | phxSocket = initPhxSocket }, Cmd.batch [ Cmd.map PhoenixMsg phxCmd, fetchDocumentTypes, fetchDocuments 0 50 ] )
+        ( initialModel, Cmd.batch [ fetchDocumentTypes, fetchDocuments 0 50 ] )
 
 
 subscriptions : AppState -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Phoenix.Socket.listen model.phxSocket PhoenixMsg
-        , createToken CreateToken
+        [ createToken CreateToken
         , deleteToken DeleteToken
         ]
 
@@ -80,13 +70,6 @@ update msg model =
     case msg of
         OnLocationChange location ->
             LocationChange.dispatch location model
-
-        PhoenixMsg msg ->
-            let
-                ( phxSocket, phxCmd ) =
-                    Phoenix.Socket.update msg model.phxSocket
-            in
-                ( { model | phxSocket = phxSocket }, Cmd.map PhoenixMsg phxCmd )
 
         OnDocumentTypes result ->
             ( updateOnDocumentTypes model result, Cmd.none )

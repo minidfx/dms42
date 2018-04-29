@@ -5,8 +5,7 @@ import Json.Encode
 import Models
     exposing
         ( Msg
-            ( PhoenixMsg
-            , OnDocuments
+            ( OnDocuments
             , OnDocument
             , OnDocumentTypes
             , DidTagCreated

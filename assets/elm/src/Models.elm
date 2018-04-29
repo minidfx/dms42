@@ -15,8 +15,6 @@ module Models
 import Routing exposing (Route, DocumentId)
 import Rfc2822Datetime exposing (..)
 import Formatting exposing (..)
-import Phoenix.Socket
-import Phoenix.Channel
 import Navigation exposing (Location)
 import Json.Encode
 import Http exposing (Error)
@@ -51,7 +49,6 @@ type alias AppState =
     { route : Route
     , documents : Maybe (Dict String Document)
     , documentTypes : List DocumentType
-    , phxSocket : Phoenix.Socket.Socket Msg
     , searchDocumentsResult : Maybe (Dict String Document)
     , searchQuery : Maybe String
     }
@@ -72,7 +69,6 @@ type alias DocumentId =
 
 type Msg
     = OnLocationChange Location
-    | PhoenixMsg (Phoenix.Socket.Msg Msg)
     | OnDocumentTypes (Result Http.Error (List DocumentType))
     | OnDocuments (Result Http.Error (List Document))
     | OnDocument (Result Http.Error Document)
@@ -93,7 +89,4 @@ initialModel route =
     , documentTypes = []
     , searchDocumentsResult = Nothing
     , searchQuery = Nothing
-    , phxSocket =
-        Phoenix.Socket.init "ws://localhost:4000/socket/websocket"
-            |> Phoenix.Socket.withDebug
     }

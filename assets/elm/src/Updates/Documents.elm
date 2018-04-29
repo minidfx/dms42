@@ -17,8 +17,7 @@ import Models
         , DocumentDateTimes
         , Msg
         , Msg
-            ( PhoenixMsg
-            , OnDocuments
+            ( OnDocuments
             , OnDocumentTypes
             , DidTagCreated
             , DidTagCreated
@@ -34,8 +33,6 @@ import Updates.Document
 import Json.Decode as JD exposing (field, list, string, bool, maybe, andThen, succeed, fail)
 import Json.Encode as JE exposing (Value, object, int)
 import Debug exposing (log)
-import Phoenix.Socket exposing (Socket, push)
-import Phoenix.Push exposing (withPayload)
 import Dict exposing (Dict, union, fromList)
 import List exposing (map)
 import String exposing (length)

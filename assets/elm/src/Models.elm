@@ -75,7 +75,7 @@ type Msg
     | PhoenixMsg (Phoenix.Socket.Msg Msg)
     | OnDocumentTypes (Result Http.Error (List DocumentType))
     | OnDocuments (Result Http.Error (List Document))
-    | OnDocument Json.Encode.Value
+    | OnDocument (Result Http.Error Document)
     | DidTagCreated (Result Http.Error ())
     | DidTagDeleted (Result Http.Error ())
     | CreateToken ( String, Tag )

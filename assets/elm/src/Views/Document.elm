@@ -52,7 +52,7 @@ dispatchView appState document =
     in
         case route of
             Routing.Document x ->
-                img [ src ("/documents/" ++ x), class "img-thumbnail", style [ ( "max-width", "100%" ) ] ] []
+                img [ src ("/documents/" ++ x ++ "/image"), class "img-thumbnail", style [ ( "max-width", "100%" ) ] ] []
 
             Routing.DocumentProperties x ->
                 div [ class "row" ]

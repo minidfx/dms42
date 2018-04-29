@@ -7,9 +7,10 @@ import Json.Encode as JE exposing (object, int)
 import Phoenix.Push exposing (withPayload)
 import Phoenix.Socket exposing (push)
 import Debug exposing (log)
-import Updates.Documents exposing (fetchDocuments)
-import Updates.Document exposing (updateDocument)
+import Updates.Documents exposing (fetchDocuments, fetchDocumentTypes)
+import Updates.Document exposing (fetchDocument)
 import Debug exposing (log)
+import Dict
 
 
 dispatch : Location -> AppState -> ( AppState, Cmd Msg )
@@ -20,13 +21,30 @@ dispatch location model =
     in
         case route of
             Routing.Documents ->
-                ( { model | route = route }, fetchDocuments 0 50 )
+                ( { model | route = route }, Cmd.none )
 
             Routing.Settings ->
                 ( { model | route = route }, Cmd.none )
 
             Routing.Document documentId ->
-                ( { model | route = route }, Cmd.none )
+                let
+                    document =
+                        case model.documents of
+                            Just x ->
+                                Dict.get documentId x
+
+                            Nothing ->
+                                Nothing
+
+                    command =
+                        case document of
+                            Just x ->
+                                fetchDocument documentId
+
+                            Nothing ->
+                                Cmd.none
+                in
+                    ( { model | route = route }, command )
 
             Routing.DocumentProperties documentId ->
                 ( { model | route = route }, Cmd.none )

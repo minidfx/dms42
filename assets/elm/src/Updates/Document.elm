@@ -1,20 +1,49 @@
-module Updates.Document exposing (updateDocument, createTag, deleteTag, deleteDocument)
+module Updates.Document exposing (..)
 
 import Models exposing (AppState, Msg)
 import Json.Encode
 import Models
     exposing
-        ( Msg(PhoenixMsg, OnDocuments, OnDocumentTypes, DidTagCreated, DidTagDeleted, DidDocumentDeleted)
+        ( Msg
+            ( PhoenixMsg
+            , OnDocuments
+            , OnDocument
+            , OnDocumentTypes
+            , DidTagCreated
+            , DidTagDeleted
+            , DidDocumentDeleted
+            )
         , DocumentId
         , DidDocumentDeletedResponse
+        , DocumentDateTimes
+        , Document
         )
 import Http exposing (request, getString)
-import Json.Decode as JD exposing (field, string)
+import Json.Decode as JD exposing (field, list, string, bool, maybe, andThen, succeed, fail)
+import Rfc2822Datetime exposing (..)
+import Dict
 
 
-updateDocument : AppState -> Json.Encode.Value -> AppState
-updateDocument model json =
-    model
+updateDocument : AppState -> Result Http.Error Document -> AppState
+updateDocument model result =
+    case result of
+        Ok x ->
+            let
+                newDocumentsAsDict =
+                    List.map (\y -> ( y.document_id, y )) [ x ] |> Dict.fromList
+
+                unionDocuments =
+                    case model.documents of
+                        Just x ->
+                            Dict.union x newDocumentsAsDict
+
+                        Nothing ->
+                            Dict.empty
+            in
+                { model | documents = Just unionDocuments }
+
+        Err _ ->
+            model
 
 
 createTag : String -> String -> Cmd Msg
@@ -32,6 +61,11 @@ createTag document_id tag =
                 }
     in
         Http.send DidTagCreated <| request
+
+
+fetchDocument : String -> Cmd Msg
+fetchDocument documentId =
+    Http.send OnDocument <| Http.get ("http://localhost:4000/api/documents/" ++ documentId) documentDecoder
 
 
 deleteTag : String -> String -> Cmd Msg
@@ -72,3 +106,38 @@ deleteDocument document_id =
                 }
     in
         Http.send DidDocumentDeleted <| request
+
+
+documentDecoder : JD.Decoder Document
+documentDecoder =
+    JD.map7 Document
+        (field "comments" string)
+        (field "document_id" string)
+        (field "document_type_id" string)
+        (field "tags" (list string))
+        (field "original_file_name" string)
+        (field "datetimes" documentDateTimesDecoder)
+        (maybe (field "ocr" string))
+
+
+documentDateTimesDecoder : JD.Decoder DocumentDateTimes
+documentDateTimesDecoder =
+    JD.map3 DocumentDateTimes
+        (field "inserted_datetime" datetime)
+        (field "updated_datetime" datetime)
+        (field "original_file_datetime" datetime)
+
+
+datetime : JD.Decoder Datetime
+datetime =
+    let
+        convert : String -> JD.Decoder Datetime
+        convert raw =
+            case Rfc2822Datetime.parse raw of
+                Ok x ->
+                    succeed x
+
+                Err error ->
+                    fail error
+    in
+        string |> andThen convert

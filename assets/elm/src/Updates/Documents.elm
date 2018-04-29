@@ -25,6 +25,12 @@ import Models
             , DidDocumentSearched
             )
         )
+import Updates.Document
+    exposing
+        ( documentDecoder
+        , documentDateTimesDecoder
+        , datetime
+        )
 import Json.Decode as JD exposing (field, list, string, bool, maybe, andThen, succeed, fail)
 import Json.Encode as JE exposing (Value, object, int)
 import Debug exposing (log)
@@ -79,44 +85,9 @@ updateDocuments result =
             Nothing
 
 
-datetime : JD.Decoder Datetime
-datetime =
-    let
-        convert : String -> JD.Decoder Datetime
-        convert raw =
-            case Rfc2822Datetime.parse raw of
-                Ok x ->
-                    succeed x
-
-                Err error ->
-                    fail error
-    in
-        string |> andThen convert
-
-
 documentsDecoder : JD.Decoder (List Document)
 documentsDecoder =
     (list documentDecoder)
-
-
-documentDateTimesDecoder : JD.Decoder DocumentDateTimes
-documentDateTimesDecoder =
-    JD.map3 DocumentDateTimes
-        (field "inserted_datetime" datetime)
-        (field "updated_datetime" datetime)
-        (field "original_file_datetime" datetime)
-
-
-documentDecoder : JD.Decoder Document
-documentDecoder =
-    JD.map7 Document
-        (field "comments" string)
-        (field "document_id" string)
-        (field "document_type_id" string)
-        (field "tags" (list string))
-        (field "original_file_name" string)
-        (field "datetimes" documentDateTimesDecoder)
-        (maybe (field "ocr" string))
 
 
 documentTypesDecoder : JD.Decoder (List DocumentType)

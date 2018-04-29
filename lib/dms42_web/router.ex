@@ -18,9 +18,8 @@ defmodule Dms42Web.Router do
     pipe_through(:browser)
 
     get("/", PageController, :index)
-
     get("/documents/thumbnail/:document_id", DocumentsController, :thumbnail)
-    get("/documents/:document_id", DocumentsController, :document)
+    get("/documents/:document_id/image", DocumentsController, :document_image)
   end
 
   # Other scopes may use custom stacks.
@@ -28,11 +27,13 @@ defmodule Dms42Web.Router do
     pipe_through(:api)
 
     get("/documents", DocumentsController, :documents)
+    get("/documents/:document_id", DocumentsController, :document)
+    get("/document-types", DocumentsController, :document_types)
+
     post("/documents", DocumentsController, :upload_documents)
     post("/documents/:document_id/tags/:tag", DocumentsController, :create_tag)
+
     delete("/documents/:document_id/tags/:tag", DocumentsController, :delete_tag)
     delete("/documents/:document_id", DocumentsController, :delete_document)
-
-    get("/document-types", DocumentsController, :document_types)
   end
 end

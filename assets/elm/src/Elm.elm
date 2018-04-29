@@ -18,8 +18,8 @@ import Debug exposing (log)
 import Json.Encode as JE exposing (object, int)
 import Json.Decode exposing (field)
 import Updates.Documents exposing (..)
-import Updates.Document exposing (updateDocument, createTag, deleteTag, deleteDocument)
-import Updates.LocationChange exposing (dispatch)
+import Updates.Document exposing (updateDocument, fetchDocument, createTag, deleteTag, deleteDocument)
+import Updates.LocationChange as LocationChange
 import String exposing (words)
 import Ports.Document exposing (createToken, deleteToken, notifyAddToken, notifyRemoveToken)
 import Debug exposing (log)
@@ -79,7 +79,7 @@ update : Msg -> AppState -> ( AppState, Cmd Msg )
 update msg model =
     case msg of
         OnLocationChange location ->
-            dispatch location model
+            LocationChange.dispatch location model
 
         PhoenixMsg msg ->
             let

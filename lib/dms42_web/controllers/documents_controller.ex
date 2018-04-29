@@ -47,7 +47,7 @@ defmodule Dms42Web.DocumentsController do
   end
 
   @doc false
-  def document(conn, %{"document_id" => document_id}) do
+  def document_image(conn, %{"document_id" => document_id}) do
     case Ecto.UUID.dump(document_id) do
       :error -> conn |> send_resp(400, %{reason: "The document_id is not a valid uuid."} |> Poison.encode!)
       {:ok, uuid} -> document = Dms42.Repo.get_by(Document, document_id: uuid)
@@ -62,6 +62,17 @@ defmodule Dms42Web.DocumentsController do
                          |> put_resp_content_type("image/png")
                          |> send_file(200, absolute_file_path)
                     end
+    end
+  end
+
+  @doc false
+  def document(conn, %{"document_id" => document_id}) do
+    case Ecto.UUID.dump(document_id) do
+      :error -> conn |> send_resp(400, %{reason: "The document_id is not a valid uuid."} |> Poison.encode!)
+      {:ok, uuid} ->
+        document = Dms42.Repo.get_by(Document, document_id: uuid) |> transform_to_viewmodel
+        conn |> put_resp_content_type("application/json")
+             |> send_resp(200, document |> Poison.encode!)
     end
   end
 
@@ -118,35 +129,36 @@ defmodule Dms42Web.DocumentsController do
   end
 
   defp transform_to_viewmodels(documents) do
-    documents |> Enum.map(fn %{:document_id => d_id} = document ->
-                             Map.put(document,
-                                     :tags,
-                                     TagManager.get_tags(d_id) |> Enum.map(fn %Tag{:name => tag} -> tag end))
-                          end)
-              |> Enum.map(fn %{ :comments => comments,
-                                :document_id => d_id,
-                                :document_type_id => doc_type_id,
-                                :inserted_at => inserted,
-                                :updated_at => updated,
-                                :tags => tags,
-                                :original_file_datetime => original_file_datetime,
-                                :original_file_name => original_file_name
-                              } ->
-                          {:ok, document_id_string} = Ecto.UUID.load(d_id)
-                          {:ok, document_type_id_string} = Ecto.UUID.load(doc_type_id)
-                            %{
-                              "datetimes" => %{
-                                "inserted_datetime" => inserted |> to_rfc2822,
-                                "updated_datetime" => updated |> to_rfc2822,
-                                "original_file_datetime" => original_file_datetime |> to_rfc2822
-                              },
-                              "comments" => comments |> null_to_string,
-                              "document_id" => document_id_string,
-                              "document_type_id" => document_type_id_string,
-                              "tags" => tags,
-                              "original_file_name" => original_file_name
-                            }
-                          end)
+    documents |> Enum.map(&transform_to_viewmodel/1)
+  end
+
+  defp transform_to_viewmodel(%Document{:document_id => did} = document) do
+    document = Map.put(document,
+                       :tags,
+                       TagManager.get_tags(did) |> Enum.map(fn %Tag{:name => tag} -> tag end))
+    %{ :comments => comments,
+       :document_id => did,
+       :document_type_id => doc_type_id,
+       :inserted_at => inserted,
+       :updated_at => updated,
+       :tags => tags,
+       :original_file_datetime => original_file_datetime,
+       :original_file_name => original_file_name
+      } = document
+      {:ok, document_id_string} = Ecto.UUID.load(did)
+      {:ok, document_type_id_string} = Ecto.UUID.load(doc_type_id)
+      %{
+        "datetimes" => %{
+          "inserted_datetime" => inserted |> to_rfc2822,
+          "updated_datetime" => updated |> to_rfc2822,
+          "original_file_datetime" => original_file_datetime |> to_rfc2822
+        },
+        "comments" => comments |> null_to_string,
+        "document_id" => document_id_string,
+        "document_type_id" => document_type_id_string,
+        "tags" => tags,
+        "original_file_name" => original_file_name
+      }
   end
 
   defp null_to_string(string) when is_nil(string), do: ""

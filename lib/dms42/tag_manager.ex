@@ -7,6 +7,34 @@ defmodule Dms42.TagManager do
   alias Dms42.DocumentsFinder
 
   @doc """
+    Updates the existing tag and thrown an error if the update failed.
+  """
+  @spec update!(String.t(), String.t()) :: no_return() | {:error, reason :: String.t()}
+  def update!(old_tag_name, new_tag_name) do
+    Ecto.Multi.new() |> update(old_tag_name, new_tag_name)
+                     |> TransactionHelper.commit!
+  end
+
+  @doc """
+    Updates the existing tag.
+  """
+  @spec update(Ecto.Multi.t(), String.t(), String.t()) :: Ecto.Multi.t() | {:error, reason :: String.t()}
+  def update(transaction, old_tag_name, new_tag_name) do
+    new_tag_name_normalized = new_tag_name |> DocumentsFinder.normalize
+    new_tag = Tag |> Dms42.Repo.get_by(name_normalized: new_tag_name_normalized)
+    existing_tag = Tag |> Dms42.Repo.get_by(name_normalized: old_tag_name)
+    case {new_tag, existing_tag} do
+      {_, nil} -> {:error, "The tag with given name #{old_tag_name} to rename is not found."}
+      {nil, tag} ->
+        transaction |> Ecto.Multi.update("add_tag_#{new_tag_name_normalized}",
+                                         Tag.changeset(tag,
+                                                       %{name: new_tag_name,
+                                                         name_normalized: new_tag_name_normalized}))
+      {_, _} -> {:error, "A tag with the given name #{new_tag_name} already exist."}
+    end
+  end
+
+  @doc """
     Add or update tags on a document.
   """
   @spec add_or_update!(document_id :: binary, tag_name :: String.t()) :: no_return()
@@ -75,6 +103,14 @@ defmodule Dms42.TagManager do
           where: [document_id: ^document_id],
           select: t)
     |> Dms42.Repo.all
+  end
+
+  @doc """
+    Returns all tags saved.
+  """
+  @spec get_tags() :: list(Tag)
+  def get_tags() do
+    Tag |> Dms42.Repo.all
   end
 
   @spec clean_document_tags(Ecto.Multi.t(), document_id :: binary) :: Ecto.Multi.t()

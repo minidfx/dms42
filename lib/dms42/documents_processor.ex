@@ -27,8 +27,7 @@ defmodule Dms42.DocumentsProcessor do
                            original_file_name_normalized: file_name |> DocumentsFinder.normalize,
                            document_id: Ecto.UUID.bingenerate(),
                            original_file_datetime: original_file_datetime,
-                           mime_type: mime_type,
-                           hash: :crypto.hash(:sha256, bytes) |> Base.encode16
+                           mime_type: mime_type
                           },
       type: document_type,
       transaction: Ecto.Multi.new()
@@ -36,7 +35,7 @@ defmodule Dms42.DocumentsProcessor do
     |> valid_file_type
     |> valid_file_path
     |> valid_document_type
-    |> is_document_exist
+    |> is_document_exists(bytes)
     |> save_file(bytes)
     |> insert_to_database
     |> insert_tags(tags)
@@ -120,18 +119,31 @@ defmodule Dms42.DocumentsProcessor do
     {:error, "Not implemented"}
   end
 
-  @spec is_document_exist({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}) ::
-          {:ok, NewDocumentProcessingContext} | {:error, String.t()}
-  defp is_document_exist({:error, _} = error), do: error
-  defp is_document_exist({:ok, %NewDocumentProcessingContext{:document => %{:hash => hash}} = context}) do
-    case Dms42.Repo.get_by(Document, hash: hash) do
-      nil ->
-        {:ok, context}
+  @spec is_document_exists({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}, binary) :: {:ok, NewDocumentProcessingContext} | {:error, String.t()}
+  defp is_document_exists({:error, _} = error, _), do: error
+  defp is_document_exists({:ok,
+                          %NewDocumentProcessingContext{:document => %{:original_file_name => file_name} = document} = context},
+                          bytes) do
+    case is_document_exists(bytes) do
+      {:false, hash} -> {:ok, %NewDocumentProcessingContext{context | document: %Document{document | hash: hash}}}
+      {:true, _} ->
+          Logger.info("The document #{file_name} seems already exists.")
+          {:error, "This document seems conflict with another the document."}
+    end
+  end
 
-      %Document{:document_id => document_id, :original_file_name => file_name} ->
-        {:ok, uuid} = Ecto.UUID.load(document_id)
-        Logger.info("The document #{file_name} conflict with the document #{uuid}")
-        {:error, "This document seems conflict with another the document."}
+
+  def is_document_exists?(bytes) do
+    case is_document_exists(bytes) do
+      {:false, _} -> :false
+      {:true, _} -> :true
+    end
+  end
+  def is_document_exists(bytes) do
+    hash = :crypto.hash(:sha256, bytes) |> Base.encode16
+    case Dms42.Repo.get_by(Document, hash: hash) do
+      nil -> {:false, hash}
+      _ -> {:true, hash}
     end
   end
 
@@ -160,8 +172,7 @@ defmodule Dms42.DocumentsProcessor do
           {:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}
   defp save_file({:error, _reason} = error, _bytes), do: error
   defp save_file({:ok, %NewDocumentProcessingContext{:document => %Document{:original_file_name => file_name} = document} = context},
-                  bytes
-                ) do
+                  bytes) do
     file_path = DocumentPath.document_path!(document)
     if File.exists?(file_path) do
       raise "File already exists, exception currently not supported."

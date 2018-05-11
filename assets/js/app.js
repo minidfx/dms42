@@ -68,7 +68,6 @@ if (bodyTag)
         .dropzone(
         {
           url: "/api/documents",
-          acceptedFiles: "image/png,image/jpeg,application/pdf",
           params: getUploadFields,
           autoProcessQueue: true,
           parallelUploads: 1000,

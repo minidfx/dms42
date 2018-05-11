@@ -6,6 +6,8 @@ defmodule Dms42.DocumentsFinder do
 
   import Ecto.Query, only: [from: 2]
 
+  @max_result 10
+
   @spec find(query :: String.t) :: list(Document)
   def find(query) when is_bitstring(query) do
     exact_match = find_exact_match(query |> normalize) |> MapSet.new
@@ -15,9 +17,10 @@ defmodule Dms42.DocumentsFinder do
     MapSet.union(exact_match, term_match)
   end
 
-  def normalize(query),
-    do: query |> String.normalize(:nfd)
-              |> String.replace(~r/[^A-Za-z\s]/u, "")
+  @spec normalize(term :: String.t()) :: String.t()
+  def normalize(term),
+    do: term |> String.normalize(:nfd)
+             |> String.replace(~r/[^A-Za-z\s]/u, "")
 
   @spec find_by_terms(terms :: list(String.t())) :: list(Document)
   defp find_by_terms(terms) when is_list(terms),
@@ -35,6 +38,7 @@ defmodule Dms42.DocumentsFinder do
     or_where: ilike(d.original_file_name_normalized, ^"%#{term}%"),
     or_where: ilike(o.ocr_normalized, ^"%#{term}%"),
     or_where: t.name == ^term,
+    limit: @max_result,
     select: d
   end
 
@@ -48,6 +52,7 @@ defmodule Dms42.DocumentsFinder do
             or_where: ilike(d.original_file_name_normalized, ^"%#{query}%"),
             or_where: ilike(o.ocr_normalized, ^"%#{query}%"),
             or_where: t.name == ^query,
+            limit: @max_result,
             select: d
     Dms42.Repo.all query
   end

@@ -26,6 +26,7 @@ dispatch location model =
 
             Routing.Document documentId ->
                 let
+                    -- Try to find the document by its ID
                     document =
                         case model.documents of
                             Just x ->
@@ -34,13 +35,14 @@ dispatch location model =
                             Nothing ->
                                 Nothing
 
+                    -- Try to fetch the document if it is not in the global state
                     command =
                         case document of
                             Just x ->
-                                fetchDocument documentId
+                                Cmd.none
 
                             Nothing ->
-                                Cmd.none
+                                fetchDocument documentId
                 in
                     ( { model | route = route }, command )
 

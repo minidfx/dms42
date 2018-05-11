@@ -26,22 +26,24 @@ defmodule Dms42.OcrProcessor do
   """
   @callback handle_cast({:process, document_id :: binary, absolute_file_path :: String.t(), mime_type :: String.t()}, state :: map) :: {:ok, state :: map}
   def handle_cast({:process, document_id, absolute_file_path, "application/pdf"}, state) when is_binary(document_id) do
-    Logger.debug("Starting the OCR on the PDF document  #{absolute_file_path} ...")
-    {:ok, file_path} = Temp.path()
-    try do
-      ExMagick.init!()
-      |> ExMagick.attr!(:density, "300")
-      |> ExMagick.image_load!(absolute_file_path)
-      |> ExMagick.attr!(:adjoin, true)
-      |> ExMagick.attr!(:magick, "PNG")
-      |> ExMagick.image_dump(file_path)
+    Task.start_link(fn ->
+      Logger.debug("Starting the OCR on the PDF document  #{absolute_file_path} ...")
+      {:ok, file_path} = Temp.path()
+      try do
+        ExMagick.init!()
+        |> ExMagick.attr!(:density, "300")
+        |> ExMagick.image_load!(absolute_file_path)
+        |> ExMagick.attr!(:adjoin, true)
+        |> ExMagick.attr!(:magick, "PNG")
+        |> ExMagick.image_dump(file_path)
 
-      send_to_tesseract(file_path) |> save_ocr(document_id)
-    rescue
-      x ->
-        Logger.error(x)
-    end
-    :ok = File.rm(file_path)
+        send_to_tesseract(file_path, document_id)
+      rescue
+        x ->
+          Logger.error(x)
+      end
+      :ok = File.rm(file_path)
+    end)
     {:noreply, state}
   end
 
@@ -50,18 +52,19 @@ defmodule Dms42.OcrProcessor do
   """
   @callback handle_cast({:process, document_id :: binary, absolute_file_path :: String.t(), mime_type :: String.t()}, state :: map) :: {:ok, state :: map}
   def handle_cast({:process, document_id, absolute_file_path, _mime_type}, state) do
-    Logger.debug("Starting the OCR on the image document  #{absolute_file_path} ...")
-    send_to_tesseract(absolute_file_path) |> save_ocr(document_id)
+    Task.start_link(fn ->
+      Logger.debug("Starting the OCR on the image document  #{absolute_file_path} ...")
+      send_to_tesseract(absolute_file_path, document_id)
+    end)
     {:noreply, state}
   end
 
-  @spec send_to_tesseract(file_path :: String.t()) :: no_return()
-  defp send_to_tesseract(file_path) do
+  @spec send_to_tesseract(file_path :: String.t(), document_id :: binary) :: {:ok, pid()}
+  defp send_to_tesseract(file_path, document_id) do
     try do
       case Dms42.Tesseract.scan!(file_path) |> String.trim do
-        "" ->
-          Logger.warn("The result OCR was empty, insert or update was skipped.")
-        x -> x
+        "" -> Logger.warn("The result OCR was empty, insert or update was skipped.")
+        x -> save_ocr(x, document_id)
       end
     rescue
       _ -> Logger.warn("Error while processing the OCR for the file: #{file_path}")

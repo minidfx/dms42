@@ -55,6 +55,25 @@ defmodule Dms42Web.DocumentsController do
   end
 
   @doc false
+  def document_image(conn, %{"document_id" => document_id, "image_id" => image_id}) do
+    case valid_document_query(conn, document_id) do
+      {:error, conn} -> conn
+      {:ok, conn, document} ->
+        path = DocumentPath.big_thumbnail_paths!(document) |> Enum.at(image_id |> String.to_integer)
+        IO.inspect(path)
+        case path do
+          nil -> conn |> send_resp(404, "")
+          x ->
+            case File.exists?(x) do
+              false -> conn |> send_resp(404, "")
+              true -> conn |> put_resp_content_type("image/png")
+                           |> send_file(200, x)
+            end
+        end
+    end
+  end
+
+  @doc false
   def document_image(conn, %{"document_id" => document_id}) do
     case valid_document_query(conn, document_id) do
       {:error, conn} -> conn
@@ -156,6 +175,7 @@ defmodule Dms42Web.DocumentsController do
        :original_file_datetime => original_file_datetime,
        :original_file_name => original_file_name
       } = document
+      images = DocumentPath.big_thumbnail_paths!(document)
       {:ok, document_id_string} = Ecto.UUID.load(did)
       {:ok, document_type_id_string} = Ecto.UUID.load(doc_type_id)
       %{
@@ -168,7 +188,8 @@ defmodule Dms42Web.DocumentsController do
         "document_id" => document_id_string,
         "document_type_id" => document_type_id_string,
         "tags" => tags,
-        "original_file_name" => original_file_name
+        "original_file_name" => original_file_name,
+        "count_images" => images |> Enum.count
       }
   end
 

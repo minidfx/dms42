@@ -1,12 +1,12 @@
 module Views.Document exposing (..)
 
 import Dict exposing (get)
-import Html exposing (Html, div, h1, h4, text, input, img, a, label, textarea, span, button, p)
+import Html exposing (Html, div, h1, h4, text, input, img, a, label, textarea, span, button, p, nav, ul, li, node)
 import Html.Attributes exposing (class, classList, src, attribute, style, href, type_, id, rows, value, readonly)
 import Html.Events exposing (onClick)
 import Models exposing (AppState, Msg, Msg(..), Document)
 import Routing exposing (Route(Document, DocumentProperties))
-import Views.Common exposing (script, rfc2822String)
+import Views.Common exposing (script, rfc2822String, pagination)
 import Html.Lazy exposing (..)
 
 
@@ -38,10 +38,10 @@ isDocumentPropertiesActive { route } =
 dispatchView : AppState -> Document -> Html Msg
 dispatchView appState document =
     let
-        { route } =
+        { route, current_page } =
             appState
 
-        { original_file_name, tags, datetimes, comments, document_id } =
+        { original_file_name, tags, datetimes, comments, document_id, count_images } =
             document
 
         { original_file_datetime, inserted_datetime, updated_datetime } =
@@ -52,7 +52,16 @@ dispatchView appState document =
     in
         case route of
             Routing.Document x ->
-                img [ src ("/documents/" ++ x ++ "/image"), class "img-thumbnail", style [ ( "max-width", "100%" ) ] ] []
+                let
+                    baseUrl =
+                        "/documents/" ++ x ++ "/images/" ++ (toString current_page)
+                in
+                    div [ class "row" ]
+                        [ img [ src baseUrl, class "img-thumbnail", style [ ( "max-width", "100%" ) ] ] []
+                        , div [ class "text-center" ]
+                            [ Views.Common.pagination appState count_images
+                            ]
+                        ]
 
             Routing.DocumentProperties x ->
                 div [ class "row" ]

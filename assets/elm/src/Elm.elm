@@ -135,6 +135,23 @@ update msg model =
                 Err _ ->
                     ( model, Cmd.none )
 
+        DidDocumentChangedPage index ->
+            ( { model | current_page = index }, Cmd.none )
+
+        PagePrevious ->
+            let
+                { current_page } =
+                    model
+            in
+                ( { model | current_page = current_page - 1 }, Cmd.none )
+
+        PageNext ->
+            let
+                { current_page } =
+                    model
+            in
+                ( { model | current_page = current_page + 1 }, Cmd.none )
+
         DidSearchKeyPressed criteria ->
             let
                 newModel =

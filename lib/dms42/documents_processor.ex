@@ -125,8 +125,8 @@ defmodule Dms42.DocumentsProcessor do
                           %NewDocumentProcessingContext{:document => %{:original_file_name => file_name} = document} = context},
                           bytes) do
     case is_document_exists(bytes) do
-      {:false, hash} -> {:ok, %NewDocumentProcessingContext{context | document: %Document{document | hash: hash}}}
-      {:true, _} ->
+      {false, hash} -> {:ok, %NewDocumentProcessingContext{context | document: %Document{document | hash: hash}}}
+      {true, _} ->
           Logger.info("The document #{file_name} seems already exists.")
           {:error, "This document seems conflict with another the document."}
     end
@@ -135,8 +135,8 @@ defmodule Dms42.DocumentsProcessor do
 
   def is_document_exists?(bytes) do
     case is_document_exists(bytes) do
-      {:false, _} -> :false
-      {:true, _} -> :true
+      {:error, _} -> false
+      {:ok, _} -> true
     end
   end
   def is_document_exists(bytes) do

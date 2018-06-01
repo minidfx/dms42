@@ -44,7 +44,7 @@ dispatch location model =
                             Nothing ->
                                 fetchDocument documentId
                 in
-                    ( { model | route = route }, command )
+                    ( { model | route = route, current_page = 0 }, command )
 
             Routing.DocumentProperties documentId ->
                 ( { model | route = route }, Cmd.none )

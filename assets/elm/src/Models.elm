@@ -35,6 +35,7 @@ type alias Document =
     , tags : List String
     , original_file_name : String
     , datetimes : DocumentDateTimes
+    , count_images : Int
     , ocr : Maybe String
     }
 
@@ -51,6 +52,7 @@ type alias AppState =
     , documentTypes : List DocumentType
     , searchDocumentsResult : Maybe (Dict String Document)
     , searchQuery : Maybe String
+    , current_page : Int
     }
 
 
@@ -80,6 +82,9 @@ type Msg
     | DidDocumentDeleted (Result Http.Error DidDocumentDeletedResponse)
     | DidSearchKeyPressed String
     | DidDocumentSearched (Result Http.Error (List Document))
+    | DidDocumentChangedPage Int
+    | PagePrevious
+    | PageNext
 
 
 initialModel : Route -> AppState
@@ -89,4 +94,5 @@ initialModel route =
     , documentTypes = []
     , searchDocumentsResult = Nothing
     , searchQuery = Nothing
+    , current_page = 0
     }

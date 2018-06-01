@@ -18,7 +18,7 @@ import Models
         , Document
         )
 import Http exposing (request, getString)
-import Json.Decode as JD exposing (field, list, string, bool, maybe, andThen, succeed, fail)
+import Json.Decode as JD exposing (field, list, string, int, bool, maybe, andThen, succeed, fail)
 import Rfc2822Datetime exposing (..)
 import Dict
 
@@ -109,13 +109,14 @@ deleteDocument document_id =
 
 documentDecoder : JD.Decoder Document
 documentDecoder =
-    JD.map7 Document
+    JD.map8 Document
         (field "comments" string)
         (field "document_id" string)
         (field "document_type_id" string)
         (field "tags" (list string))
         (field "original_file_name" string)
         (field "datetimes" documentDateTimesDecoder)
+        (field "count_images" int)
         (maybe (field "ocr" string))
 
 

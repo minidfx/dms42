@@ -134,10 +134,8 @@ defmodule Dms42.DocumentsProcessor do
 
 
   def is_document_exists?(bytes) do
-    case is_document_exists(bytes) do
-      {:error, _} -> false
-      {:ok, _} -> true
-    end
+    {result, _} = is_document_exists(bytes)
+    result
   end
   def is_document_exists(bytes) do
     hash = :crypto.hash(:sha256, bytes) |> Base.encode16

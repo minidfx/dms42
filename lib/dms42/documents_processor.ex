@@ -7,6 +7,7 @@ defmodule Dms42.DocumentsProcessor do
   alias Dms42.DocumentPath
   alias Dms42.TagManager
   alias Dms42.DocumentsFinder
+  alias Dms42.Documents
 
   def start_link() do
     GenServer.start(__MODULE__, %{}, name: :documents_processor)
@@ -67,7 +68,7 @@ defmodule Dms42.DocumentsProcessor do
         %Document{:document_id => document_id, :mime_type =>  mime_type} = document
         absolute_documents_path = DocumentPath.document_path!(document)
         GenServer.cast(:ocr, {:process, document_id, absolute_documents_path, mime_type})
-        GenServer.cast(:thumbnail, {:process, absolute_documents_path, mime_type})
+        GenServer.cast(:thumbnail, {:process, document, mime_type})
         {:ok, document}
     end
   end

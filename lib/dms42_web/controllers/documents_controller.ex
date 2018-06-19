@@ -9,6 +9,7 @@ defmodule Dms42Web.DocumentsController do
   alias Dms42.DocumentManager
   alias Dms42.DocumentsFinder
   alias Dms42.DocumentsProcessor
+  alias Dms42.Documents
 
   import Ecto.Query
 
@@ -60,7 +61,6 @@ defmodule Dms42Web.DocumentsController do
       {:error, conn} -> conn
       {:ok, conn, document} ->
         path = DocumentPath.big_thumbnail_paths!(document) |> Enum.at(image_id |> String.to_integer)
-        IO.inspect(path)
         case path do
           nil -> conn |> send_resp(404, "")
           x ->
@@ -92,25 +92,20 @@ defmodule Dms42Web.DocumentsController do
     case valid_document_query(conn, document_id) do
       {:error, conn} -> conn
       {:ok, conn, document} -> conn |> put_resp_content_type("application/json")
-                                    |> send_resp(200, document |> transform_to_viewmodel
+                                    |> send_resp(200, document |> Documents.transform_to_viewmodel
                                                                |> Poison.encode!)
     end
   end
 
   @doc false
   def documents(conn, %{"start" => start, "length" => length}) do
-    documents = Document |> limit(^length)
-                         |> offset(^start)
-                         |> order_by(asc: :inserted_at)
-                         |> Dms42.Repo.all
-                         |> transform_to_viewmodels
     conn
     |> put_resp_content_type("application/json")
-    |> send_resp(200, documents |> Poison.encode!)
+    |> send_resp(200, documents = Documents.documents |> Poison.encode!)
   end
   def documents(conn, %{"query" => query}) do
     conn |> put_resp_content_type("application/json")
-         |> send_resp(200, DocumentsFinder.find(query) |> transform_to_viewmodels |> Poison.encode!)
+         |> send_resp(200, DocumentsFinder.find(query) |> Documents.transform_to_viewmodels |> Poison.encode!)
   end
 
   @doc false
@@ -159,45 +154,5 @@ defmodule Dms42Web.DocumentsController do
                       x -> {:ok, conn, x}
                      end
     end
-  end
-
-  defp transform_to_viewmodels(documents), do: documents |> Enum.map(&transform_to_viewmodel/1)
-  defp transform_to_viewmodel(%Document{:document_id => did} = document) do
-    document = Map.put(document,
-                       :tags,
-                       TagManager.get_tags(did) |> Enum.map(fn %Tag{:name => tag} -> tag end))
-    %{ :comments => comments,
-       :document_id => did,
-       :document_type_id => doc_type_id,
-       :inserted_at => inserted,
-       :updated_at => updated,
-       :tags => tags,
-       :original_file_datetime => original_file_datetime,
-       :original_file_name => original_file_name
-      } = document
-      images = DocumentPath.big_thumbnail_paths!(document)
-      {:ok, document_id_string} = Ecto.UUID.load(did)
-      {:ok, document_type_id_string} = Ecto.UUID.load(doc_type_id)
-      %{
-        "datetimes" => %{
-          "inserted_datetime" => inserted |> to_rfc2822,
-          "updated_datetime" => updated |> to_rfc2822,
-          "original_file_datetime" => original_file_datetime |> to_rfc2822
-        },
-        "comments" => comments |> null_to_string,
-        "document_id" => document_id_string,
-        "document_type_id" => document_type_id_string,
-        "tags" => tags,
-        "original_file_name" => original_file_name,
-        "count_images" => images |> Enum.count
-      }
-  end
-
-  defp null_to_string(string) when is_nil(string), do: ""
-  defp null_to_string(string), do: string
-
-  defp to_rfc2822(datetime) do
-    {:ok, rfc2822} = Timex.format(datetime, "%a, %d %b %Y %H:%M:%S +0000", :strftime)
-    rfc2822
   end
 end

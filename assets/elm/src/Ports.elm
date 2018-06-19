@@ -1,4 +1,4 @@
-port module Ports.Document exposing (createToken, deleteToken, notifyAddToken, notifyRemoveToken)
+port module Ports exposing (..)
 
 import Models exposing (Tag)
 

@@ -1,35 +1,25 @@
-module Models
-    exposing
-        ( AppState
-        , Msg
-        , Document
-        , DocumentDateTimes
-        , DocumentType
-        , Msg(..)
-        , initialModel
-        , Tag
-        , DocumentId
-        , DidDocumentDeletedResponse
-        )
+module Models exposing (..)
 
-import Routing exposing (Route, DocumentId)
-import Rfc2822Datetime exposing (..)
-import Formatting exposing (..)
-import Navigation exposing (Location)
+import Routing
+import Navigation
 import Json.Encode
-import Http exposing (Error)
+import Http
 import Dict exposing (Dict)
+import Rfc2822Datetime
+import Phoenix.Socket
+import Websocket
+import Json.Encode
 
 
 type alias DocumentDateTimes =
-    { inserted_datetime : Datetime
-    , updated_datetime : Datetime
-    , original_file_datetime : Datetime
+    { inserted_datetime : Rfc2822Datetime.Datetime
+    , updated_datetime : Maybe Rfc2822Datetime.Datetime
+    , original_file_datetime : Rfc2822Datetime.Datetime
     }
 
 
 type alias Document =
-    { comments : String
+    { comments : Maybe String
     , document_id : String
     , document_type_id : String
     , tags : List String
@@ -47,17 +37,12 @@ type alias DocumentType =
 
 
 type alias AppState =
-    { route : Route
+    { route : Routing.Route
     , documents : Maybe (Dict String Document)
-    , documentTypes : List DocumentType
+    , documentTypes : Maybe (List DocumentType)
     , searchDocumentsResult : Maybe (Dict String Document)
     , searchQuery : Maybe String
-    , current_page : Int
-    }
-
-
-type alias DidDocumentDeletedResponse =
-    { document_id : String
+    , phxSocket : Phoenix.Socket.Socket Msg
     }
 
 
@@ -69,30 +54,42 @@ type alias DocumentId =
     String
 
 
+type alias InitialLoad =
+    { documentTypes : List DocumentType
+    , documents : List Document
+    }
+
+
 type Msg
-    = OnLocationChange Location
-    | OnDocumentTypes (Result Http.Error (List DocumentType))
-    | OnDocuments (Result Http.Error (List Document))
-    | OnDocument (Result Http.Error Document)
-    | DidTagCreated (Result Http.Error ())
-    | DidTagDeleted (Result Http.Error ())
-    | CreateToken ( String, Tag )
-    | DeleteToken ( String, Tag )
-    | DeleteDocument DocumentId
-    | DidDocumentDeleted (Result Http.Error DidDocumentDeletedResponse)
-    | DidSearchKeyPressed String
-    | DidDocumentSearched (Result Http.Error (List Document))
-    | DidDocumentChangedPage Int
-    | PagePrevious
-    | PageNext
+    = OnLocationChange Navigation.Location
+    | JoinChannel
+    | PhoenixMsg (Phoenix.Socket.Msg Msg)
+    | ReceiveInitialLoad Json.Encode.Value
+    | ReceiveNewDocument Json.Encode.Value
 
 
-initialModel : Route -> AppState
+stubDateTime : Rfc2822Datetime.Datetime
+stubDateTime =
+    { dayOfWeek = Nothing
+    , date = { year = 2000, month = Rfc2822Datetime.Jan, day = 1 }
+    , time = { hour = 0, minute = 0, second = Nothing, zone = Rfc2822Datetime.UT }
+    }
+
+
+initPhxSocket : Phoenix.Socket.Socket Msg
+initPhxSocket =
+    Phoenix.Socket.init Websocket.socketServer
+        |> Phoenix.Socket.withDebug
+        |> Phoenix.Socket.on "initialLoad" "documents:lobby" ReceiveInitialLoad
+        |> Phoenix.Socket.on "newDocument" "documents:lobby" ReceiveNewDocument
+
+
+initialModel : Routing.Route -> AppState
 initialModel route =
     { route = route
     , documents = Nothing
-    , documentTypes = []
+    , documentTypes = Nothing
     , searchDocumentsResult = Nothing
     , searchQuery = Nothing
-    , current_page = 0
+    , phxSocket = initPhxSocket
     }

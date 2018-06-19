@@ -1,6 +1,10 @@
 defmodule Dms42.ThumbnailProcessor do
   use GenServer
+
   require Logger
+
+  alias Dms42.DocumentPath
+  alias Dms42.Documents
 
   def start_link() do
     GenServer.start(
@@ -13,8 +17,9 @@ defmodule Dms42.ThumbnailProcessor do
     )
   end
 
-  def handle_cast({:process, file_path, "application/pdf"}, %{:thumbnails_path => tp, :documents_path => dp} = state) do
+  def handle_cast({:process, document, "application/pdf"}, %{:thumbnails_path => tp, :documents_path => dp} = state) do
     try do
+      file_path = DocumentPath.document_path!(document)
       Logger.debug("Processing the thumbnail for the document #{file_path} ...")
       thumbnail_folder_path = String.replace_prefix(file_path, dp, tp)
       :ok = thumbnail_folder_path |> File.mkdir_p
@@ -35,6 +40,8 @@ defmodule Dms42.ThumbnailProcessor do
       |> ExMagick.attr!(:adjoin, false)
       |> ExMagick.attr!(:magick, "PNG")
       |> ExMagick.image_dump(big_thumbnail_file_path)
+
+      Dms42Web.Endpoint.broadcast!("documents:lobby", "newDocument", document |> Documents.transform_to_viewmodel)
     rescue
       x -> IO.inspect(x)
     end
@@ -42,8 +49,9 @@ defmodule Dms42.ThumbnailProcessor do
     {:noreply, state}
   end
 
-  def handle_cast({:process, file_path, _}, %{:thumbnails_path => tp, :documents_path => dp} = state) do
+  def handle_cast({:process, document, _}, %{:thumbnails_path => tp, :documents_path => dp} = state) do
     try do
+      file_path = DocumentPath.document_path!(document)
       Logger.debug("Processing the thumbnail for the document #{file_path} ...")
       thumbnail_folder_path = String.replace_prefix(file_path, dp, tp)
       :ok = thumbnail_folder_path |> File.mkdir_p
@@ -55,6 +63,8 @@ defmodule Dms42.ThumbnailProcessor do
       |> ExMagick.thumb!(155, 220)
       |> ExMagick.attr!(:magick, "PNG")
       |> ExMagick.image_dump(small_thumbnail_file_path)
+
+      Dms42Web.Endpoint.broadcast!("documents:lobby", "newDocument", document |> Documents.transform_to_viewmodel)
     rescue
       x -> IO.inspect(x)
     end

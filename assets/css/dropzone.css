@@ -1,0 +1,11 @@
+.dropzone .dz-message {
+  font-size: 1.8em !important;
+}
+
+.dropzone .dz-preview .dz-error-mark path  {
+  fill: rgba(255, 110, 0, 1);
+}
+
+.dropzone .dz-preview .dz-success-mark path  {
+  fill: #5cb85c;
+}

@@ -1,7 +1,7 @@
 module Routing exposing (..)
 
-import Navigation exposing (Location)
-import UrlParser exposing (..)
+import Navigation
+import UrlParser exposing ((</>))
 
 
 type alias DocumentId =
@@ -17,21 +17,21 @@ type Route
     | Settings
 
 
-matchers : Parser (Route -> a) a
+matchers : UrlParser.Parser (Route -> a) a
 matchers =
-    oneOf
-        [ map Home top
-        , map AddDocuments (s "add-documents")
-        , map Document (s "documents" </> string)
-        , map DocumentProperties (s "documents" </> string </> s "properties")
-        , map Documents (s "documents")
-        , map Settings (s "settings")
+    UrlParser.oneOf
+        [ UrlParser.map Home UrlParser.top
+        , UrlParser.map AddDocuments (UrlParser.s "add-documents")
+        , UrlParser.map Document (UrlParser.s "documents" </> UrlParser.string)
+        , UrlParser.map DocumentProperties (UrlParser.s "documents" </> UrlParser.string </> UrlParser.s "properties")
+        , UrlParser.map Documents (UrlParser.s "documents")
+        , UrlParser.map Settings (UrlParser.s "settings")
         ]
 
 
-parseLocation : Location -> Route
+parseLocation : Navigation.Location -> Route
 parseLocation location =
-    case (parseHash matchers location) of
+    case (UrlParser.parseHash matchers location) of
         Just route ->
             route
 

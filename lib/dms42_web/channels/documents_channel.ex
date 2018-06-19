@@ -1,8 +1,11 @@
 defmodule Dms42Web.DocumentsChannel do
   use Dms42Web, :channel
+
   require Logger
+
   alias Dms42.Models.DocumentType
   alias Dms42.Models.Document
+  alias Dms42.Documents
 
   import Ecto.Query
 
@@ -13,6 +16,18 @@ defmodule Dms42Web.DocumentsChannel do
     else
       {:error, %{reason: "unauthorized"}}
     end
+  end
+
+  def handle_info(:after_join, socket) do
+    document_types = DocumentType |> Dms42.Repo.all
+                                  |> Enum.map(fn %{:name => name, :type_id => type_id} ->
+                                                {:ok, uuid} = Ecto.UUID.load(type_id)
+                                                %{"name" => name, "id" => uuid}
+                                              end)
+    documents = Documents.documents(0, 50)
+
+    Phoenix.Channel.push(socket, "initialLoad", %{"document-types": document_types, "documents": documents})
+    {:noreply, socket}
   end
 
   # # Channels can be used in a request/response fashion

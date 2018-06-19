@@ -1,176 +1,119 @@
 module Main exposing (..)
 
-import Layout exposing (..)
 import Html exposing (Html)
-import Http exposing (send)
-import Models exposing (AppState, Document, Msg, Msg(..), initialModel)
-import Routing exposing (..)
-import Navigation exposing (Location, newUrl)
-import Views.Home exposing (..)
-import Views.Documents exposing (..)
-import Views.Document exposing (..)
-import Views.Settings exposing (..)
-import Views.AddDocuments exposing (..)
-import Debug exposing (log)
-import Json.Encode as JE exposing (object, int)
-import Json.Decode exposing (field)
-import Updates.Documents exposing (..)
-import Updates.Document exposing (updateDocument, fetchDocument, createTag, deleteTag, deleteDocument)
-import Updates.LocationChange as LocationChange
-import String exposing (words)
-import Ports.Document exposing (createToken, deleteToken, notifyAddToken, notifyRemoveToken)
-import Debug exposing (log)
+import Http
+import Models
+import Routing
+import Navigation
+import Debug
+import Json.Encode
+import Json.Decode
+import String
+import Ports
 import Dict
+import PageView
+import HomeView
+import DocumentsView
+import AddDocumentView
+import Phoenix.Socket
+import Phoenix.Channel
+import Phoenix.Push
+import Task
+import Helpers
+import JsonDecoders
+import Debug
 
 
-init : Location -> ( AppState, Cmd Msg )
+init : Navigation.Location -> ( Models.AppState, Cmd Models.Msg )
 init location =
     let
         currentRoute =
             Routing.parseLocation location
 
-        initialModel =
+        initialState =
             Models.initialModel currentRoute
     in
-        ( initialModel, Cmd.batch [ fetchDocumentTypes, fetchDocuments 0 50 ] )
+        ( initialState, Helpers.sendMsg Models.JoinChannel )
 
 
-subscriptions : AppState -> Sub Msg
-subscriptions model =
-    Sub.batch
-        [ createToken CreateToken
-        , deleteToken DeleteToken
-        ]
+subscriptions : Models.AppState -> Sub Models.Msg
+subscriptions state =
+    Phoenix.Socket.listen state.phxSocket Models.PhoenixMsg
 
 
-view : AppState -> Html Msg
-view model =
-    case model.route of
+view : Models.AppState -> Html Models.Msg
+view state =
+    case state.route of
         Routing.Home ->
-            Layout.layout model (Views.Home.index model)
+            PageView.view state HomeView.view
 
         Routing.AddDocuments ->
-            Layout.layout model (Views.AddDocuments.index model)
+            PageView.view state AddDocumentView.view
 
         Routing.Document documentId ->
-            Layout.layout model (Views.Document.index model documentId)
+            PageView.view state (\x -> Html.div [] [])
 
         Routing.DocumentProperties documentId ->
-            Layout.layout model (Views.Document.index model documentId)
+            PageView.view state (\x -> Html.div [] [])
 
         Routing.Documents ->
-            Layout.layout model (Views.Documents.index model)
+            PageView.view state DocumentsView.view
 
         Routing.Settings ->
-            Layout.layout model (Views.Settings.index model)
+            PageView.view state (\x -> Html.div [] [])
 
 
-update : Msg -> AppState -> ( AppState, Cmd Msg )
-update msg model =
+update : Models.Msg -> Models.AppState -> ( Models.AppState, Cmd Models.Msg )
+update msg state =
     case msg of
-        OnLocationChange location ->
-            LocationChange.dispatch location model
+        Models.OnLocationChange location ->
+            ( { state | route = Routing.parseLocation location }, Cmd.none )
 
-        OnDocumentTypes result ->
-            ( updateOnDocumentTypes model result, Cmd.none )
-
-        OnDocuments result ->
-            let
-                currentDocuments =
-                    case model.documents of
-                        Just x ->
-                            x
-
-                        Nothing ->
-                            Dict.empty
-
-                newDocuments =
-                    case updateDocuments result of
-                        Just x ->
-                            x
-
-                        Nothing ->
-                            Dict.empty
-
-                unionDocuments =
-                    Dict.union currentDocuments newDocuments
-            in
-                ( { model | documents = Just unionDocuments }, Cmd.none )
-
-        OnDocument result ->
-            ( updateDocument model result, Cmd.none )
-
-        DidTagCreated result ->
-            ( model, Cmd.none )
-
-        DidTagDeleted result ->
-            ( model, Cmd.none )
-
-        CreateToken ( document_id, tag ) ->
-            ( model, createTag document_id tag )
-
-        DeleteToken ( document_id, tag ) ->
-            ( model, deleteTag document_id tag )
-
-        DeleteDocument document_id ->
-            ( model, deleteDocument document_id )
-
-        DidDocumentDeleted result ->
-            case result of
+        Models.ReceiveInitialLoad raw ->
+            case Json.Decode.decodeValue JsonDecoders.initialLoadDecoder raw of
                 Ok x ->
+                    ( { state | documentTypes = Just x.documentTypes, documents = Just (Helpers.mergeDocuments x.documents state.documents) }, Cmd.none )
+
+                Err error ->
                     let
-                        { document_id } =
-                            x
-
-                        local_documents =
-                            case model.documents of
-                                Nothing ->
-                                    Nothing
-
-                                Just x ->
-                                    Just (Dict.remove document_id x)
+                        _ =
+                            Debug.log "Error" error
                     in
-                        ( { model | documents = local_documents }, Navigation.newUrl "#/documents" )
+                        ( state, Cmd.none )
 
-                Err _ ->
-                    ( model, Cmd.none )
+        Models.ReceiveNewDocument raw ->
+            case Json.Decode.decodeValue JsonDecoders.documentDecoder raw of
+                Ok x ->
+                    ( { state | documents = Just (Helpers.mergeDocument x state.documents) }, Cmd.none )
 
-        DidDocumentChangedPage index ->
-            ( { model | current_page = index }, Cmd.none )
+                Err error ->
+                    let
+                        _ =
+                            Debug.log "Error" error
+                    in
+                        ( state, Cmd.none )
 
-        PagePrevious ->
+        Models.JoinChannel ->
             let
-                { current_page } =
-                    model
-            in
-                ( { model | current_page = current_page - 1 }, Cmd.none )
+                channel =
+                    Phoenix.Channel.init "documents:lobby"
 
-        PageNext ->
+                ( phxSocket, phxCmd ) =
+                    Phoenix.Socket.join channel state.phxSocket
+            in
+                ( { state | phxSocket = phxSocket }, Cmd.batch [ Cmd.map Models.PhoenixMsg phxCmd ] )
+
+        Models.PhoenixMsg msg ->
             let
-                { current_page } =
-                    model
+                ( phxSocket, phxCmd ) =
+                    Phoenix.Socket.update msg state.phxSocket
             in
-                ( { model | current_page = current_page + 1 }, Cmd.none )
-
-        DidSearchKeyPressed criteria ->
-            let
-                newModel =
-                    { model | searchQuery = Just criteria }
-            in
-                case searchDocuments criteria of
-                    Ok x ->
-                        ( newModel, x )
-
-                    Err _ ->
-                        ( { newModel | searchDocumentsResult = Nothing }, Cmd.none )
-
-        DidDocumentSearched result ->
-            ( { model | searchDocumentsResult = updateDocuments result }, Cmd.none )
+                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
 
 
-main : Program Never AppState Msg
+main : Program Never Models.AppState Models.Msg
 main =
-    Navigation.program OnLocationChange
+    Navigation.program Models.OnLocationChange
         { init = init
         , view = view
         , update = update

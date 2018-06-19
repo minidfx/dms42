@@ -4,7 +4,12 @@ exports.config = {
   {
     javascripts:
     {
-      joinTo: "js/app.js"
+      joinTo: "js/app.js",
+      order: {
+        after: [
+          "vendor/elm.js"
+        ]
+      }
 
       // To use a separate vendor.js bundle, specify two files path
       // http://brunch.io/docs/config#-files-
@@ -64,21 +69,8 @@ exports.config = {
     },
     copyfilemon:
     {
-      "fonts": ["fonts"],
-      "js": ["node_modules/bootstrap-notify/bootstrap-notify.min.js",
-             "node_modules/bootstrap/dist/js/bootstrap.min.js",
-             "node_modules/bootstrap-tokenfield/dist/bootstrap-tokenfield.min.js",
-             "node_modules/dropzone/dist/dropzone.js",
-             "node_modules/jquery/dist/jquery.min.js",
-             "node_modules/jquery/external/sizzle/dist/sizzle.min.js",
-             "node_modules/jquery/external/sizzle/dist/sizzle.min.map"],
-      "css": ["node_modules/bootstrap/dist/css/bootstrap.min.css",
-              "node_modules/bootstrap/dist/css/bootstrap-theme.min.css",
-              "node_modules/bootstrap/dist/css/bootstrap.min.css.map",
-              "node_modules/bootstrap/dist/css/bootstrap-theme.min.css.map",
-              "node_modules/bootstrap-tokenfield/dist/css/bootstrap-tokenfield.min.css",
-              "node_modules/dropzone/dist/min/dropzone.min.css",
-              "node_modules/dropzone/dist/min/basic.min.css"]
+      "js": ["node_modules/dropzone/dist/dropzone.js"],
+      "css": ["node_modules/dropzone/dist/min/dropzone.min.css"]
     }
   },
 

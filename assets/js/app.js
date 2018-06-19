@@ -25,18 +25,24 @@ if (bodyTag)
 {
   var app = Elm.Main.embed(bodyTag[0])
 
-  window.getUploadFields = function(file)
-  {
-    var file = file[0];
-    return {
-      document_type: $("select.form-control-document-type")
-        .val(),
-      tags: $("input.form-control-tags")
-        .tokenfield("getTokens")
-        .map(x => x.value),
-      fileUnixTimestamp: file.lastModified
-    }
-  }
+  window.loadDropZone = function() {
+    $("div.dropzone")
+      .dropzone(
+      {
+        url: "/api/documents",
+        params: function(file)
+        {
+          var file = file[0];
+          return { document_type: $("#documentType").val(),
+                   tags: [],
+                   fileUnixTimestamp: file.lastModified }
+        },
+        autoProcessQueue: true,
+        parallelUploads: 1000,
+        ignoreHiddenFiles: true,
+        acceptedFiles: "image/*,application/pdf"
+      });
+  };
 
   window.loadTokensFields = function(query, document_id, tags)
   {
@@ -58,26 +64,5 @@ if (bodyTag)
           app.ports.deleteToken.send([document_id, tag])
         })
     }
-  }
-
-  window.loadDropZone = function()
-  {
-    window.setTimeout(function()
-    {
-      $("div.dropzone")
-        .dropzone(
-        {
-          url: "/api/documents",
-          params: getUploadFields,
-          autoProcessQueue: true,
-          parallelUploads: 1000,
-          ignoreHiddenFiles: true,
-          acceptedFiles: "image/*,application/pdf"
-        });
-    }, 500)
-  }
-
-  window.deleteDocument = function(document_id) {
-
   }
 }

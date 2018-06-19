@@ -1,58 +1,10 @@
-.dropzone {
-  border: 2px dashed rgba(0, 0, 0, 0.3) !important;
-  border-color: rgba(255, 110, 0, 1) !important;
-  min-height: 250px !important;
+div.home-search
+{
+  height: 200px;
+  padding-top: 50px;
 }
 
-.color-42 {
-  color: rgba(255, 110, 0, 1) !important;
-}
-
-.dropzone .dz-message {
-  font-size: 1.8em !important;
-}
-
-.dropzone .dz-preview .dz-error-mark path  {
-  fill: rgba(255, 110, 0, 1);
-}
-
-.dropzone .dz-preview .dz-success-mark path  {
-  fill: #5cb85c;
-}
-
-.label-tile {
-  font-size: 1.7em !important;
-  line-height: 5.5 !important;
-}
-
-.tile {
-   width: 140px;
-   height: 140px;
-   background-color: #EEE;
-}
-
-.tile > a {
-  color: #777 !important;
-  font-weight: 400 !important;
-  text-transform: uppercase;
-}
-
-.tile > a > div {
-  vertical-align: middle;
-  display: table-cell;
-  width: 140px;
-  height: 140px;
-}
-
-.tile a:hover, .tile a:focus {
-  text-decoration: none !important;
-}
-
-.app-title > a:hover {
-  text-decoration: none;
-}
-
-.thumbnail > img {
-  max-width: 150px !important;
-  max-height: 220px !important;
+main.container
+{
+  padding-top: 100px;
 }

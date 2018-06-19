@@ -13,7 +13,8 @@
         "elm-lang/http": "1.0.0 <= v < 2.0.0",
         "elm-lang/navigation": "2.1.0 <= v < 3.0.0",
         "evancz/url-parser": "2.0.1 <= v < 3.0.0",
-        "krisajenkins/formatting": "4.2.0 <= v < 5.0.0",
+        "fbonetti/elm-phoenix-socket": "2.2.0 <= v < 3.0.0",
+        "rundis/elm-bootstrap": "4.0.0 <= v < 5.0.0",
         "stil4m/rfc2822-datetime": "1.0.2 <= v < 2.0.0"
     },
     "elm-version": "0.18.0 <= v < 0.19.0"

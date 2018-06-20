@@ -14,6 +14,7 @@ import Dict
 import PageView
 import HomeView
 import DocumentsView
+import DocumentView
 import AddDocumentView
 import Phoenix.Socket
 import Phoenix.Channel
@@ -51,10 +52,10 @@ view state =
             PageView.view state AddDocumentView.view
 
         Routing.Document documentId ->
-            PageView.view state (\x -> Html.div [] [])
+            PageView.view state (\x -> DocumentView.view x documentId)
 
         Routing.DocumentProperties documentId ->
-            PageView.view state (\x -> Html.div [] [])
+            PageView.view state (\x -> DocumentView.view x documentId)
 
         Routing.Documents ->
             PageView.view state DocumentsView.view

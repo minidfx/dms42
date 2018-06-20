@@ -37,3 +37,13 @@ documentsToDict documents =
     documents
         |> List.map (\x -> ( x.document_id, x ))
         |> Dict.fromList
+
+
+getDocument : Models.AppState -> String -> Maybe Models.Document
+getDocument { documents } documentId =
+    case documents of
+        Nothing ->
+            Nothing
+
+        Just x ->
+            Dict.get documentId x

@@ -32,7 +32,7 @@ defmodule Dms42Web.DocumentsController do
         conn |> put_resp_content_type("text/plain")
              |> send_resp(400, "The document already exists")
       :false ->
-        GenServer.cast(:documents_processor,
+        GenServer.call(:documents_processor,
                        {:process,
                        original_file_name,
                        mime_type,

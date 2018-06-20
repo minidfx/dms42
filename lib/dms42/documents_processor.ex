@@ -21,7 +21,7 @@ defmodule Dms42.DocumentsProcessor do
     IO.inspect(reason)
   end
 
-  def handle_cast({:process, file_name, mime_type, original_file_datetime, document_type, tags, bytes}, state) do
+  def handle_call({:process, file_name, mime_type, original_file_datetime, document_type, tags, bytes}, _, state) do
     result = %NewDocumentProcessingContext{
       document: %Document{ inserted_at: DateTime.utc_now(),
                            original_file_name: file_name,
@@ -46,10 +46,9 @@ defmodule Dms42.DocumentsProcessor do
       {:ok, document} ->
           file_path = DocumentPath.document_path!(document)
           Logger.info("Document #{file_path} successfully added.")
-      {:error, reason} -> Logger.error(reason)
+              {:reply, :ok, state}
+      {:error, reason} -> {:reply, {:error, reason}, state}
     end
-
-    {:noreply, state}
   end
 
   @spec commit({:ok, NewDocumentProcessingContext} | {:error, reason :: String.t()}) ::

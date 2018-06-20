@@ -29,14 +29,19 @@ card { datetimes, document_id } =
             datetimes
     in
         Html.div [ Html.Attributes.class "col-md-2" ]
-            [ Bootstrap.Card.config [ Bootstrap.Card.outlineInfo ]
-                |> Bootstrap.Card.footer [ Html.Attributes.class "text-center" ] [ Html.text (dateTimeToString inserted_datetime) ]
-                |> Bootstrap.Card.imgTop
-                    [ Html.Attributes.src ("/documents/thumbnail/" ++ document_id)
-                    , Html.Attributes.alt ("image-" ++ document_id)
+            [ Html.a [ Html.Attributes.href ("#documents/" ++ document_id) ]
+                [ Bootstrap.Card.config
+                    [ Bootstrap.Card.outlineInfo
+                    , Bootstrap.Card.attrs [ Html.Attributes.style [ ( "margin-bottom", "10px" ) ] ]
                     ]
-                    []
-                |> Bootstrap.Card.view
+                    |> Bootstrap.Card.footer [ Html.Attributes.class "text-center" ] [ Html.text (dateTimeToString inserted_datetime) ]
+                    |> Bootstrap.Card.imgTop
+                        [ Html.Attributes.src ("/documents/thumbnail/" ++ document_id)
+                        , Html.Attributes.alt ("image-" ++ document_id)
+                        ]
+                        []
+                    |> Bootstrap.Card.view
+                ]
             ]
 
 

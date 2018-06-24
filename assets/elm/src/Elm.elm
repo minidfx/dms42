@@ -71,6 +71,25 @@ update msg state =
         Models.OnLocationChange location ->
             ( { state | route = Routing.parseLocation location }, Cmd.none )
 
+        Models.DebounceOneSecond x ->
+            let
+                ( subModel, subCmd, emittedMsg ) =
+                    Debouncer.Basic.update x state.debouncer
+
+                mappedCmd =
+                    Cmd.map Models.DebounceOneSecond subCmd
+
+                updatedModel =
+                    { state | debouncer = subModel }
+            in
+                case emittedMsg of
+                    Just emitted ->
+                        update emitted updatedModel
+                            |> Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, mappedCmd ])
+
+                    Nothing ->
+                        ( updatedModel, mappedCmd )
+
         Models.ReceiveInitialLoad raw ->
             case Json.Decode.decodeValue JsonDecoders.initialLoadDecoder raw of
                 Ok x ->

@@ -8,18 +8,7 @@ import Dict exposing (Dict)
 import Bootstrap.Alert
 import Bootstrap.Card
 import Bootstrap.Card.Block
-
-
-dateTimeToString : Rfc2822Datetime.Datetime -> String
-dateTimeToString { date, time } =
-    let
-        { day, month, year } =
-            date
-
-        { hour, minute } =
-            time
-    in
-        (toString day) ++ " " ++ (toString month) ++ " " ++ (toString year) ++ " " ++ (toString hour) ++ ":" ++ (toString minute)
+import Helpers
 
 
 card : Models.Document -> Html Models.Msg
@@ -34,7 +23,7 @@ card { datetimes, document_id } =
                     [ Bootstrap.Card.outlineInfo
                     , Bootstrap.Card.attrs [ Html.Attributes.style [ ( "margin-bottom", "10px" ) ] ]
                     ]
-                    |> Bootstrap.Card.footer [ Html.Attributes.class "text-center" ] [ Html.text (dateTimeToString inserted_datetime) ]
+                    |> Bootstrap.Card.footer [ Html.Attributes.class "text-center" ] [ Html.text (Helpers.dateTimeToString inserted_datetime) ]
                     |> Bootstrap.Card.imgTop
                         [ Html.Attributes.src ("/documents/thumbnail/" ++ document_id)
                         , Html.Attributes.alt ("image-" ++ document_id)

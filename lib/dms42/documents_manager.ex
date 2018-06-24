@@ -1,12 +1,64 @@
-defmodule Dms42.Documents do
-  import Ecto.Query
+defmodule Dms42.DocumentsManager do
 
   alias Dms42.Models.Document
+  alias Dms42.Models.DocumentOcr
   alias Dms42.Models.Tag
+
   alias Dms42.TagManager
+  alias Dms42.TransactionHelper
   alias Dms42.DocumentPath
 
-  require Logger
+  import Ecto.Query
+
+  @doc """
+    Add the document processing the OCR and saving it.
+  """
+  @spec add(file_name :: String.t(), mime_type :: String.t(), original_file_datetime :: DateTime.t(), document_type :: String.t(), tags :: list(String.t()), bytes :: binary) :: :ok | {:error, reason :: String.t()}
+  def add(file_name, mime_type, original_file_datetime, document_type, tags, bytes) do
+    GenServer.call(:documents_processor, {:process,
+                                          file_name,
+                                          mime_type,
+                                          original_file_datetime,
+                                          document_type,
+                                          tags,
+                                          bytes})
+  end
+
+  @doc """
+    Removes the document from the database, the storage and its associated data.
+  """
+  @spec remove!(document_id :: binary) :: no_return()
+  def remove!(document_id) do
+    document = Document |> Dms42.Repo.get_by!(document_id: document_id)
+    document_path = DocumentPath.document_path!(document)
+    temp_file_path = Temp.path!
+    File.rename(document_path, temp_file_path)
+    try do
+      Ecto.Multi.new() |> TagManager.clean_document_tags(document_id)
+                       |> Ecto.Multi.delete_all("delete_ocr", (from DocumentOcr, where: [document_id: ^document_id]))
+                       |> Ecto.Multi.delete("delete_document", document)
+                       |> TransactionHelper.commit!
+      File.rm!(temp_file_path)
+    rescue
+      e ->
+        File.rename(temp_file_path, document_path)
+        IO.inspect(e)
+    end
+  end
+
+  @doc """
+    Edits the document comments.
+  """
+  @spec edit_comments!(document_id :: String.t(), comments :: String.t()) :: Document
+  def edit_comments!(document_id, comments) do
+    {:ok, uuid} = Ecto.UUID.dump(document_id)
+    case Dms42.Repo.get_by(Document, document_id: uuid) do
+      nil -> raise("Document #{document_id} not found")
+      x ->
+        Dms42.Repo.update!(Document.changeset(x, %{comments: comments |> empty_to_null}))
+        x
+    end
+  end
 
   @spec documents(offset :: integer, length :: integer) :: list(map)
   def documents(offset, length) do
@@ -68,4 +120,8 @@ defmodule Dms42.Documents do
 
   defp null_to_string(string) when is_nil(string), do: ""
   defp null_to_string(string), do: string
+
+  defp empty_to_null(string), do: string
+  defp empty_to_null(""), do: nil
+
 end

@@ -9,6 +9,8 @@ import Rfc2822Datetime
 import Phoenix.Socket
 import Websocket
 import Json.Encode
+import Debouncer.Messages as Debouncer exposing (Debouncer)
+import Time
 
 
 type alias DocumentDateTimes =
@@ -43,6 +45,7 @@ type alias AppState =
     , searchDocumentsResult : Maybe (Dict String Document)
     , searchQuery : Maybe String
     , phxSocket : Phoenix.Socket.Socket Msg
+    , debouncer : Debouncer Msg
     }
 
 
@@ -66,14 +69,9 @@ type Msg
     | PhoenixMsg (Phoenix.Socket.Msg Msg)
     | ReceiveInitialLoad Json.Encode.Value
     | ReceiveNewDocument Json.Encode.Value
-
-
-stubDateTime : Rfc2822Datetime.Datetime
-stubDateTime =
-    { dayOfWeek = Nothing
-    , date = { year = 2000, month = Rfc2822Datetime.Jan, day = 1 }
-    , time = { hour = 0, minute = 0, second = Nothing, zone = Rfc2822Datetime.UT }
-    }
+    | UpdateDocumentComments String DocumentId
+    | ReceiveUpdateDocument Json.Encode.Value
+    | DebounceOneSecond (Debouncer.Msg Msg)
 
 
 initPhxSocket : Phoenix.Socket.Socket Msg
@@ -82,6 +80,7 @@ initPhxSocket =
         |> Phoenix.Socket.withDebug
         |> Phoenix.Socket.on "initialLoad" "documents:lobby" ReceiveInitialLoad
         |> Phoenix.Socket.on "newDocument" "documents:lobby" ReceiveNewDocument
+        |> Phoenix.Socket.on "updateDocument" "documents:lobby" ReceiveUpdateDocument
 
 
 initialModel : Routing.Route -> AppState
@@ -92,4 +91,8 @@ initialModel route =
     , searchDocumentsResult = Nothing
     , searchQuery = Nothing
     , phxSocket = initPhxSocket
+    , debouncer =
+        Debouncer.config
+            |> Debouncer.settleWhenQuietFor (1 * Time.second)
+            |> Debouncer.toDebouncer
     }

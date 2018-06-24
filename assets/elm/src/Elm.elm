@@ -23,6 +23,7 @@ import Task
 import Helpers
 import JsonDecoders
 import Debug
+import Debouncer.Basic
 
 
 init : Navigation.Location -> ( Models.AppState, Cmd Models.Msg )
@@ -85,14 +86,18 @@ update msg state =
         Models.ReceiveNewDocument raw ->
             case Json.Decode.decodeValue JsonDecoders.documentDecoder raw of
                 Ok x ->
-                    ( { state | documents = Just (Helpers.mergeDocument x state.documents) }, Cmd.none )
+                    ( { state | documents = Just (Helpers.mergeDocument state.documents x) }, Cmd.none )
 
                 Err error ->
-                    let
-                        _ =
-                            Debug.log "Error" error
-                    in
-                        ( state, Cmd.none )
+                    ( state, Cmd.none )
+
+        Models.ReceiveUpdateDocument raw ->
+            case Json.Decode.decodeValue JsonDecoders.documentDecoder raw of
+                Ok x ->
+                    ( { state | documents = Just (Helpers.mergeDocument state.documents x) }, Cmd.none )
+
+                Err error ->
+                    ( state, Cmd.none )
 
         Models.JoinChannel ->
             let
@@ -110,6 +115,31 @@ update msg state =
                     Phoenix.Socket.update msg state.phxSocket
             in
                 ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+
+        Models.UpdateDocumentComments document_id comments ->
+            let
+                newState =
+                    case document_id |> Helpers.getDocument state of
+                        Nothing ->
+                            state
+
+                        Just x ->
+                            { state | documents = Just (Helpers.mergeDocument state.documents { x | comments = Just comments }) }
+
+                payload =
+                    Json.Encode.object
+                        [ ( "comments", Json.Encode.string comments )
+                        , ( "document_id", Json.Encode.string document_id )
+                        ]
+
+                push_ =
+                    Phoenix.Push.init "document:comments" "documents:lobby"
+                        |> Phoenix.Push.withPayload payload
+
+                ( phxSocket, phxCmd ) =
+                    Phoenix.Socket.push push_ newState.phxSocket
+            in
+                ( { newState | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
 
 
 main : Program Never Models.AppState Models.Msg

@@ -6,6 +6,7 @@ defmodule Dms42Web.DocumentsChannel do
   alias Dms42.Models.DocumentType
   alias Dms42.Models.Document
   alias Dms42.Documents
+  alias Dms42.DocumentsManager
 
   import Ecto.Query
 
@@ -24,10 +25,16 @@ defmodule Dms42Web.DocumentsChannel do
                                                 {:ok, uuid} = Ecto.UUID.load(type_id)
                                                 %{"name" => name, "id" => uuid}
                                               end)
-    documents = Documents.documents(0, 50)
+    documents = DocumentsManager.documents(0, 50)
 
     Phoenix.Channel.push(socket, "initialLoad", %{"document-types": document_types, "documents": documents})
     {:noreply, socket}
+  end
+
+  def handle_in("document:comments", %{"comments" => comments, "document_id" => document_id}, socket) do
+    document = DocumentsManager.edit_comments!(document_id, comments)
+    Phoenix.Channel.push(socket, "updateDocument", document |> DocumentsManager.transform_to_viewmodel)
+    {:reply, :ok, socket}
   end
 
   # # Channels can be used in a request/response fashion

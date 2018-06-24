@@ -6,7 +6,7 @@ defmodule Dms42Web.DocumentsController do
   alias Dms42.Models.Tag
   alias Dms42.DocumentPath
   alias Dms42.TagManager
-  alias Dms42.DocumentManager
+  alias Dms42.DocumentsManager
   alias Dms42.DocumentsFinder
   alias Dms42.DocumentsProcessor
   alias Dms42.Documents
@@ -32,14 +32,12 @@ defmodule Dms42Web.DocumentsController do
         conn |> put_resp_content_type("text/plain")
              |> send_resp(400, "The document already exists")
       :false ->
-        GenServer.call(:documents_processor,
-                       {:process,
-                       original_file_name,
-                       mime_type,
-                       file_timestamp |> String.to_integer |> Timex.from_unix(:milliseconds),
-                       document_type,
-                       tags |> String.split(",", trim: true),
-                       bytes})
+        DocumentsManager.add(original_file_name,
+                            mime_type,
+                            file_timestamp |> String.to_integer |> Timex.from_unix(:milliseconds),
+                            document_type,
+                            tags |> String.split(",", trim: true),
+                            bytes)
         conn |> send_resp(200, "")
     end
   end
@@ -140,7 +138,7 @@ defmodule Dms42Web.DocumentsController do
   @doc false
   def delete_document(conn, %{"document_id" => document_id}) do
     {:ok, binary_document_id} = document_id |> Ecto.UUID.dump
-    DocumentManager.remove!(binary_document_id)
+    DocumentsManager.remove!(binary_document_id)
     conn |> send_resp(200, %{document_id: document_id} |> Poison.encode!)
   end
 

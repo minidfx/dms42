@@ -8,6 +8,8 @@ import Helpers
 import Bootstrap.Alert
 import Bootstrap.ButtonGroup
 import Bootstrap.Button
+import Bootstrap.Form.Textarea
+import Debouncer.Basic
 
 
 view : Models.AppState -> String -> Html Models.Msg
@@ -35,8 +37,36 @@ documentImage state { original_file_name, document_id } =
 
 
 documentProperties : Models.AppState -> Models.Document -> Html Models.Msg
-documentProperties state document =
-    Html.div [] []
+documentProperties state { original_file_name, document_id, document_type_id, comments, datetimes } =
+    let
+        { inserted_datetime, updated_datetime, original_file_datetime } =
+            datetimes
+    in
+        Html.div [ Html.Attributes.class "form-group" ]
+            [ Html.dl []
+                [ Html.dt [] [ Html.text "Document ID" ]
+                , Html.dd [] [ Html.text document_id ]
+                , Html.dt [] [ Html.text "Document type" ]
+                , Html.dd [] [ Html.text document_type_id ]
+                , Html.dt [] [ Html.text "Original file name" ]
+                , Html.dd [] [ Html.text original_file_name ]
+                , Html.dt [] [ Html.text "Uploaded date time" ]
+                , Html.dd [] [ Html.text (Helpers.dateTimeToString inserted_datetime) ]
+                , Html.dt [] [ Html.text "Updated date time" ]
+                , Html.dd [] [ Html.text (Helpers.dateTimeToString (Helpers.safeValue updated_datetime Helpers.defaultDateTime)) ]
+                , Html.dt [] [ Html.text "Original date time" ]
+                , Html.dd [] [ Html.text (Helpers.dateTimeToString original_file_datetime) ]
+                , Html.dt [] [ Html.text "Comments" ]
+                , Html.dd []
+                    [ Bootstrap.Form.Textarea.textarea
+                        [ Bootstrap.Form.Textarea.id "comments"
+                        , Bootstrap.Form.Textarea.value (Helpers.safeValue comments "")
+                        , Bootstrap.Form.Textarea.rows 5
+                        , (Models.UpdateDocumentComments <| document_id |> Debouncer.Basic.provideInput |> Models.DebounceOneSecond) |> Bootstrap.Form.Textarea.onInput
+                        ]
+                    ]
+                ]
+            ]
 
 
 documentDetails : Models.AppState -> Models.Document -> Html Models.Msg

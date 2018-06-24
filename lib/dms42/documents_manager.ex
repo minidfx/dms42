@@ -56,17 +56,16 @@ defmodule Dms42.DocumentsManager do
       nil -> raise("Document #{document_id} not found")
       x ->
         Dms42.Repo.update!(Document.changeset(x, %{comments: comments |> empty_to_null}))
-        x
     end
   end
 
   @spec documents(offset :: integer, length :: integer) :: list(map)
   def documents(offset, length) do
-    documents = Document |> limit(^length)
-                         |> offset(^offset)
-                         |> order_by(asc: :inserted_at)
-                         |> Dms42.Repo.all
-                         |> transform_to_viewmodels
+    Document |> limit(^length)
+             |> offset(^offset)
+             |> order_by(asc: :inserted_at)
+             |> Dms42.Repo.all
+             |> transform_to_viewmodels
   end
 
   @spec transform_to_viewmodels(list(Documents)) :: list(map)

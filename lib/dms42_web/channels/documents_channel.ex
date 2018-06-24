@@ -4,11 +4,7 @@ defmodule Dms42Web.DocumentsChannel do
   require Logger
 
   alias Dms42.Models.DocumentType
-  alias Dms42.Models.Document
-  alias Dms42.Documents
   alias Dms42.DocumentsManager
-
-  import Ecto.Query
 
   def join("documents:lobby", payload, socket) do
     if authorized?(payload) do

@@ -5,6 +5,7 @@ defmodule Dms42.ThumbnailProcessor do
 
   alias Dms42.DocumentPath
   alias Dms42.Documents
+  alias Dms42.DocumentsManager
 
   def start_link() do
     GenServer.start(
@@ -41,7 +42,7 @@ defmodule Dms42.ThumbnailProcessor do
       |> ExMagick.attr!(:magick, "PNG")
       |> ExMagick.image_dump(big_thumbnail_file_path)
 
-      Dms42Web.Endpoint.broadcast!("documents:lobby", "newDocument", document |> Documents.transform_to_viewmodel)
+      Dms42Web.Endpoint.broadcast!("documents:lobby", "newDocument", document |> DocumentsManager.transform_to_viewmodel)
     rescue
       x -> IO.inspect(x)
     end
@@ -64,7 +65,7 @@ defmodule Dms42.ThumbnailProcessor do
       |> ExMagick.attr!(:magick, "PNG")
       |> ExMagick.image_dump(small_thumbnail_file_path)
 
-      Dms42Web.Endpoint.broadcast!("documents:lobby", "newDocument", document |> Documents.transform_to_viewmodel)
+      Dms42Web.Endpoint.broadcast!("documents:lobby", "newDocument", document |> DocumentsManager.transform_to_viewmodel)
     rescue
       x -> IO.inspect(x)
     end

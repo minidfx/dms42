@@ -3,15 +3,11 @@ defmodule Dms42Web.DocumentsController do
 
   alias Dms42.Models.Document
   alias Dms42.Models.DocumentType
-  alias Dms42.Models.Tag
   alias Dms42.DocumentPath
   alias Dms42.TagManager
   alias Dms42.DocumentsManager
   alias Dms42.DocumentsFinder
   alias Dms42.DocumentsProcessor
-  alias Dms42.Documents
-
-  import Ecto.Query
 
   require Logger
 
@@ -90,7 +86,7 @@ defmodule Dms42Web.DocumentsController do
     case valid_document_query(conn, document_id) do
       {:error, conn} -> conn
       {:ok, conn, document} -> conn |> put_resp_content_type("application/json")
-                                    |> send_resp(200, document |> Documents.transform_to_viewmodel
+                                    |> send_resp(200, document |> DocumentsManager.transform_to_viewmodel
                                                                |> Poison.encode!)
     end
   end
@@ -99,11 +95,11 @@ defmodule Dms42Web.DocumentsController do
   def documents(conn, %{"start" => start, "length" => length}) do
     conn
     |> put_resp_content_type("application/json")
-    |> send_resp(200, documents = Documents.documents |> Poison.encode!)
+    |> send_resp(200, DocumentsManager.documents(start, length) |> Poison.encode!)
   end
   def documents(conn, %{"query" => query}) do
     conn |> put_resp_content_type("application/json")
-         |> send_resp(200, DocumentsFinder.find(query) |> Documents.transform_to_viewmodels |> Poison.encode!)
+         |> send_resp(200, DocumentsFinder.find(query) |> DocumentsManager.transform_to_viewmodels |> Poison.encode!)
   end
 
   @doc false

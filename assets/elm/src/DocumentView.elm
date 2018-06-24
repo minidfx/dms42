@@ -2,6 +2,7 @@ module DocumentView exposing (..)
 
 import Html exposing (Html)
 import Html.Attributes
+import Html.Events
 import Models
 import Routing
 import Helpers
@@ -9,7 +10,6 @@ import Bootstrap.Alert
 import Bootstrap.ButtonGroup
 import Bootstrap.Button
 import Bootstrap.Form.Textarea
-import Debouncer.Basic
 
 
 view : Models.AppState -> String -> Html Models.Msg
@@ -62,7 +62,11 @@ documentProperties state { original_file_name, document_id, document_type_id, co
                         [ Bootstrap.Form.Textarea.id "comments"
                         , Bootstrap.Form.Textarea.value (Helpers.safeValue comments "")
                         , Bootstrap.Form.Textarea.rows 5
-                        , (Models.UpdateDocumentComments <| document_id |> Debouncer.Basic.provideInput |> Models.DebounceOneSecond) |> Bootstrap.Form.Textarea.onInput
+                        , Bootstrap.Form.Textarea.attrs
+                            [ (Html.Attributes.map Helpers.debounce <|
+                                Html.Events.onInput (Models.UpdateDocumentComments <| document_id)
+                              )
+                            ]
                         ]
                     ]
                 ]

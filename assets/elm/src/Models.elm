@@ -9,8 +9,8 @@ import Rfc2822Datetime
 import Phoenix.Socket
 import Websocket
 import Json.Encode
-import Debouncer.Messages as Debouncer exposing (Debouncer)
-import Time
+import Control exposing (Control)
+import Time exposing (Time)
 
 
 type alias DocumentDateTimes =
@@ -45,7 +45,7 @@ type alias AppState =
     , searchDocumentsResult : Maybe (Dict String Document)
     , searchQuery : Maybe String
     , phxSocket : Phoenix.Socket.Socket Msg
-    , debouncer : Debouncer Msg
+    , debouncer : Control.State Msg
     }
 
 
@@ -69,9 +69,9 @@ type Msg
     | PhoenixMsg (Phoenix.Socket.Msg Msg)
     | ReceiveInitialLoad Json.Encode.Value
     | ReceiveNewDocument Json.Encode.Value
-    | UpdateDocumentComments String DocumentId
+    | UpdateDocumentComments DocumentId String
     | ReceiveUpdateDocument Json.Encode.Value
-    | DebounceOneSecond (Debouncer.Msg Msg)
+    | Debouncer (Control Msg)
 
 
 initPhxSocket : Phoenix.Socket.Socket Msg
@@ -91,8 +91,5 @@ initialModel route =
     , searchDocumentsResult = Nothing
     , searchQuery = Nothing
     , phxSocket = initPhxSocket
-    , debouncer =
-        Debouncer.config
-            |> Debouncer.settleWhenQuietFor (1 * Time.second)
-            |> Debouncer.toDebouncer
+    , debouncer = Control.initialState
     }

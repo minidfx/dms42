@@ -2,6 +2,7 @@ module Main exposing (..)
 
 import Html exposing (Html)
 import Http
+import Control
 import Models
 import Routing
 import Navigation
@@ -23,7 +24,6 @@ import Task
 import Helpers
 import JsonDecoders
 import Debug
-import Debouncer.Basic
 
 
 init : Navigation.Location -> ( Models.AppState, Cmd Models.Msg )
@@ -71,29 +71,15 @@ update msg state =
         Models.OnLocationChange location ->
             ( { state | route = Routing.parseLocation location }, Cmd.none )
 
-        Models.DebounceOneSecond x ->
-            let
-                ( subModel, subCmd, emittedMsg ) =
-                    Debouncer.Basic.update x state.debouncer
-
-                mappedCmd =
-                    Cmd.map Models.DebounceOneSecond subCmd
-
-                updatedModel =
-                    { state | debouncer = subModel }
-            in
-                case emittedMsg of
-                    Just emitted ->
-                        update emitted updatedModel
-                            |> Tuple.mapSecond (\cmd -> Cmd.batch [ cmd, mappedCmd ])
-
-                    Nothing ->
-                        ( updatedModel, mappedCmd )
-
         Models.ReceiveInitialLoad raw ->
             case Json.Decode.decodeValue JsonDecoders.initialLoadDecoder raw of
                 Ok x ->
-                    ( { state | documentTypes = Just x.documentTypes, documents = Just (Helpers.mergeDocuments x.documents state.documents) }, Cmd.none )
+                    ( { state
+                        | documentTypes = Just x.documentTypes
+                        , documents = Just (Helpers.mergeDocuments x.documents state.documents)
+                      }
+                    , Cmd.none
+                    )
 
                 Err error ->
                     let
@@ -101,6 +87,9 @@ update msg state =
                             Debug.log "Error" error
                     in
                         ( state, Cmd.none )
+
+        Models.Debouncer control ->
+            Control.update (\x -> { state | debouncer = x }) state.debouncer control
 
         Models.ReceiveNewDocument raw ->
             case Json.Decode.decodeValue JsonDecoders.documentDecoder raw of
@@ -138,7 +127,7 @@ update msg state =
         Models.UpdateDocumentComments document_id comments ->
             let
                 newState =
-                    case document_id |> Helpers.getDocument state of
+                    case Helpers.getDocument state document_id of
                         Nothing ->
                             state
 

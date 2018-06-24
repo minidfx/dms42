@@ -6,6 +6,9 @@ import Models
 import Task
 import Dict exposing (Dict)
 import Rfc2822Datetime
+import Control
+import Control.Debounce as Debounce
+import Time exposing (Time)
 
 
 script : String -> Html Models.Msg
@@ -92,3 +95,8 @@ getDocumentTypeId state document_type_id =
 
             Just x ->
                 safeValue (x |> List.filter (\x -> x.id == document_type_id) |> List.head) default
+
+
+debounce : Models.Msg -> Models.Msg
+debounce =
+    Debounce.trailing Models.Debouncer (1 * Time.second)

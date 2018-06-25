@@ -14,8 +14,15 @@ documentDecoder =
         (Json.Decode.field "tags" (Json.Decode.list Json.Decode.string))
         (Json.Decode.field "original_file_name" Json.Decode.string)
         (Json.Decode.field "datetimes" documentDateTimesDecoder)
-        (Json.Decode.field "count_images" Json.Decode.int)
+        (Json.Decode.field "thumbnails" documentThumbnails)
         (Json.Decode.maybe (Json.Decode.field "ocr" Json.Decode.string))
+
+
+documentThumbnails : Json.Decode.Decoder Models.DocumentThumbnails
+documentThumbnails =
+    Json.Decode.map2 Models.DocumentThumbnails
+        (Json.Decode.field "count-images" Json.Decode.int)
+        (Json.Decode.maybe (Json.Decode.field "current-image" Json.Decode.int))
 
 
 documentDateTimesDecoder : Json.Decode.Decoder Models.DocumentDateTimes

@@ -96,7 +96,7 @@ defmodule Dms42.DocumentsManager do
                           }
                     x -> %{
                       "inserted_datetime" => inserted |> to_rfc2822,
-                      "updated_datetime" => updated |> to_rfc2822,
+                      "updated_datetime" => x |> to_rfc2822,
                       "original_file_datetime" => original_file_datetime |> to_rfc2822
                     }
                   end
@@ -107,7 +107,7 @@ defmodule Dms42.DocumentsManager do
         "document_type_id" => document_type_id_string,
         "tags" => tags,
         "original_file_name" => original_file_name,
-        "count_images" => images |> Enum.count
+        "thumbnails" => %{ "count-images": images |> Enum.count }
       }
   end
 

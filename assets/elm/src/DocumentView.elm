@@ -3,6 +3,7 @@ module DocumentView exposing (..)
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
+import List
 import Models
 import Routing
 import Helpers
@@ -26,14 +27,63 @@ view state documentId =
                 documentDetails state x
 
 
+pageItem : Models.Document -> Int -> String -> Html Models.Msg
+pageItem { document_id, thumbnails } page label =
+    let
+        currentImage =
+            Helpers.safeValue thumbnails.currentImage 0
+    in
+        Html.li
+            [ Html.Attributes.class "page-item"
+            , Html.Attributes.classList [ ( "active", currentImage == page ) ]
+            ]
+            [ Html.a
+                [ Html.Attributes.class "page-link"
+                , Html.Events.onClick (Models.ChangeDocumentPage document_id page)
+                ]
+                [ Html.text label ]
+            ]
+
+
 documentImage : Models.AppState -> Models.Document -> Html Models.Msg
-documentImage state { original_file_name, document_id } =
-    Html.img
-        [ Html.Attributes.alt original_file_name
-        , Html.Attributes.src ("/documents/" ++ document_id ++ "/images/0")
-        , Html.Attributes.class "img-fluid"
-        ]
-        []
+documentImage state document =
+    let
+        { original_file_name, document_id, thumbnails } =
+            document
+
+        { countImages } =
+            thumbnails
+
+        currentImage =
+            Helpers.safeValue thumbnails.currentImage 0
+
+        pages =
+            case countImages of
+                0 ->
+                    []
+
+                1 ->
+                    []
+
+                x ->
+                    List.concat
+                        [ [ pageItem document 0 "First" ]
+                        , List.map (\x -> pageItem document x (toString x)) (List.range 1 (x - 2))
+                        , [ pageItem document (x - 1) "Last" ]
+                        ]
+    in
+        Html.div []
+            [ Html.nav []
+                [ Html.ul [ Html.Attributes.class "pagination justify-content-center" ]
+                    pages
+                ]
+            , Html.img
+                [ Html.Attributes.alt original_file_name
+                , Html.Attributes.src ("/documents/" ++ document_id ++ "/images/" ++ (toString currentImage))
+                , Html.Attributes.class "img-fluid"
+                ]
+                []
+            ]
 
 
 documentProperties : Models.AppState -> Models.Document -> Html Models.Msg
@@ -60,7 +110,7 @@ documentProperties state { original_file_name, document_id, document_type_id, co
                 , Html.dd []
                     [ Bootstrap.Form.Textarea.textarea
                         [ Bootstrap.Form.Textarea.id "comments"
-                        , Bootstrap.Form.Textarea.value (Helpers.safeValue comments "")
+                        , Bootstrap.Form.Textarea.defaultValue (Helpers.safeValue comments "")
                         , Bootstrap.Form.Textarea.rows 5
                         , Bootstrap.Form.Textarea.attrs
                             [ (Html.Attributes.map Helpers.debounce <|
@@ -81,22 +131,6 @@ documentDetails state document =
 
         { route } =
             state
-
-        previewButtonState =
-            case route of
-                Routing.Document _ ->
-                    True
-
-                _ ->
-                    False
-
-        propertiesButtonState =
-            case route of
-                Routing.DocumentProperties _ ->
-                    True
-
-                _ ->
-                    False
 
         leftView =
             case route of
@@ -122,7 +156,7 @@ documentDetails state document =
                         [ Bootstrap.Button.light
                         , Bootstrap.Button.attrs
                             [ Html.Attributes.href ("#documents/" ++ document_id)
-                            , Html.Attributes.classList [ ( "active", previewButtonState ) ]
+                            , Html.Attributes.classList [ ( "active", route == Routing.Document document_id ) ]
                             ]
                         ]
                         [ Html.text "Preview" ]
@@ -130,7 +164,7 @@ documentDetails state document =
                         [ Bootstrap.Button.light
                         , Bootstrap.Button.attrs
                             [ Html.Attributes.href ("#documents/" ++ document_id ++ "/properties")
-                            , Html.Attributes.classList [ ( "active", propertiesButtonState ) ]
+                            , Html.Attributes.classList [ ( "active", route == Routing.DocumentProperties document_id ) ]
                             ]
                         ]
                         [ Html.text "Properties" ]

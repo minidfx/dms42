@@ -88,6 +88,28 @@ update msg state =
                     in
                         ( state, Cmd.none )
 
+        Models.ChangeDocumentPage document_id page ->
+            let
+                newState =
+                    case Helpers.getDocument state document_id of
+                        Nothing ->
+                            state
+
+                        Just x ->
+                            let
+                                { thumbnails } =
+                                    x
+
+                                newThumbnails =
+                                    { thumbnails | currentImage = Just page }
+
+                                newDocument =
+                                    { x | thumbnails = newThumbnails }
+                            in
+                                { state | documents = Just (Helpers.mergeDocument state.documents newDocument) }
+            in
+                ( newState, Cmd.none )
+
         Models.Debouncer control ->
             Control.update (\x -> { state | debouncer = x }) state.debouncer control
 

@@ -20,6 +20,12 @@ type alias DocumentDateTimes =
     }
 
 
+type alias DocumentThumbnails =
+    { countImages : Int
+    , currentImage : Maybe Int
+    }
+
+
 type alias Document =
     { comments : Maybe String
     , document_id : String
@@ -27,7 +33,7 @@ type alias Document =
     , tags : List String
     , original_file_name : String
     , datetimes : DocumentDateTimes
-    , count_images : Int
+    , thumbnails : DocumentThumbnails
     , ocr : Maybe String
     }
 
@@ -57,6 +63,10 @@ type alias DocumentId =
     String
 
 
+type alias Page =
+    Int
+
+
 type alias InitialLoad =
     { documentTypes : List DocumentType
     , documents : List Document
@@ -71,6 +81,7 @@ type Msg
     | ReceiveNewDocument Json.Encode.Value
     | UpdateDocumentComments DocumentId String
     | ReceiveUpdateDocument Json.Encode.Value
+    | ChangeDocumentPage DocumentId Page
     | Debouncer (Control Msg)
 
 

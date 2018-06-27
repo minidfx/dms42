@@ -9,29 +9,7 @@ import Bootstrap.Alert
 import Bootstrap.Card
 import Bootstrap.Card.Block
 import Helpers
-
-
-card : Models.Document -> Html Models.Msg
-card { datetimes, document_id } =
-    let
-        { inserted_datetime, updated_datetime } =
-            datetimes
-    in
-        Html.div [ Html.Attributes.class "col-md-2" ]
-            [ Html.a [ Html.Attributes.href ("#documents/" ++ document_id) ]
-                [ Bootstrap.Card.config
-                    [ Bootstrap.Card.outlineInfo
-                    , Bootstrap.Card.attrs [ Html.Attributes.style [ ( "margin-bottom", "10px" ) ] ]
-                    ]
-                    |> Bootstrap.Card.footer [ Html.Attributes.class "text-center" ] [ Html.text (Helpers.dateTimeToString inserted_datetime) ]
-                    |> Bootstrap.Card.imgTop
-                        [ Html.Attributes.src ("/documents/thumbnail/" ++ document_id)
-                        , Html.Attributes.alt ("image-" ++ document_id)
-                        ]
-                        []
-                    |> Bootstrap.Card.view
-                ]
-            ]
+import SharedViews
 
 
 documentsList : Maybe (Dict String Models.Document) -> Html Models.Msg
@@ -50,7 +28,7 @@ documentsList documents =
                         Html.div [] [ Bootstrap.Alert.simpleWarning [] [ Html.text "No documents" ] ]
 
                     list ->
-                        Html.div [ Html.Attributes.class "row" ] (List.map (\x -> card x) list)
+                        Html.div [ Html.Attributes.class "row" ] (List.map (\x -> SharedViews.card x) list)
 
 
 view : Models.AppState -> Html Models.Msg

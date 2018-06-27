@@ -6,9 +6,10 @@ defmodule Dms42.DocumentsFinder do
 
   import Ecto.Query, only: [from: 2]
 
-  @max_result 10
+  @max_result 20
 
   @spec find(query :: String.t) :: list(Document)
+  def find(""), do: []
   def find(query) when is_bitstring(query) do
     exact_match = find_exact_match(query |> normalize) |> MapSet.new
     term_match = query |> String.split(" ")
@@ -18,6 +19,7 @@ defmodule Dms42.DocumentsFinder do
   end
 
   @spec normalize(term :: String.t()) :: String.t()
+  def normalize(""), do: ""
   def normalize(term),
     do: term |> String.normalize(:nfd)
              |> String.replace(~r/[^A-Za-z\s]/u, "")

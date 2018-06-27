@@ -7,7 +7,6 @@ defmodule Dms42Web.DocumentsController do
   alias Dms42.TagManager
   alias Dms42.DocumentsManager
   alias Dms42.DocumentsFinder
-  alias Dms42.DocumentsProcessor
 
   require Logger
 
@@ -23,7 +22,7 @@ defmodule Dms42Web.DocumentsController do
         "fileUnixTimestamp" => file_timestamp
       }) do
     bytes = File.read!(temp_file_path)
-    case DocumentsProcessor.is_document_exists?(bytes) do
+    case DocumentsManager.is_document_exists?(bytes) do
       :true ->
         conn |> put_resp_content_type("text/plain")
              |> send_resp(400, "The document already exists")

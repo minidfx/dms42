@@ -53,10 +53,11 @@ type alias AppState =
     { route : Routing.Route
     , documents : Maybe (Dict String Document)
     , documentTypes : Maybe (List DocumentType)
-    , searchDocumentsResult : Maybe (Dict String Document)
     , searchQuery : Maybe String
+    , searchResult : Maybe (List Document)
     , phxSocket : Phoenix.Socket.Socket Msg
     , debouncer : Control.State Msg
+    , error : Maybe String
     }
 
 
@@ -111,8 +112,9 @@ initialModel route =
     { route = route
     , documents = Nothing
     , documentTypes = Nothing
-    , searchDocumentsResult = Nothing
     , searchQuery = Nothing
+    , searchResult = Nothing
     , phxSocket = initPhxSocket
     , debouncer = Control.initialState
+    , error = Nothing
     }

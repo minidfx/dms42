@@ -7,7 +7,7 @@ defmodule Dms42.DocumentsProcessor do
   alias Dms42.DocumentPath
   alias Dms42.TagManager
   alias Dms42.DocumentsFinder
-  alias Dms42.Documents
+  alias Dms42.DocumentsManager
 
   def start_link() do
     GenServer.start(__MODULE__, %{}, name: :documents_processor)
@@ -124,24 +124,11 @@ defmodule Dms42.DocumentsProcessor do
   defp is_document_exists({:ok,
                           %NewDocumentProcessingContext{:document => %{:original_file_name => file_name} = document} = context},
                           bytes) do
-    case is_document_exists(bytes) do
+    case DocumentsManager.is_document_exists(bytes) do
       {false, hash} -> {:ok, %NewDocumentProcessingContext{context | document: %Document{document | hash: hash}}}
       {true, _} ->
           Logger.info("The document #{file_name} seems already exists.")
           {:error, "This document seems conflict with another the document."}
-    end
-  end
-
-
-  def is_document_exists?(bytes) do
-    {result, _} = is_document_exists(bytes)
-    result
-  end
-  def is_document_exists(bytes) do
-    hash = :crypto.hash(:sha256, bytes) |> Base.encode16
-    case Dms42.Repo.get_by(Document, hash: hash) do
-      nil -> {:false, hash}
-      _ -> {:true, hash}
     end
   end
 

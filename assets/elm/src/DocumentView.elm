@@ -68,7 +68,7 @@ documentImage state document =
                 x ->
                     List.concat
                         [ [ pageItem document 0 "First" ]
-                        , List.map (\x -> pageItem document x (toString x)) (List.range 1 (x - 2))
+                        , List.map (\x -> pageItem document x (toString x)) (List.range 2 (x - 2))
                         , [ pageItem document (x - 1) "Last" ]
                         ]
     in

@@ -117,10 +117,24 @@ defmodule Dms42.DocumentsManager do
     x
   end
 
+  @spec is_document_exists?(binary) :: boolean()
+  def is_document_exists?(bytes) do
+    {result, _} = is_document_exists(bytes)
+    result
+  end
+  @spec is_document_exists(binary) :: {boolean(), String.t()}
+  def is_document_exists(bytes) do
+    hash = :crypto.hash(:sha256, bytes) |> Base.encode16
+    case Dms42.Repo.get_by(Document, hash: hash) do
+      nil -> {false, hash}
+      _ -> {true, hash}
+    end
+  end
+
   defp null_to_string(string) when is_nil(string), do: ""
   defp null_to_string(string), do: string
 
-  defp empty_to_null(string), do: string
   defp empty_to_null(""), do: nil
+  defp empty_to_null(string), do: string
 
 end

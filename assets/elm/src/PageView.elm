@@ -4,7 +4,9 @@ import Models
 import Html exposing (Html)
 import Html.Attributes
 import Bootstrap.Navbar
+import Bootstrap.Alert
 import Routing
+import Helpers
 
 
 isActive : Models.AppState -> Routing.Route -> Bool
@@ -69,7 +71,26 @@ navbar state =
 
 view : Models.AppState -> (Models.AppState -> Html Models.Msg) -> Html Models.Msg
 view state content =
-    Html.div []
-        [ navbar state
-        , Html.main_ [ Html.Attributes.class "container", Html.Attributes.attribute "role" "main" ] [ content state ]
-        ]
+    let
+        { error } =
+            state
+
+        mainContent =
+            case error of
+                Nothing ->
+                    [ content state ]
+
+                Just x ->
+                    [ Bootstrap.Alert.simpleDanger []
+                        [ Html.text (Helpers.safeValue error "") ]
+                    , content state
+                    ]
+    in
+        Html.div []
+            [ navbar state
+            , Html.main_
+                [ Html.Attributes.class "container"
+                , Html.Attributes.attribute "role" "main"
+                ]
+                mainContent
+            ]

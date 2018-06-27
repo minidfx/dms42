@@ -99,4 +99,4 @@ getDocumentTypeId state document_type_id =
 
 debounce : Models.Msg -> Models.Msg
 debounce =
-    Debounce.trailing Models.Debouncer (1 * Time.second)
+    Debounce.trailing Models.Debouncer (Time.inMilliseconds 500)

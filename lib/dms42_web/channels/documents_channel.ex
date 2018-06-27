@@ -5,6 +5,7 @@ defmodule Dms42Web.DocumentsChannel do
 
   alias Dms42.Models.DocumentType
   alias Dms42.DocumentsManager
+  alias Dms42.DocumentsFinder
 
   def join("documents:lobby", payload, socket) do
     if authorized?(payload) do
@@ -30,6 +31,11 @@ defmodule Dms42Web.DocumentsChannel do
   def handle_in("document:comments", %{"comments" => comments, "document_id" => document_id}, socket) do
     document = DocumentsManager.edit_comments!(document_id, comments)
     Phoenix.Channel.push(socket, "updateDocument", document |> DocumentsManager.transform_to_viewmodel)
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("documents:search", %{"query" => query}, socket) do
+    Phoenix.Channel.push(socket, "searchResult", %{"result": DocumentsFinder.find(query) |> DocumentsManager.transform_to_viewmodels})
     {:reply, :ok, socket}
   end
 

@@ -2,6 +2,8 @@ module HomeView exposing (view)
 
 import Html exposing (Html)
 import Html.Attributes
+import Html.Events
+import Helpers
 import PageView
 import Models
 
@@ -14,6 +16,7 @@ view state =
             [ Html.input
                 [ Html.Attributes.type_ "text"
                 , Html.Attributes.class "form-control"
+                , (Html.Attributes.map Helpers.debounce <| Html.Events.onInput Models.Search)
                 ]
                 []
             ]

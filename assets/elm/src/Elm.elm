@@ -88,6 +88,22 @@ update msg state =
                     in
                         ( state, Cmd.none )
 
+        Models.Search query ->
+            let
+                payload =
+                    Json.Encode.object
+                        [ ( "query", Json.Encode.string query )
+                        ]
+
+                push_ =
+                    Phoenix.Push.init "documents:search" "documents:lobby"
+                        |> Phoenix.Push.withPayload payload
+
+                ( phxSocket, phxCmd ) =
+                    Phoenix.Socket.push push_ state.phxSocket
+            in
+                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+
         Models.ChangeDocumentPage document_id page ->
             let
                 newState =
@@ -117,6 +133,14 @@ update msg state =
             case Json.Decode.decodeValue JsonDecoders.documentDecoder raw of
                 Ok x ->
                     ( { state | documents = Just (Helpers.mergeDocument state.documents x) }, Cmd.none )
+
+                Err error ->
+                    ( state, Cmd.none )
+
+        Models.ReceiveSearchResult raw ->
+            case Json.Decode.decodeValue JsonDecoders.documentDecoder raw of
+                Ok x ->
+                    ( state, Cmd.none )
 
                 Err error ->
                     ( state, Cmd.none )

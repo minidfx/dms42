@@ -55,6 +55,12 @@ documentTypeDecoder =
         (Json.Decode.field "id" Json.Decode.string)
 
 
+searchResultDecoder : Json.Decode.Decoder Models.SearchResult
+searchResultDecoder =
+    Json.Decode.map Models.SearchResult
+        (Json.Decode.field "result" (Json.Decode.list documentDecoder))
+
+
 initialLoadDecoder : Json.Decode.Decoder Models.InitialLoad
 initialLoadDecoder =
     Json.Decode.map2 Models.InitialLoad

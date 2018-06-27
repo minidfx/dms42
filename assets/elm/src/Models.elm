@@ -38,6 +38,11 @@ type alias Document =
     }
 
 
+type alias SearchResult =
+    { result : List Document
+    }
+
+
 type alias DocumentType =
     { name : String
     , id : String
@@ -67,6 +72,10 @@ type alias Page =
     Int
 
 
+type alias Query =
+    String
+
+
 type alias InitialLoad =
     { documentTypes : List DocumentType
     , documents : List Document
@@ -82,6 +91,8 @@ type Msg
     | UpdateDocumentComments DocumentId String
     | ReceiveUpdateDocument Json.Encode.Value
     | ChangeDocumentPage DocumentId Page
+    | Search Query
+    | ReceiveSearchResult Json.Encode.Value
     | Debouncer (Control Msg)
 
 
@@ -92,6 +103,7 @@ initPhxSocket =
         |> Phoenix.Socket.on "initialLoad" "documents:lobby" ReceiveInitialLoad
         |> Phoenix.Socket.on "newDocument" "documents:lobby" ReceiveNewDocument
         |> Phoenix.Socket.on "updateDocument" "documents:lobby" ReceiveUpdateDocument
+        |> Phoenix.Socket.on "searchResult" "documents:lobby" ReceiveSearchResult
 
 
 initialModel : Routing.Route -> AppState

@@ -15,13 +15,15 @@ defmodule Dms42.DocumentsManager do
   """
   @spec add(file_name :: String.t(), mime_type :: String.t(), original_file_datetime :: DateTime.t(), document_type :: String.t(), tags :: list(String.t()), bytes :: binary) :: :ok | {:error, reason :: String.t()}
   def add(file_name, mime_type, original_file_datetime, document_type, tags, bytes) do
-    GenServer.call(:documents_processor, {:process,
-                                          file_name,
-                                          mime_type,
-                                          original_file_datetime,
-                                          document_type,
-                                          tags,
-                                          bytes})
+    GenServer.call(:documents_processor,
+                   {:process,
+                    file_name,
+                    mime_type,
+                    original_file_datetime,
+                    document_type,
+                    tags,
+                    bytes},
+                   60_000)
   end
 
   @doc """

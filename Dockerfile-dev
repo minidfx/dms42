@@ -19,6 +19,7 @@ RUN mkdir /app && \
                        tesseract-ocr-fra\
                        ghostscript\
                        libgs-dev\
+                       xpdf\
                        gs-esp && \
     npm install --unsafe-perm -g elm && \
     npm install -g brunch

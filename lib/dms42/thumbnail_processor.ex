@@ -4,7 +4,6 @@ defmodule Dms42.ThumbnailProcessor do
   require Logger
 
   alias Dms42.DocumentPath
-  alias Dms42.Documents
   alias Dms42.DocumentsManager
 
   def start_link() do

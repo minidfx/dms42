@@ -27,21 +27,30 @@ defmodule Dms42.OcrProcessor do
   @callback handle_cast({:process, document_id :: binary, absolute_file_path :: String.t(), mime_type :: String.t()}, state :: map) :: {:ok, state :: map}
   def handle_cast({:process, document_id, absolute_file_path, "application/pdf"}, state) when is_binary(document_id) do
     Logger.debug("Starting the OCR on the PDF document  #{absolute_file_path} ...")
-    {:ok, file_path} = Temp.path()
-    try do
-      ExMagick.init!()
-      |> ExMagick.attr!(:density, "300")
-      |> ExMagick.image_load!(absolute_file_path)
-      |> ExMagick.attr!(:adjoin, true)
-      |> ExMagick.attr!(:magick, "PNG")
-      |> ExMagick.image_dump(file_path)
+      case Dms42.External.extract(absolute_file_path) do
+        {:ok, ocr} ->
+            Logger.debug("OCR extracted successfully from the PDF #{absolute_file_path}")
+            save_ocr(ocr, document_id)
+        {:error, error} ->
+          try do
+            Logger.warn(error)
 
-      send_to_tesseract(file_path, document_id)
-    rescue
-      x ->
-        Logger.error(x)
-    end
-    :ok = File.rm(file_path)
+            Temp.track!()
+            file_path = Temp.path!()
+
+            ExMagick.init!()
+            |> ExMagick.attr!(:density, "300")
+            |> ExMagick.image_load!(absolute_file_path)
+            |> ExMagick.attr!(:adjoin, true)
+            |> ExMagick.attr!(:magick, "PNG")
+            |> ExMagick.image_dump(file_path)
+
+            send_to_tesseract(file_path, document_id)
+          rescue
+            x ->
+              Logger.error(x)
+          end
+      end
     {:noreply, state}
   end
 
@@ -58,7 +67,7 @@ defmodule Dms42.OcrProcessor do
   @spec send_to_tesseract(file_path :: String.t(), document_id :: binary) :: {:ok, pid()}
   defp send_to_tesseract(file_path, document_id) do
     try do
-      case Dms42.Tesseract.scan!(file_path) |> String.trim do
+      case Dms42.External.tesseract!(file_path) |> String.trim do
         "" -> Logger.warn("The result OCR was empty, insert or update was skipped.")
         x -> save_ocr(x, document_id)
       end

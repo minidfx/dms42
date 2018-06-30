@@ -39,6 +39,16 @@ defmodule Dms42Web.DocumentsChannel do
     {:reply, :ok, socket}
   end
 
+  def handle_in("documents:delete", %{"documents" => document_ids}, socket) do
+    DocumentsManager.remove!(document_ids)
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("document:delete", %{"document_id" => document_id}, socket) do
+    DocumentsManager.remove!(document_id)
+    {:reply, :ok, socket}
+  end
+
   # # Channels can be used in a request/response fashion
   # # by sending replies to requests from the client
   # def handle_in("ping", payload, socket) do

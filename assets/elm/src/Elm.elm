@@ -24,6 +24,7 @@ import Task
 import Helpers
 import JsonDecoders
 import Debug
+import Bootstrap.Modal
 
 
 init : Navigation.Location -> ( Models.AppState, Cmd Models.Msg )
@@ -70,6 +71,45 @@ update msg state =
     case msg of
         Models.OnLocationChange location ->
             ( { state | route = Routing.parseLocation location }, Cmd.none )
+
+        Models.CloseModal ->
+            ( { state | modalState = Bootstrap.Modal.hidden }, Cmd.none )
+
+        Models.ShowModal ->
+            ( { state | modalState = Bootstrap.Modal.shown }, Cmd.none )
+
+        Models.DeleteDocument document_id ->
+            let
+                request =
+                    Http.request
+                        { method = "DELETE"
+                        , url = "api/documents/" ++ document_id
+                        , body = Http.emptyBody
+                        , timeout = Nothing
+                        , headers = []
+                        , expect = Http.expectStringResponse (\{ body } -> (Json.Decode.decodeString (Json.Decode.field "document_id" Json.Decode.string) body))
+                        , withCredentials = False
+                        }
+            in
+                ( state, Http.send Models.DocumentDeleted request )
+
+        Models.DocumentDeleted (Ok document_id) ->
+            let
+                documents =
+                    Helpers.removeDocument state.documents document_id
+
+                newState =
+                    { state | documents = Just documents }
+            in
+                ( newState
+                , Cmd.batch
+                    [ Helpers.sendMsg Models.CloseModal
+                    , Navigation.newUrl "#documents"
+                    ]
+                )
+
+        Models.DocumentDeleted (Err _) ->
+            ( { state | error = Just "An error occurred to delete the document." }, Helpers.sendMsg Models.CloseModal )
 
         Models.ReceiveInitialLoad raw ->
             case Json.Decode.decodeValue JsonDecoders.initialLoadDecoder raw of

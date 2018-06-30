@@ -46,6 +46,16 @@ mergeDocuments newDocuments documents =
             Dict.union (newDocuments |> documentsToDict) x
 
 
+removeDocument : Maybe (Dict String Models.Document) -> Models.DocumentId -> Dict String Models.Document
+removeDocument documents document_id =
+    case documents of
+        Nothing ->
+            Dict.empty
+
+        Just x ->
+            Dict.remove document_id x
+
+
 documentsToDict : List Models.Document -> Dict String Models.Document
 documentsToDict documents =
     documents
@@ -83,8 +93,8 @@ dateTimeToString { date, time } =
         (toString day) ++ " " ++ (toString month) ++ " " ++ (toString year) ++ " " ++ (toString hour) ++ ":" ++ (toString minute)
 
 
-getDocumentTypeId : Models.AppState -> String -> Models.DocumentType
-getDocumentTypeId state document_type_id =
+getDocumentType : Models.AppState -> String -> Models.DocumentType
+getDocumentType state document_type_id =
     let
         default =
             { name = "Unknown document type", id = "no-id" }

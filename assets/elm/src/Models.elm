@@ -11,6 +11,7 @@ import Websocket
 import Json.Encode
 import Control exposing (Control)
 import Time exposing (Time)
+import Bootstrap.Modal
 
 
 type alias DocumentDateTimes =
@@ -58,6 +59,7 @@ type alias AppState =
     , phxSocket : Phoenix.Socket.Socket Msg
     , debouncer : Control.State Msg
     , error : Maybe String
+    , modalState : Bootstrap.Modal.Visibility
     }
 
 
@@ -95,6 +97,10 @@ type Msg
     | Search Query
     | ReceiveSearchResult Json.Encode.Value
     | Debouncer (Control Msg)
+    | CloseModal
+    | ShowModal
+    | DeleteDocument DocumentId
+    | DocumentDeleted (Result Http.Error String)
 
 
 initPhxSocket : Phoenix.Socket.Socket Msg
@@ -117,4 +123,5 @@ initialModel route =
     , phxSocket = initPhxSocket
     , debouncer = Control.initialState
     , error = Nothing
+    , modalState = Bootstrap.Modal.hidden
     }

@@ -11,6 +11,7 @@ import Bootstrap.Alert
 import Bootstrap.ButtonGroup
 import Bootstrap.Button
 import Bootstrap.Form.Textarea
+import Bootstrap.Modal
 
 
 view : Models.AppState -> String -> Html Models.Msg
@@ -25,6 +26,31 @@ view state documentId =
 
             Just x ->
                 documentDetails state x
+
+
+confirmDelete : Models.AppState -> Models.Document -> Html Models.Msg
+confirmDelete { modalState } { original_file_name, document_id } =
+    Bootstrap.Modal.config Models.CloseModal
+        |> Bootstrap.Modal.large
+        |> Bootstrap.Modal.h5 []
+            [ Html.text ("You are about to delete the document \"" ++ original_file_name ++ "\".")
+            , Html.br [] []
+            , Html.br [] []
+            , Html.text "Are you sure?"
+            ]
+        |> Bootstrap.Modal.footer []
+            [ Bootstrap.Button.button
+                [ Bootstrap.Button.outlinePrimary
+                , Bootstrap.Button.attrs [ Html.Events.onClick Models.CloseModal ]
+                ]
+                [ Html.text "Close" ]
+            , Bootstrap.Button.button
+                [ Bootstrap.Button.outlineDanger
+                , Bootstrap.Button.onClick (Models.DeleteDocument document_id)
+                ]
+                [ Html.text "Delete" ]
+            ]
+        |> Bootstrap.Modal.view modalState
 
 
 pageItem : Models.Document -> Int -> String -> Html Models.Msg
@@ -91,13 +117,16 @@ documentProperties state { original_file_name, document_id, document_type_id, co
     let
         { inserted_datetime, updated_datetime, original_file_datetime } =
             datetimes
+
+        document_type =
+            Helpers.getDocumentType state document_type_id
     in
         Html.div [ Html.Attributes.class "form-group" ]
             [ Html.dl []
                 [ Html.dt [] [ Html.text "Document ID" ]
                 , Html.dd [] [ Html.text document_id ]
                 , Html.dt [] [ Html.text "Document type" ]
-                , Html.dd [] [ Html.text document_type_id ]
+                , Html.dd [] [ Html.text document_type.name ]
                 , Html.dt [] [ Html.text "Original file name" ]
                 , Html.dd [] [ Html.text original_file_name ]
                 , Html.dt [] [ Html.text "Uploaded date time" ]
@@ -143,33 +172,48 @@ documentDetails state document =
                 _ ->
                     Bootstrap.Alert.simpleWarning [] [ Html.text ("Panel not implement yet. ;)") ]
     in
-        Html.div [ Html.Attributes.class "row" ]
-            [ Html.div [ Html.Attributes.class "col-8" ]
-                [ leftView
-                ]
-            , Html.div [ Html.Attributes.class "col-4" ]
-                [ Bootstrap.ButtonGroup.linkButtonGroup
-                    [ Bootstrap.ButtonGroup.vertical
-                    , Bootstrap.ButtonGroup.attrs [ Html.Attributes.attribute "data-toggle" "" ]
-                    ]
-                    [ Bootstrap.ButtonGroup.linkButton
-                        [ Bootstrap.Button.light
-                        , Bootstrap.Button.attrs
-                            [ Html.Attributes.href ("#documents/" ++ document_id)
-                            , Html.Attributes.classList [ ( "active", route == Routing.Document document_id ) ]
-                            ]
-                        ]
-                        [ Html.text "Preview" ]
-                    , Bootstrap.ButtonGroup.linkButton
-                        [ Bootstrap.Button.light
-                        , Bootstrap.Button.attrs
-                            [ Html.Attributes.href ("#documents/" ++ document_id ++ "/properties")
-                            , Html.Attributes.classList [ ( "active", route == Routing.DocumentProperties document_id ) ]
-                            ]
-                        ]
-                        [ Html.text "Properties" ]
+        Html.div []
+            [ confirmDelete state document
+            , Bootstrap.ButtonGroup.linkButtonGroup
+                [ Bootstrap.ButtonGroup.attrs
+                    [ Html.Attributes.attribute "data-toggle" ""
+                    , Html.Attributes.class "mr-2"
                     ]
                 ]
+                [ Bootstrap.ButtonGroup.linkButton
+                    [ Bootstrap.Button.light
+                    , Bootstrap.Button.attrs
+                        [ Html.Attributes.href ("#documents/" ++ document_id)
+                        , Html.Attributes.classList [ ( "active", route == Routing.Document document_id ) ]
+                        ]
+                    ]
+                    [ Html.text "Preview" ]
+                , Bootstrap.ButtonGroup.linkButton
+                    [ Bootstrap.Button.light
+                    , Bootstrap.Button.attrs
+                        [ Html.Attributes.href ("#documents/" ++ document_id ++ "/properties")
+                        , Html.Attributes.classList [ ( "active", route == Routing.DocumentProperties document_id ) ]
+                        ]
+                    ]
+                    [ Html.text "Properties" ]
+                ]
+            , Bootstrap.ButtonGroup.linkButtonGroup
+                [ Bootstrap.ButtonGroup.attrs
+                    [ Html.Attributes.attribute "data-toggle" ""
+                    , Html.Attributes.class "mr-2"
+                    ]
+                ]
+                [ Bootstrap.ButtonGroup.linkButton
+                    [ Bootstrap.Button.danger
+                    , Bootstrap.Button.onClick (Models.ShowModal)
+                    , Bootstrap.Button.attrs
+                        [ Html.Attributes.href "#"
+                        ]
+                    ]
+                    [ Html.text "Delete" ]
+                ]
+            , Html.hr [] []
+            , leftView
             ]
 
 

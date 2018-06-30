@@ -23,30 +23,17 @@ defmodule Dms42.DocumentsManager do
                     document_type,
                     tags,
                     bytes},
-                   60_000)
+                    60_000)
   end
 
   @doc """
     Removes the document from the database, the storage and its associated data.
   """
-  @spec remove!(document_id :: binary) :: no_return()
-  def remove!(document_id) do
-    document = Document |> Dms42.Repo.get_by!(document_id: document_id)
-    document_path = DocumentPath.document_path!(document)
-    temp_file_path = Temp.path!
-    File.rename(document_path, temp_file_path)
-    try do
-      Ecto.Multi.new() |> TagManager.clean_document_tags(document_id)
-                       |> Ecto.Multi.delete_all("delete_ocr", (from DocumentOcr, where: [document_id: ^document_id]))
-                       |> Ecto.Multi.delete("delete_document", document)
-                       |> TransactionHelper.commit!
-      File.rm!(temp_file_path)
-    rescue
-      e ->
-        File.rename(temp_file_path, document_path)
-        IO.inspect(e)
-    end
-  end
+  @spec remove!(list(binary) | String.t()) :: no_return()
+  def remove!(document_ids) when is_list(document_ids),
+    do: remove!(document_ids, Ecto.Multi.new())
+  def remove!(document_id),
+    do: remove!([document_id], Ecto.Multi.new())
 
   @doc """
     Edits the document comments.
@@ -131,6 +118,31 @@ defmodule Dms42.DocumentsManager do
       nil -> {false, hash}
       _ -> {true, hash}
     end
+  end
+
+  @spec remove!(document_id :: list(binary), transaction :: Ecto.Multi.t()) :: no_return()
+  defp remove!(document_ids, transaction) do
+    IO.inspect(document_ids)
+    {transaction, documents} = Enum.reduce(document_ids,
+                                          {transaction, []},
+                                          fn (x, acc) ->
+                                             {localTransaction, documents} = acc
+                                             document = Document |> Dms42.Repo.get_by!(document_id: x)
+                                             localTransaction = localTransaction |> TagManager.clean_document_tags(x)
+                                                                                 |> Ecto.Multi.delete_all("delete_ocr", (from DocumentOcr, where: [document_id: ^x]))
+                                                                                 |> Ecto.Multi.delete("delete_document", document)
+                                            {localTransaction, [document | documents]}
+                                          end)
+
+    transaction |> TransactionHelper.commit!
+
+    Enum.each(documents,
+              fn x ->
+                document_path = DocumentPath.document_path!(x)
+                temp_file_path = Temp.path!
+                File.rename(document_path, temp_file_path)
+                File.rm!(temp_file_path)
+              end)
   end
 
   defp null_to_string(string) when is_nil(string), do: ""

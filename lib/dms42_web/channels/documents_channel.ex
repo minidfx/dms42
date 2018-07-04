@@ -39,13 +39,11 @@ defmodule Dms42Web.DocumentsChannel do
     {:reply, :ok, socket}
   end
 
-  def handle_in("documents:delete", %{"documents" => document_ids}, socket) do
-    DocumentsManager.remove!(document_ids)
-    {:reply, :ok, socket}
-  end
-
-  def handle_in("document:delete", %{"document_id" => document_id}, socket) do
-    DocumentsManager.remove!(document_id)
+  def handle_in("document:get", %{"document_id" => document_id}, socket) do
+    {:ok, uuid} = document_id |> Ecto.UUID.dump
+    Phoenix.Channel.push(socket,
+                         "newDocument",
+                         %{"result": DocumentsManager.get(uuid) |> DocumentsManager.transform_to_viewmodel})
     {:reply, :ok, socket}
   end
 

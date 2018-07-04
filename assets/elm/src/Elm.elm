@@ -72,6 +72,22 @@ update msg state =
         Models.OnLocationChange location ->
             ( { state | route = Routing.parseLocation location }, Cmd.none )
 
+        Models.FetchDocument document_id ->
+            let
+                payload =
+                    Json.Encode.object
+                        [ ( "document_id", Json.Encode.string document_id )
+                        ]
+
+                push_ =
+                    Phoenix.Push.init "document:get" "documents:lobby"
+                        |> Phoenix.Push.withPayload payload
+
+                ( phxSocket, phxCmd ) =
+                    Phoenix.Socket.push push_ state.phxSocket
+            in
+                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+
         Models.CloseModal ->
             ( { state | modalState = Bootstrap.Modal.hidden }, Cmd.none )
 
@@ -143,6 +159,9 @@ update msg state =
                     Phoenix.Socket.push push_ state.phxSocket
             in
                 ( { state | phxSocket = phxSocket, searchQuery = Just query }, Cmd.map Models.PhoenixMsg phxCmd )
+
+        Models.ChangeDocumentsPage page ->
+            ( state, Cmd.none )
 
         Models.ChangeDocumentPage document_id page ->
             let

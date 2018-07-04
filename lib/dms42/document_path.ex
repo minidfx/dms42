@@ -130,20 +130,12 @@ defmodule Dms42.DocumentPath do
       x ->
         {:ok, uuid} = Ecto.UUID.load(document_id)
         %{:year => year, :month => month, :day => day} = x
-        thumbnail_folder_path = Path.join([path,
-                                           year |> Integer.to_string,
-                                           month |> Integer.to_string,
-                                           day |> Integer.to_string,
-                                           uuid])
-        files = thumbnail_folder_path
-        |> File.ls!
-        |> Enum.map(fn x -> x |> Path.absname(thumbnail_folder_path) end)
-        |> Enum.map(fn x -> {Path.basename(x), x} end)
-        |> Enum.map(fn {x, y} -> {Regex.run(~r/big-(\d+)\.png$/, x), y} end)
-        |> Enum.filter(fn {x, _} -> x != nil end)
-        |> Enum.map(fn {[_, index], x} -> {index |> String.to_integer, x} end)
-        |> Enum.sort_by(fn {x, _} -> x end)
-        |> Enum.map(fn {_, x} -> x end)
+        files = Path.join([path,
+                           year |> Integer.to_string,
+                           month |> Integer.to_string,
+                           day |> Integer.to_string,
+                           uuid])
+                           |> list_big_thumbnails
         {:reply, {:ok, files}, state}
     end
   end
@@ -172,20 +164,12 @@ defmodule Dms42.DocumentPath do
                    _from,
                    %{:absolute_thumbnail_path => path} = state) when is_bitstring(document_id) do
     %{:year => year, :month => month, :day => day} = DateTime.utc_now()
-    thumbnail_folder_path = Path.join([path,
-                                       year |> Integer.to_string,
-                                       month |> Integer.to_string,
-                                       day |> Integer.to_string,
-                                       document_id])
-    files = thumbnail_folder_path
-    |> File.ls!
-    |> Enum.map(fn x -> x |> Path.absname(thumbnail_folder_path) end)
-    |> Enum.map(fn x -> {Path.basename(x), x} end)
-    |> Enum.map(fn {x, y} -> {Regex.run(~r/big-(\d+)\.png$/, x), y} end)
-    |> Enum.filter(fn {x, _} -> x != nil end)
-    |> Enum.map(fn {[_, index], x} -> {index |> String.to_integer, x} end)
-    |> Enum.sort_by(fn {x, _} -> x end)
-    |> Enum.map(fn {_, x} -> x end)
+    files = Path.join([path,
+                       year |> Integer.to_string,
+                       month |> Integer.to_string,
+                       day |> Integer.to_string,
+                       document_id])
+                       |> list_big_thumbnails
     {:reply, {:ok, files}, state}
   end
 
@@ -308,6 +292,21 @@ defmodule Dms42.DocumentPath do
     case GenServer.call(:document_path, :relative_document_path) do
       {:error, reason} -> raise(reason)
       {:ok, x} -> x
+    end
+  end
+
+  def list_big_thumbnails(path) do
+    case File.exists?(path) do
+      false -> []
+      true ->
+        path |> File.ls!
+             |> Enum.map(fn x -> x |> Path.absname(path) end)
+             |> Enum.map(fn x -> {Path.basename(x), x} end)
+             |> Enum.map(fn {x, y} -> {Regex.run(~r/big-(\d+)\.png$/, x), y} end)
+             |> Enum.filter(fn {x, _} -> x != nil end)
+             |> Enum.map(fn {[_, index], x} -> {index |> String.to_integer, x} end)
+             |> Enum.sort_by(fn {x, _} -> x end)
+             |> Enum.map(fn {_, x} -> x end)
     end
   end
 end

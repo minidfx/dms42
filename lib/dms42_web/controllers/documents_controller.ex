@@ -39,11 +39,25 @@ defmodule Dms42Web.DocumentsController do
   def upload_documents(conn, _params), do: conn |> send_resp(400, "Argument not recognized.")
 
   @doc false
+  def download(conn, %{"document_id" => document_id}) do
+    case valid_document_query(conn, document_id) do
+      {:error, conn} -> conn |> send_resp(404, "")
+      {:ok, conn, document} ->
+        %{:mime_type => mime_type, :original_file_name => filename} = document
+        documentPath = DocumentPath.document_path!(document)
+        conn |> put_resp_content_type(mime_type)
+             |> put_resp_header("Content-Disposition", "attachment; filename=\"#{filename}\"")
+             |> send_file(200, documentPath)
+    end
+  end
+
+  @doc false
   def thumbnail(conn, %{"document_id" => document_id}) do
     case valid_document_query(conn, document_id) do
       {:error, conn} -> conn
       {:ok, conn, document} -> absolute_file_path = DocumentPath.small_thumbnail_path!(document)
                                conn |> put_resp_content_type("image/png")
+                                    |> put_resp_header("cache-control", "private, max-age=300")
                                     |> send_file(200, absolute_file_path)
     end
   end

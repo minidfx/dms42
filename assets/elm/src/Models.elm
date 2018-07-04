@@ -60,6 +60,7 @@ type alias AppState =
     , debouncer : Control.State Msg
     , error : Maybe String
     , modalState : Bootstrap.Modal.Visibility
+    , currentPages : Int
     }
 
 
@@ -101,6 +102,8 @@ type Msg
     | ShowModal
     | DeleteDocument DocumentId
     | DocumentDeleted (Result Http.Error String)
+    | FetchDocument DocumentId
+    | ChangeDocumentsPage Page
 
 
 initPhxSocket : Phoenix.Socket.Socket Msg
@@ -124,4 +127,5 @@ initialModel route =
     , debouncer = Control.initialState
     , error = Nothing
     , modalState = Bootstrap.Modal.hidden
+    , currentPages = 0
     }

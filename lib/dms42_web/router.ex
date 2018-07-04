@@ -18,6 +18,7 @@ defmodule Dms42Web.Router do
     pipe_through(:browser)
 
     get("/", PageController, :index)
+    get("/documents/:document_id", DocumentsController, :download)
     get("/documents/thumbnail/:document_id", DocumentsController, :thumbnail)
     get("/documents/:document_id/images", DocumentsController, :document_image)
     get("/documents/:document_id/images/:image_id", DocumentsController, :document_image)

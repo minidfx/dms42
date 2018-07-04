@@ -12,6 +12,8 @@ import Bootstrap.ButtonGroup
 import Bootstrap.Button
 import Bootstrap.Form.Textarea
 import Bootstrap.Modal
+import Bootstrap.Pagination
+import Bootstrap.General.HAlign
 
 
 view : Models.AppState -> String -> Html Models.Msg
@@ -61,7 +63,7 @@ pageItem { document_id, thumbnails } page label =
     in
         Html.li
             [ Html.Attributes.class "page-item"
-            , Html.Attributes.classList [ ( "active", currentImage == page ) ]
+            , Html.Attributes.classList [ ( "active", (==) currentImage page ) ]
             ]
             [ Html.a
                 [ Html.Attributes.class "page-link"
@@ -69,6 +71,22 @@ pageItem { document_id, thumbnails } page label =
                 ]
                 [ Html.text label ]
             ]
+
+
+itemsList : Models.Document -> Bootstrap.Pagination.ListConfig Int Models.Msg
+itemsList { document_id, thumbnails } =
+    let
+        { countImages, currentImage } =
+            thumbnails
+    in
+        { selectedMsg = \x -> Models.ChangeDocumentPage document_id x
+        , prevItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Previous" ]
+        , nextItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Next" ]
+        , activeIdx = Helpers.safeValue currentImage 0
+        , data = List.range 1 countImages
+        , itemFn = \x _ -> Bootstrap.Pagination.ListItem [] [ Html.text <| toString <| (+) x 1 ]
+        , urlFn = \x _ -> "#documents/" ++ document_id
+        }
 
 
 documentImage : Models.AppState -> Models.Document -> Html Models.Msg
@@ -83,33 +101,32 @@ documentImage state document =
         currentImage =
             Helpers.safeValue thumbnails.currentImage 0
 
-        pages =
+        content =
             case countImages of
-                0 ->
-                    []
-
                 1 ->
-                    []
+                    Html.img
+                        [ Html.Attributes.alt original_file_name
+                        , Html.Attributes.src ("/documents/" ++ document_id ++ "/images/" ++ (toString currentImage))
+                        , Html.Attributes.class "img-fluid"
+                        ]
+                        []
 
-                x ->
-                    List.concat
-                        [ [ pageItem document 0 "First" ]
-                        , List.map (\x -> pageItem document x (toString x)) (List.range 2 (x - 2))
-                        , [ pageItem document (x - 1) "Last" ]
+                _ ->
+                    Html.div []
+                        [ Bootstrap.Pagination.defaultConfig
+                            |> Bootstrap.Pagination.ariaLabel "images-pagination"
+                            |> Bootstrap.Pagination.align Bootstrap.General.HAlign.centerXs
+                            |> Bootstrap.Pagination.itemsList (itemsList document)
+                            |> Bootstrap.Pagination.view
+                        , Html.img
+                            [ Html.Attributes.alt original_file_name
+                            , Html.Attributes.src ("/documents/" ++ document_id ++ "/images/" ++ (toString currentImage))
+                            , Html.Attributes.class "img-fluid"
+                            ]
+                            []
                         ]
     in
-        Html.div []
-            [ Html.nav []
-                [ Html.ul [ Html.Attributes.class "pagination justify-content-center" ]
-                    pages
-                ]
-            , Html.img
-                [ Html.Attributes.alt original_file_name
-                , Html.Attributes.src ("/documents/" ++ document_id ++ "/images/" ++ (toString currentImage))
-                , Html.Attributes.class "img-fluid"
-                ]
-                []
-            ]
+        content
 
 
 documentProperties : Models.AppState -> Models.Document -> Html Models.Msg
@@ -184,7 +201,7 @@ documentDetails state document =
                     [ Bootstrap.Button.light
                     , Bootstrap.Button.attrs
                         [ Html.Attributes.href ("#documents/" ++ document_id)
-                        , Html.Attributes.classList [ ( "active", route == Routing.Document document_id ) ]
+                        , Html.Attributes.classList [ ( "active", (==) route (Routing.Document document_id) ) ]
                         ]
                     ]
                     [ Html.text "Preview" ]
@@ -192,7 +209,7 @@ documentDetails state document =
                     [ Bootstrap.Button.light
                     , Bootstrap.Button.attrs
                         [ Html.Attributes.href ("#documents/" ++ document_id ++ "/properties")
-                        , Html.Attributes.classList [ ( "active", route == Routing.DocumentProperties document_id ) ]
+                        , Html.Attributes.classList [ ( "active", (==) route (Routing.DocumentProperties document_id) ) ]
                         ]
                     ]
                     [ Html.text "Properties" ]
@@ -204,6 +221,14 @@ documentDetails state document =
                     ]
                 ]
                 [ Bootstrap.ButtonGroup.linkButton
+                    [ Bootstrap.Button.info
+                    , Bootstrap.Button.attrs
+                        [ Html.Attributes.href <| (++) "/documents/" document_id
+                        , Html.Attributes.target "blank"
+                        ]
+                    ]
+                    [ Html.text "Download" ]
+                , Bootstrap.ButtonGroup.linkButton
                     [ Bootstrap.Button.danger
                     , Bootstrap.Button.onClick (Models.ShowModal)
                     , Bootstrap.Button.attrs

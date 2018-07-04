@@ -57,6 +57,11 @@ defmodule Dms42.DocumentsManager do
              |> transform_to_viewmodels
   end
 
+  @spec get(document_id :: binary) :: map
+  def get(document_id) when is_binary(document_id) do
+    Document |> Dms42.Repo.get_by!(document_id: document_id) |> transform_to_viewmodel
+  end
+
   @spec transform_to_viewmodels(list(Documents)) :: list(map)
   def transform_to_viewmodels(documents), do: documents |> Enum.map(&transform_to_viewmodel/1)
 
@@ -77,7 +82,6 @@ defmodule Dms42.DocumentsManager do
       images = DocumentPath.big_thumbnail_paths!(document)
       {:ok, document_id_string} = Ecto.UUID.load(did)
       {:ok, document_type_id_string} = Ecto.UUID.load(doc_type_id)
-      IO.inspect updated
       datetimes = case updated do
                     nil -> %{
                             "inserted_datetime" => inserted |> to_rfc2822,
@@ -122,7 +126,6 @@ defmodule Dms42.DocumentsManager do
 
   @spec remove!(document_id :: list(binary), transaction :: Ecto.Multi.t()) :: no_return()
   defp remove!(document_ids, transaction) do
-    IO.inspect(document_ids)
     {transaction, documents} = Enum.reduce(document_ids,
                                           {transaction, []},
                                           fn (x, acc) ->

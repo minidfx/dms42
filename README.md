@@ -1,5 +1,9 @@
 # Dms42
 
+Project under development to manage my documents at home.
+
+# Intial readme
+
 To start your Phoenix server:
 
   * Install dependencies with `mix deps.get`

@@ -3,6 +3,7 @@ defmodule Dms42.DocumentsFinder do
   alias Dms42.Models.DocumentOcr
   alias Dms42.Models.DocumentTag
   alias Dms42.Models.Tag
+  alias Dms42.Models.SearchResult
 
   import Ecto.Query, only: [from: 2]
 
@@ -11,11 +12,14 @@ defmodule Dms42.DocumentsFinder do
   @spec find(query :: String.t) :: list(Document)
   def find(""), do: []
   def find(query) when is_bitstring(query) do
-    exact_match = find_exact_match(query |> normalize) |> MapSet.new
+    exact_match = query |> normalize |> find_exact_match |> transform_to_map
     term_match = query |> String.split(" ")
                        |> find_by_terms
-                       |> MapSet.new
-    MapSet.union(exact_match, term_match)
+                       |> transform_to_map
+    result = Map.merge(term_match, exact_match)
+    result |> Map.values
+           |> Enum.sort_by(fn %SearchResult{:ranking => x} -> x end)
+           |> Enum.map(fn %SearchResult{:document => x} -> x end)
   end
 
   @spec normalize(term :: String.t()) :: String.t()
@@ -24,11 +28,12 @@ defmodule Dms42.DocumentsFinder do
     do: term |> String.normalize(:nfd)
              |> String.replace(~r/[^A-Za-z\s]/u, "")
 
-  @spec find_by_terms(terms :: list(String.t())) :: list(Document)
+  @spec find_by_terms(terms :: list(String.t())) :: list(SearchResult)
   defp find_by_terms(terms) when is_list(terms),
     do: terms |> Enum.map(fn x -> x |> normalize |> find_by_term end)
-              |> Enum.map(&Dms42.Repo.all/1)
-              |> Enum.flat_map(fn x -> x end)
+                  |> Enum.map(&Dms42.Repo.all/1)
+                  |> Enum.flat_map(fn x -> x end)
+                  |> Enum.map(fn x -> to_search_result(x, 2) end)
 
   @spec find_by_term(term :: String.t()) :: list(Document)
   defp find_by_term(term) do
@@ -44,7 +49,7 @@ defmodule Dms42.DocumentsFinder do
     select: d
   end
 
-  @spec find_exact_match(query :: String.t()) :: list(Document)
+  @spec find_exact_match(query :: String.t()) :: list(SearchResult)
   defp find_exact_match(query) do
     query = from d in Document,
             left_join: o in DocumentOcr, on: d.document_id == o.document_id,
@@ -56,6 +61,20 @@ defmodule Dms42.DocumentsFinder do
             or_where: t.name == ^query,
             limit: @max_result,
             select: d
-    Dms42.Repo.all query
+    (Dms42.Repo.all query) |> Enum.map(fn x -> to_search_result(x, 1) end)
+  end
+
+  defp to_search_result(%Document{:document_id => did} = document, ranking) do
+    %SearchResult{ document_id: did,
+                   document: document,
+                   ranking: ranking }
+  end
+
+  defp transform_to_map(searchResults) do
+    Enum.map(searchResults,
+             fn %SearchResult{:document_id => did} = x ->
+               {did, x}
+             end)
+    |> Map.new
   end
 end

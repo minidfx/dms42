@@ -14,6 +14,7 @@ import Bootstrap.Form.Textarea
 import Bootstrap.Modal
 import Bootstrap.Pagination
 import Bootstrap.General.HAlign
+import Bootstrap.Form.Input
 
 
 view : Models.AppState -> String -> Html Models.Msg
@@ -59,7 +60,7 @@ pageItem : Models.Document -> Int -> String -> Html Models.Msg
 pageItem { document_id, thumbnails } page label =
     let
         currentImage =
-            Helpers.safeValue thumbnails.currentImage 0
+            Maybe.withDefault 0 thumbnails.currentImage
     in
         Html.li
             [ Html.Attributes.class "page-item"
@@ -82,7 +83,7 @@ itemsList { document_id, thumbnails } =
         { selectedMsg = \x -> Models.ChangeDocumentPage document_id x
         , prevItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Previous" ]
         , nextItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Next" ]
-        , activeIdx = Helpers.safeValue currentImage 0
+        , activeIdx = Maybe.withDefault 0 currentImage
         , data = List.range 1 countImages
         , itemFn = \x _ -> Bootstrap.Pagination.ListItem [] [ Html.text <| toString <| (+) x 1 ]
         , urlFn = \x _ -> "#documents/" ++ document_id
@@ -99,7 +100,7 @@ documentImage state document =
             thumbnails
 
         currentImage =
-            Helpers.safeValue thumbnails.currentImage 0
+            Maybe.withDefault 0 thumbnails.currentImage
 
         content =
             case countImages of
@@ -130,7 +131,7 @@ documentImage state document =
 
 
 documentProperties : Models.AppState -> Models.Document -> Html Models.Msg
-documentProperties state { original_file_name, document_id, document_type_id, comments, datetimes } =
+documentProperties state { original_file_name, document_id, document_type_id, comments, datetimes, ocr } =
     let
         { inserted_datetime, updated_datetime, original_file_datetime } =
             datetimes
@@ -149,20 +150,29 @@ documentProperties state { original_file_name, document_id, document_type_id, co
                 , Html.dt [] [ Html.text "Uploaded date time" ]
                 , Html.dd [] [ Html.text (Helpers.dateTimeToString inserted_datetime) ]
                 , Html.dt [] [ Html.text "Updated date time" ]
-                , Html.dd [] [ Html.text (Helpers.dateTimeToString (Helpers.safeValue updated_datetime Helpers.defaultDateTime)) ]
+                , Html.dd [] [ Html.text (Helpers.dateTimeToString (Maybe.withDefault Helpers.defaultDateTime updated_datetime)) ]
                 , Html.dt [] [ Html.text "Original date time" ]
                 , Html.dd [] [ Html.text (Helpers.dateTimeToString original_file_datetime) ]
                 , Html.dt [] [ Html.text "Comments" ]
                 , Html.dd []
                     [ Bootstrap.Form.Textarea.textarea
                         [ Bootstrap.Form.Textarea.id "comments"
-                        , Bootstrap.Form.Textarea.defaultValue (Helpers.safeValue comments "")
+                        , Bootstrap.Form.Textarea.defaultValue (Maybe.withDefault "" comments)
                         , Bootstrap.Form.Textarea.rows 5
                         , Bootstrap.Form.Textarea.attrs
                             [ (Html.Attributes.map Helpers.debounce <|
                                 Html.Events.onInput (Models.UpdateDocumentComments <| document_id)
                               )
                             ]
+                        ]
+                    ]
+                , Html.dt [] [ Html.text "OCR" ]
+                , Html.dd []
+                    [ Bootstrap.Form.Textarea.textarea
+                        [ Bootstrap.Form.Textarea.id "ocr"
+                        , Bootstrap.Form.Textarea.value (Maybe.withDefault "" ocr)
+                        , Bootstrap.Form.Textarea.rows 10
+                        , Bootstrap.Form.Textarea.attrs [ Html.Attributes.readonly True ]
                         ]
                     ]
                 ]

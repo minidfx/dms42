@@ -57,6 +57,12 @@ defmodule Dms42.DocumentsManager do
              |> transform_to_viewmodels
   end
 
+  @spec ocr(list(document_id :: binary)) :: list(DocumentOcr)
+  def ocr(document_ids) do
+    DocumentOcr |> where([x], x.document_id in ^document_ids)
+                |> Dms42.Repo.all
+  end
+
   @spec get(document_id :: binary) :: map
   def get(document_id) when is_binary(document_id) do
     Document |> Dms42.Repo.get_by!(document_id: document_id) |> transform_to_viewmodel

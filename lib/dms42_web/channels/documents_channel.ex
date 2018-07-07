@@ -23,8 +23,20 @@ defmodule Dms42Web.DocumentsChannel do
                                                 %{"name" => name, "id" => uuid}
                                               end)
     documents = DocumentsManager.documents(0, 50)
+    documents_ocr = DocumentsManager.ocr(documents |> Enum.map(fn %{"document_id" => x} ->
+                                                                {:ok, uuid} = Ecto.UUID.dump(x)
+                                                                uuid
+                                                               end))
 
     Phoenix.Channel.push(socket, "initialLoad", %{"document-types": document_types, "documents": documents})
+    Enum.each(documents_ocr,
+              fn %{:document_id => did, :ocr => ocr} ->
+                {:ok, uuid} = Ecto.UUID.load(did)
+                Phoenix.Channel
+                       .push(socket,
+                             "ocr",
+                             %{document_id: uuid, ocr: ocr})
+              end)
     {:noreply, socket}
   end
 

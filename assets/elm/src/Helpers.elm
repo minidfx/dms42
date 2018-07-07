@@ -16,16 +16,6 @@ script code =
     Html.node "script" [ Html.Attributes.type_ "text/javascript" ] [ Html.text code ]
 
 
-safeValue : Maybe x -> x -> x
-safeValue maybeValue default =
-    case maybeValue of
-        Nothing ->
-            default
-
-        Just x ->
-            x
-
-
 sendMsg : Models.Msg -> Cmd Models.Msg
 sendMsg msg =
     Task.succeed msg |> Task.perform identity
@@ -36,7 +26,10 @@ mergeDocument documents newDocument =
     mergeDocuments [ newDocument ] documents
 
 
-mergeDocuments : List Models.Document -> Maybe (Dict String Models.Document) -> Dict String Models.Document
+mergeDocuments :
+    List Models.Document
+    -> Maybe (Dict String Models.Document)
+    -> Dict String Models.Document
 mergeDocuments newDocuments documents =
     case documents of
         Nothing ->
@@ -46,7 +39,41 @@ mergeDocuments newDocuments documents =
             Dict.union (newDocuments |> documentsToDict) x
 
 
-removeDocument : Maybe (Dict String Models.Document) -> Models.DocumentId -> Dict String Models.Document
+updateDocument :
+    String
+    -> (Models.Document -> Models.Document)
+    -> Models.AppState
+    -> Result String Models.AppState
+updateDocument document_id updateFunction state =
+    let
+        documents =
+            Maybe.withDefault Dict.empty state.documents
+
+        document =
+            Dict.get document_id documents
+    in
+        case document of
+            Nothing ->
+                Err ("The given document_id is not found: " ++ document_id)
+
+            Just x ->
+                let
+                    newDocument =
+                        updateFunction x
+
+                    newDocuments =
+                        Dict.insert document_id newDocument documents
+
+                    newState =
+                        { state | documents = Just newDocuments }
+                in
+                    Ok newState
+
+
+removeDocument :
+    Maybe (Dict String Models.Document)
+    -> Models.DocumentId
+    -> Dict String Models.Document
 removeDocument documents document_id =
     case documents of
         Nothing ->
@@ -104,7 +131,7 @@ getDocumentType state document_type_id =
                 default
 
             Just x ->
-                safeValue (x |> List.filter (\x -> x.id == document_type_id) |> List.head) default
+                Maybe.withDefault default (x |> List.filter (\x -> x.id == document_type_id) |> List.head)
 
 
 debounce : Models.Msg -> Models.Msg

@@ -204,7 +204,7 @@ update msg state =
                             state
 
                         result =
-                            case Helpers.safeValue searchQuery "" of
+                            case Maybe.withDefault "" searchQuery of
                                 "" ->
                                     Nothing
 
@@ -220,6 +220,26 @@ update msg state =
             case Json.Decode.decodeValue JsonDecoders.documentDecoder raw of
                 Ok x ->
                     ( { state | documents = Just (Helpers.mergeDocument state.documents x) }, Cmd.none )
+
+                Err error ->
+                    ( state, Cmd.none )
+
+        Models.ReceiveOcr raw ->
+            case Json.Decode.decodeValue JsonDecoders.ocrResultDecoder raw of
+                Ok x ->
+                    let
+                        { document_id, ocr } =
+                            x
+
+                        newState =
+                            case state |> Helpers.updateDocument document_id (\y -> { y | ocr = Just ocr }) of
+                                Err _ ->
+                                    state
+
+                                Ok x ->
+                                    x
+                    in
+                        ( newState, Cmd.none )
 
                 Err error ->
                     ( state, Cmd.none )

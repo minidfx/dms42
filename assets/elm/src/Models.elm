@@ -21,6 +21,12 @@ type alias DocumentDateTimes =
     }
 
 
+type alias DocumentOcr =
+    { document_id : String
+    , ocr : String
+    }
+
+
 type alias DocumentThumbnails =
     { countImages : Int
     , currentImage : Maybe Int
@@ -104,6 +110,7 @@ type Msg
     | DocumentDeleted (Result Http.Error String)
     | FetchDocument DocumentId
     | ChangeDocumentsPage Page
+    | ReceiveOcr Json.Encode.Value
 
 
 initPhxSocket : Phoenix.Socket.Socket Msg
@@ -114,6 +121,7 @@ initPhxSocket =
         |> Phoenix.Socket.on "newDocument" "documents:lobby" ReceiveNewDocument
         |> Phoenix.Socket.on "updateDocument" "documents:lobby" ReceiveUpdateDocument
         |> Phoenix.Socket.on "searchResult" "documents:lobby" ReceiveSearchResult
+        |> Phoenix.Socket.on "ocr" "documents:lobby" ReceiveOcr
 
 
 initialModel : Routing.Route -> AppState

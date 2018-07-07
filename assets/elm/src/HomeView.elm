@@ -35,7 +35,7 @@ view { searchQuery, searchResult } =
                 [ Html.input
                     [ Html.Attributes.type_ "text"
                     , Html.Attributes.class "form-control"
-                    , Html.Attributes.defaultValue (Helpers.safeValue searchQuery "")
+                    , Html.Attributes.defaultValue (Maybe.withDefault "" searchQuery)
                     , (Html.Attributes.map Helpers.debounce <| Html.Events.onInput Models.Search)
                     ]
                     []

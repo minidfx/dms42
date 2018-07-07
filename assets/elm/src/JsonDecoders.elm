@@ -61,6 +61,13 @@ searchResultDecoder =
         (Json.Decode.field "result" (Json.Decode.list documentDecoder))
 
 
+ocrResultDecoder : Json.Decode.Decoder Models.DocumentOcr
+ocrResultDecoder =
+    Json.Decode.map2 Models.DocumentOcr
+        (Json.Decode.field "document_id" Json.Decode.string)
+        (Json.Decode.field "ocr" Json.Decode.string)
+
+
 initialLoadDecoder : Json.Decode.Decoder Models.InitialLoad
 initialLoadDecoder =
     Json.Decode.map2 Models.InitialLoad

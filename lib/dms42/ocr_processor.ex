@@ -83,5 +83,7 @@ defmodule Dms42.OcrProcessor do
                                                        %{document_id: document_id,
                                                          ocr: ocr,
                                                          ocr_normalized: ocr |> DocumentsFinder.normalize}))
+    {:ok, uuid} = Ecto.UUID.load(document_id)
+    Dms42Web.Endpoint.broadcast!("documents:lobby", "ocr", %{ document_id: uuid, ocr: ocr })
   end
 end

@@ -82,7 +82,7 @@ view state content =
 
                 Just x ->
                     [ Bootstrap.Alert.simpleDanger []
-                        [ Html.text (Helpers.safeValue error "") ]
+                        [ Html.text (Maybe.withDefault "" error) ]
                     , content state
                     ]
     in

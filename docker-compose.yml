@@ -11,3 +11,14 @@ services:
       - "0.0.0.0:4000:4000/tcp"
     entrypoint:
       - "bash"
+    depends_on:
+      - postgres
+  alpha:
+    build:
+      context: .
+      dockerfile: Dockerfile-alpha
+    image: minidfx/dms42:alpha
+    ports:
+     - 4000:4000/tcp
+  postgres:
+    image: postgres

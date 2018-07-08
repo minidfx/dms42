@@ -1,4 +1,4 @@
-FROM elixir:1.6
+FROM elixir
 
 LABEL Burgy Benjamin aka MiniDfx
 
@@ -21,15 +21,21 @@ RUN mkdir /app && \
                        ghostscript-x\
                        libgs-dev\
                        xpdf\
-		       graphicsmagick && \
-    npm install --unsafe-perm -g elm && \
-    npm install -g brunch
+		       graphicsmagick
+
+COPY mix.exs mix.lock /app/
+COPY lib /app/lib/
+COPY config /app/config/
+COPY priv /app/priv/
 
 WORKDIR /app
 
-VOLUME /app
-
 RUN mix local.hex --force && \
-    mix local.rebar --force
+    mix local.rebar --force && \
+    mix deps.get && \
+    mix deps.compile && \
+    mix compile
+
+ENTRYPOINT mix app.reset && mix phx.server
 
 EXPOSE 4000

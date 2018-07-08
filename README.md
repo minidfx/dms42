@@ -2,7 +2,13 @@
 
 Project under development to manage my documents at home.
 
-# Intial readme
+# Test
+
+To quickly test the application, just copy the [docker-compose.yml](https://github.com/minidfx/dms42/blob/master/docker-compose.yml) file and run the command `docker-compose up alpha` and open your browser to http://localhost:4000.
+
+**WARNING**: This is just an image for test purpose not optimized and it doesn't persist any data.
+
+# Initial readme
 
 To start your Phoenix server:
 

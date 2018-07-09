@@ -21,12 +21,14 @@ RUN mkdir /app && \
                        ghostscript-x\
                        libgs-dev\
                        xpdf\
-		       graphicsmagick
+		       graphicsmagick\
+    		       postgresql-client
 
 COPY mix.exs mix.lock /app/
 COPY lib /app/lib/
 COPY config /app/config/
 COPY priv /app/priv/
+COPY wait-for-postgres.sh /app/
 
 WORKDIR /app
 
@@ -36,6 +38,8 @@ RUN mix local.hex --force && \
     mix deps.compile && \
     mix compile
 
-ENTRYPOINT mix app.reset && mix phx.server
+ENTRYPOINT /app/wait-for-postgres.sh postgres &&\
+	   mix app.reset &&\
+	   mix phx.server
 
 EXPOSE 4000

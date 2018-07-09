@@ -38,11 +38,12 @@ defmodule Dms42.DocumentsManager do
   @doc """
     Edits the document comments.
   """
-  @spec edit_comments!(document_id :: String.t(), comments :: String.t()) :: Document
+  @spec edit_comments!(document_id :: binary, comments :: String.t()) :: Document
   def edit_comments!(document_id, comments) do
-    {:ok, uuid} = Ecto.UUID.dump(document_id)
-    case Dms42.Repo.get_by(Document, document_id: uuid) do
-      nil -> raise("Document #{document_id} not found")
+    case Dms42.Repo.get_by(Document, document_id: document_id) do
+      nil ->
+        {:ok, uuid} = Ecto.UUID.load(document_id)
+        raise("Document #{uuid} not found")
       x ->
         Dms42.Repo.update!(Document.changeset(x, %{comments: comments |> empty_to_null}))
     end

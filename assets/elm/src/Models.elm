@@ -27,6 +27,13 @@ type alias DocumentOcr =
     }
 
 
+type alias DocumentComments =
+    { document_id : String
+    , comments : Maybe String
+    , updated_datetime : Rfc2822Datetime.Datetime
+    }
+
+
 type alias DocumentThumbnails =
     { countImages : Int
     , currentImage : Maybe Int
@@ -99,7 +106,6 @@ type Msg
     | ReceiveInitialLoad Json.Encode.Value
     | ReceiveNewDocument Json.Encode.Value
     | UpdateDocumentComments DocumentId String
-    | ReceiveUpdateDocument Json.Encode.Value
     | ChangeDocumentPage DocumentId Page
     | Search Query
     | ReceiveSearchResult Json.Encode.Value
@@ -111,6 +117,7 @@ type Msg
     | FetchDocument DocumentId
     | ChangeDocumentsPage Page
     | ReceiveOcr Json.Encode.Value
+    | ReceiveComments Json.Encode.Value
 
 
 initPhxSocket : Phoenix.Socket.Socket Msg
@@ -119,7 +126,7 @@ initPhxSocket =
         |> Phoenix.Socket.withDebug
         |> Phoenix.Socket.on "initialLoad" "documents:lobby" ReceiveInitialLoad
         |> Phoenix.Socket.on "newDocument" "documents:lobby" ReceiveNewDocument
-        |> Phoenix.Socket.on "updateDocument" "documents:lobby" ReceiveUpdateDocument
+        |> Phoenix.Socket.on "comments" "documents:lobby" ReceiveComments
         |> Phoenix.Socket.on "searchResult" "documents:lobby" ReceiveSearchResult
         |> Phoenix.Socket.on "ocr" "documents:lobby" ReceiveOcr
 

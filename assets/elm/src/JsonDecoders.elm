@@ -68,6 +68,14 @@ ocrResultDecoder =
         (Json.Decode.field "ocr" Json.Decode.string)
 
 
+commentsResultDecoder : Json.Decode.Decoder Models.DocumentComments
+commentsResultDecoder =
+    Json.Decode.map3 Models.DocumentComments
+        (Json.Decode.field "document_id" Json.Decode.string)
+        (Json.Decode.maybe (Json.Decode.field "comments" Json.Decode.string))
+        (Json.Decode.field "updated_datetime" datetime)
+
+
 initialLoadDecoder : Json.Decode.Decoder Models.InitialLoad
 initialLoadDecoder =
     Json.Decode.map2 Models.InitialLoad

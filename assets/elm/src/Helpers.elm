@@ -40,11 +40,36 @@ mergeDocuments newDocuments documents =
 
 
 updateDocument :
+    Models.Document
+    -> Models.AppState
+    -> Result String Models.AppState
+updateDocument document state =
+    let
+        { document_id, comments, document_type_id, tags, original_file_name, datetimes, thumbnails, ocr } =
+            document
+
+        localUpdateDocumentFunc =
+            (\x ->
+                { x
+                    | comments = comments
+                    , document_type_id = document_type_id
+                    , tags = tags
+                    , original_file_name = original_file_name
+                    , datetimes = datetimes
+                    , thumbnails = thumbnails
+                    , ocr = ocr
+                }
+            )
+    in
+        updateDocumentProperties document_id localUpdateDocumentFunc state
+
+
+updateDocumentProperties :
     String
     -> (Models.Document -> Models.Document)
     -> Models.AppState
     -> Result String Models.AppState
-updateDocument document_id updateFunction state =
+updateDocumentProperties document_id updateFunction state =
     let
         documents =
             Maybe.withDefault Dict.empty state.documents

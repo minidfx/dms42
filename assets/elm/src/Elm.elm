@@ -158,32 +158,33 @@ update msg state =
                 ( phxSocket, phxCmd ) =
                     Phoenix.Socket.push push_ state.phxSocket
             in
-                ( { state | phxSocket = phxSocket, searchQuery = Just query }, Cmd.map Models.PhoenixMsg phxCmd )
+                ( { state | phxSocket = phxSocket, searchQuery = Just query }
+                , Cmd.map Models.PhoenixMsg phxCmd
+                )
 
         Models.ChangeDocumentsPage page ->
             ( state, Cmd.none )
 
         Models.ChangeDocumentPage document_id page ->
             let
-                newState =
-                    case Helpers.getDocument state document_id of
-                        Nothing ->
-                            state
-
-                        Just x ->
-                            let
-                                { thumbnails } =
-                                    x
-
-                                newThumbnails =
-                                    { thumbnails | currentImage = Just page }
-
-                                newDocument =
-                                    { x | thumbnails = newThumbnails }
-                            in
-                                { state | documents = Just (Helpers.mergeDocument state.documents newDocument) }
+                newStateResult =
+                    state
+                        |> Helpers.updateDocumentProperties
+                            document_id
+                            (\x ->
+                                let
+                                    { thumbnails } =
+                                        x
+                                in
+                                    { x | thumbnails = { thumbnails | currentImage = Just page } }
+                            )
             in
-                ( newState, Cmd.none )
+                case newStateResult of
+                    Err _ ->
+                        ( state, Cmd.none )
+
+                    Ok x ->
+                        ( x, Cmd.none )
 
         Models.Debouncer control ->
             Control.update (\x -> { state | debouncer = x }) state.debouncer control
@@ -216,33 +217,53 @@ update msg state =
                 Err error ->
                     ( { state | error = Just error }, Cmd.none )
 
-        Models.ReceiveUpdateDocument raw ->
-            case Json.Decode.decodeValue JsonDecoders.documentDecoder raw of
-                Ok x ->
-                    ( { state | documents = Just (Helpers.mergeDocument state.documents x) }, Cmd.none )
-
-                Err error ->
-                    ( state, Cmd.none )
-
         Models.ReceiveOcr raw ->
             case Json.Decode.decodeValue JsonDecoders.ocrResultDecoder raw of
                 Ok x ->
                     let
                         { document_id, ocr } =
                             x
-
-                        newState =
-                            case state |> Helpers.updateDocument document_id (\y -> { y | ocr = Just ocr }) of
-                                Err _ ->
-                                    state
-
-                                Ok x ->
-                                    x
                     in
-                        ( newState, Cmd.none )
+                        case state |> Helpers.updateDocumentProperties document_id (\y -> { y | ocr = Just ocr }) of
+                            Err _ ->
+                                ( state, Cmd.none )
+
+                            Ok x ->
+                                ( x, Cmd.none )
 
                 Err error ->
                     ( state, Cmd.none )
+
+        Models.ReceiveComments raw ->
+            case Json.Decode.decodeValue JsonDecoders.commentsResultDecoder raw of
+                Ok x ->
+                    let
+                        { document_id, comments, updated_datetime } =
+                            x
+                    in
+                        case
+                            state
+                                |> Helpers.updateDocumentProperties
+                                    document_id
+                                    (\y ->
+                                        let
+                                            { datetimes } =
+                                                y
+                                        in
+                                            { y
+                                                | comments = Maybe.withDefault Nothing (Just comments)
+                                                , datetimes = { datetimes | updated_datetime = Just updated_datetime }
+                                            }
+                                    )
+                        of
+                            Err x ->
+                                ( { state | error = Just x }, Cmd.none )
+
+                            Ok x ->
+                                ( x, Cmd.none )
+
+                Err error ->
+                    ( { state | error = Just error }, Cmd.none )
 
         Models.JoinChannel ->
             let
@@ -263,14 +284,6 @@ update msg state =
 
         Models.UpdateDocumentComments document_id comments ->
             let
-                newState =
-                    case Helpers.getDocument state document_id of
-                        Nothing ->
-                            state
-
-                        Just x ->
-                            { state | documents = Just (Helpers.mergeDocument state.documents { x | comments = Just comments }) }
-
                 payload =
                     Json.Encode.object
                         [ ( "comments", Json.Encode.string comments )
@@ -282,9 +295,9 @@ update msg state =
                         |> Phoenix.Push.withPayload payload
 
                 ( phxSocket, phxCmd ) =
-                    Phoenix.Socket.push push_ newState.phxSocket
+                    Phoenix.Socket.push push_ state.phxSocket
             in
-                ( { newState | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
 
 
 main : Program Never Models.AppState Models.Msg

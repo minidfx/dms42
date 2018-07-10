@@ -11,3 +11,4 @@ until PGPASSWORD="postgres" psql -h "$host" -U "postgres" -c '\q'; do
 done
 
 >&2 echo "Postgres is up - executing command"
+sleep 5

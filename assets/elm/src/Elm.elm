@@ -41,7 +41,11 @@ init location =
 
 subscriptions : Models.AppState -> Sub Models.Msg
 subscriptions state =
-    Phoenix.Socket.listen state.phxSocket Models.PhoenixMsg
+    Sub.batch
+        [ Phoenix.Socket.listen state.phxSocket Models.PhoenixMsg
+        , Ports.newTag Models.NewTag
+        , Ports.deleteTag Models.DeleteTag
+        ]
 
 
 view : Models.AppState -> Html Models.Msg
@@ -70,7 +74,33 @@ update : Models.Msg -> Models.AppState -> ( Models.AppState, Cmd Models.Msg )
 update msg state =
     case msg of
         Models.OnLocationChange location ->
-            ( { state | route = Routing.parseLocation location }, Cmd.none )
+            let
+                route =
+                    Routing.parseLocation location
+            in
+                case route of
+                    Routing.Document did ->
+                        case Helpers.getDocument state did of
+                            Nothing ->
+                                ( { state | route = route }, Helpers.sendMsg <| Models.FetchDocument did )
+
+                            _ ->
+                                ( { state | route = route }, Cmd.none )
+
+                    Routing.Home ->
+                        let
+                            { searchQuery } =
+                                state
+                        in
+                            case searchQuery of
+                                Nothing ->
+                                    ( { state | route = route }, Cmd.none )
+
+                                Just x ->
+                                    ( { state | route = route }, Helpers.sendMsg <| Models.Search x )
+
+                    _ ->
+                        ( { state | route = route }, Cmd.none )
 
         Models.FetchDocument document_id ->
             let
@@ -81,6 +111,23 @@ update msg state =
 
                 push_ =
                     Phoenix.Push.init "document:get" "documents:lobby"
+                        |> Phoenix.Push.withPayload payload
+
+                ( phxSocket, phxCmd ) =
+                    Phoenix.Socket.push push_ state.phxSocket
+            in
+                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+
+        Models.FetchDocuments offset length ->
+            let
+                payload =
+                    Json.Encode.object
+                        [ ( "offset", Json.Encode.int offset )
+                        , ( "length", Json.Encode.int length )
+                        ]
+
+                push_ =
+                    Phoenix.Push.init "documents:get" "documents:lobby"
                         |> Phoenix.Push.withPayload payload
 
                 ( phxSocket, phxCmd ) =
@@ -114,8 +161,11 @@ update msg state =
                 documents =
                     Helpers.removeDocument state.documents document_id
 
+                searchResult =
+                    Helpers.removeDocument2 state.searchResult document_id
+
                 newState =
-                    { state | documents = Just documents }
+                    { state | documents = Just documents, searchResult = Just searchResult }
             in
                 ( newState
                 , Cmd.batch
@@ -133,6 +183,7 @@ update msg state =
                     ( { state
                         | documentTypes = Just x.documentTypes
                         , documents = Just (Helpers.mergeDocuments x.documents state.documents)
+                        , documentsCount = x.count
                       }
                     , Cmd.none
                     )
@@ -163,7 +214,14 @@ update msg state =
                 )
 
         Models.ChangeDocumentsPage page ->
-            ( state, Cmd.none )
+            let
+                { documentsLength } =
+                    state
+
+                offset =
+                    page * documentsLength
+            in
+                ( { state | documentsOffset = offset }, Helpers.sendMsg <| Models.FetchDocuments offset documentsLength )
 
         Models.ChangeDocumentPage document_id page ->
             let
@@ -197,8 +255,37 @@ update msg state =
                 Err error ->
                     ( { state | error = Just error }, Cmd.none )
 
+        Models.ReceiveNewTags raw ->
+            case Json.Decode.decodeValue JsonDecoders.tagDecoder raw of
+                Ok x ->
+                    let
+                        { document_id, tags } =
+                            x
+                    in
+                        case Helpers.updateDocumentProperties document_id (\x -> { x | tags = tags }) state of
+                            Err error ->
+                                ( { state | error = Just error }, Cmd.none )
+
+                            Ok x ->
+                                ( x, Cmd.none )
+
+                Err error ->
+                    ( { state | error = Just error }, Cmd.none )
+
+        Models.ReceiveNewDocuments raw ->
+            case Json.Decode.decodeValue JsonDecoders.documentsDecoder raw of
+                Ok x ->
+                    let
+                        { documents } =
+                            x
+                    in
+                        ( { state | documents = Just <| Helpers.documentsToDict documents }, Cmd.none )
+
+                Err error ->
+                    ( { state | error = Just error }, Cmd.none )
+
         Models.ReceiveSearchResult raw ->
-            case Json.Decode.decodeValue JsonDecoders.searchResultDecoder raw of
+            case Json.Decode.decodeValue JsonDecoders.documentsDecoder raw of
                 Ok x ->
                     let
                         { searchQuery } =
@@ -210,7 +297,7 @@ update msg state =
                                     Nothing
 
                                 _ ->
-                                    Just x.result
+                                    Just x.documents
                     in
                         ( { state | searchResult = result }, Cmd.none )
 
@@ -265,23 +352,6 @@ update msg state =
                 Err error ->
                     ( { state | error = Just error }, Cmd.none )
 
-        Models.JoinChannel ->
-            let
-                channel =
-                    Phoenix.Channel.init "documents:lobby"
-
-                ( phxSocket, phxCmd ) =
-                    Phoenix.Socket.join channel state.phxSocket
-            in
-                ( { state | phxSocket = phxSocket }, Cmd.batch [ Cmd.map Models.PhoenixMsg phxCmd ] )
-
-        Models.PhoenixMsg msg ->
-            let
-                ( phxSocket, phxCmd ) =
-                    Phoenix.Socket.update msg state.phxSocket
-            in
-                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
-
         Models.UpdateDocumentComments document_id comments ->
             let
                 payload =
@@ -296,6 +366,73 @@ update msg state =
 
                 ( phxSocket, phxCmd ) =
                     Phoenix.Socket.push push_ state.phxSocket
+            in
+                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+
+        Models.ProcessOcr document_id ->
+            let
+                payload =
+                    Json.Encode.object
+                        [ ( "document_id", Json.Encode.string document_id )
+                        ]
+
+                push_ =
+                    Phoenix.Push.init "document:ocr" "documents:lobby"
+                        |> Phoenix.Push.withPayload payload
+
+                ( phxSocket, phxCmd ) =
+                    Phoenix.Socket.push push_ state.phxSocket
+            in
+                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+
+        Models.JoinChannel ->
+            let
+                channel =
+                    Phoenix.Channel.init "documents:lobby"
+
+                ( phxSocket, phxCmd ) =
+                    Phoenix.Socket.join channel state.phxSocket
+            in
+                ( { state | phxSocket = phxSocket }, Cmd.batch [ Cmd.map Models.PhoenixMsg phxCmd ] )
+
+        Models.NewTag ( tag, document_id ) ->
+            let
+                payload =
+                    Json.Encode.object
+                        [ ( "tag", Json.Encode.string tag )
+                        , ( "document_id", Json.Encode.string document_id )
+                        ]
+
+                push_ =
+                    Phoenix.Push.init "document:new_tag" "documents:lobby"
+                        |> Phoenix.Push.withPayload payload
+
+                ( phxSocket, phxCmd ) =
+                    Phoenix.Socket.push push_ state.phxSocket
+            in
+                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+
+        Models.DeleteTag ( tag, document_id ) ->
+            let
+                payload =
+                    Json.Encode.object
+                        [ ( "tag", Json.Encode.string tag )
+                        , ( "document_id", Json.Encode.string document_id )
+                        ]
+
+                push_ =
+                    Phoenix.Push.init "document:delete_tag" "documents:lobby"
+                        |> Phoenix.Push.withPayload payload
+
+                ( phxSocket, phxCmd ) =
+                    Phoenix.Socket.push push_ state.phxSocket
+            in
+                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+
+        Models.PhoenixMsg msg ->
+            let
+                ( phxSocket, phxCmd ) =
+                    Phoenix.Socket.update msg state.phxSocket
             in
                 ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
 

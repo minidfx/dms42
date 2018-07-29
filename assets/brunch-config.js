@@ -5,7 +5,8 @@ exports.config = {
     javascripts:
     {
       joinTo: "js/app.js",
-      order: {
+      order:
+      {
         after: [
           "vendor/elm.js"
         ]
@@ -69,8 +70,14 @@ exports.config = {
     },
     copyfilemon:
     {
-      "js": ["node_modules/dropzone/dist/dropzone.js"],
-      "css": ["node_modules/dropzone/dist/min/dropzone.min.css"]
+      "js": [
+        "node_modules/dropzone/dist/dropzone.js",
+        "node_modules/bootstrap4-tagsinput-douglasanpa/tagsinput.js"
+      ],
+      "css": [
+        "node_modules/dropzone/dist/min/dropzone.min.css",
+        "node_modules/bootstrap4-tagsinput-douglasanpa/tagsinput.css"
+      ]
     }
   },
 

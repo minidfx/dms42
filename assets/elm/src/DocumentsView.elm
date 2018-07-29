@@ -17,7 +17,7 @@ import SharedViews
 documentsList : Models.AppState -> Html Models.Msg
 documentsList state =
     let
-        { documents } =
+        { documents, documentsCount, documentsLength } =
             state
     in
         case documents of
@@ -27,7 +27,7 @@ documentsList state =
             Just d ->
                 let
                     documentAsList =
-                        Dict.values d
+                        Dict.values d |> List.take documentsLength
 
                     pagination =
                         Bootstrap.Pagination.defaultConfig
@@ -43,7 +43,7 @@ documentsList state =
                         list ->
                             let
                                 cards =
-                                    case (>) (List.length documentAsList) 50 of
+                                    case (>) documentsCount documentsLength of
                                         True ->
                                             Html.div []
                                                 [ pagination
@@ -61,26 +61,33 @@ documentsList state =
                                 cards
 
 
-itemsList : Models.AppState -> Bootstrap.Pagination.ListConfig a Models.Msg
-itemsList { currentPages } =
+itemsList : Models.AppState -> Bootstrap.Pagination.ListConfig Int Models.Msg
+itemsList { documentsOffset, documentsLength, documentsCount } =
     { selectedMsg = Models.ChangeDocumentsPage
     , prevItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Previous" ]
     , nextItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Next" ]
-    , activeIdx = currentPages
-    , data = []
-    , itemFn = \x _ -> Bootstrap.Pagination.ListItem [] []
+    , activeIdx = (//) documentsOffset documentsLength
+    , data = List.range 1 ((+) 1 <| (//) documentsCount documentsLength)
+    , itemFn = \x _ -> Bootstrap.Pagination.ListItem [] [ Html.text <| toString <| (+) x 1 ]
     , urlFn = \x _ -> "#documents"
     }
 
 
 view : Models.AppState -> Html Models.Msg
 view state =
-    Html.div []
-        [ Html.ul [ Html.Attributes.class "nav justify-content-center" ]
-            [ Html.li [ Html.Attributes.class "nav-item" ]
-                [ Html.a [ Html.Attributes.class "nav-link", Html.Attributes.href "#add-documents" ] [ Html.text "Add" ]
+    let
+        { documentsCount } =
+            state
+    in
+        Html.div []
+            [ Html.div [ Html.Attributes.class "row" ]
+                [ Html.div [ Html.Attributes.class "col-md-6" ]
+                    [ Html.span [ Html.Attributes.class "align-middle" ] [ Html.text <| "Documents: " ++ toString documentsCount ]
+                    ]
+                , Html.div [ Html.Attributes.class "col-md-6 text-right" ]
+                    [ Html.a [ Html.Attributes.class "btn btn-primary", Html.Attributes.href "#add-documents" ] [ Html.text "Add" ]
+                    ]
                 ]
+            , Html.hr [] []
+            , documentsList state
             ]
-        , Html.hr [] []
-        , documentsList state
-        ]

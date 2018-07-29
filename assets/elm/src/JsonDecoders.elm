@@ -5,6 +5,19 @@ import Models
 import Rfc2822Datetime
 
 
+tagDecoder : Json.Decode.Decoder Models.DocumentTags
+tagDecoder =
+    Json.Decode.map2 Models.DocumentTags
+        (Json.Decode.field "document_id" Json.Decode.string)
+        (Json.Decode.field "tags" (Json.Decode.list Json.Decode.string))
+
+
+documentsDecoder : Json.Decode.Decoder Models.Documents
+documentsDecoder =
+    Json.Decode.map Models.Documents
+        (Json.Decode.field "documents" (Json.Decode.list documentDecoder))
+
+
 documentDecoder : Json.Decode.Decoder Models.Document
 documentDecoder =
     Json.Decode.map8 Models.Document
@@ -55,12 +68,6 @@ documentTypeDecoder =
         (Json.Decode.field "id" Json.Decode.string)
 
 
-searchResultDecoder : Json.Decode.Decoder Models.SearchResult
-searchResultDecoder =
-    Json.Decode.map Models.SearchResult
-        (Json.Decode.field "result" (Json.Decode.list documentDecoder))
-
-
 ocrResultDecoder : Json.Decode.Decoder Models.DocumentOcr
 ocrResultDecoder =
     Json.Decode.map2 Models.DocumentOcr
@@ -78,6 +85,7 @@ commentsResultDecoder =
 
 initialLoadDecoder : Json.Decode.Decoder Models.InitialLoad
 initialLoadDecoder =
-    Json.Decode.map2 Models.InitialLoad
+    Json.Decode.map3 Models.InitialLoad
         (Json.Decode.field "document-types" (Json.Decode.list documentTypeDecoder))
         (Json.Decode.field "documents" (Json.Decode.list documentDecoder))
+        (Json.Decode.field "count" Json.Decode.int)

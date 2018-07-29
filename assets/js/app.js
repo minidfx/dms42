@@ -25,7 +25,28 @@ if (bodyTag)
 {
   var app = Elm.Main.embed(bodyTag[0])
 
-  window.loadDropZone = function() {
+  window.loadTokenFields = function(query, document_id)
+  {
+    const inputTokenFields = $(query)
+
+    inputTokenFields.tagsinput(
+    {
+      trimValue: true
+    })
+    inputTokenFields.on("itemAdded", function(event)
+    {
+      var tag = event.item
+      app.ports.newTag.send([tag, document_id])
+    })
+    inputTokenFields.on("itemRemoved", function(event)
+    {
+      var tag = event.item
+      app.ports.deleteTag.send([tag, document_id])
+    })
+  }
+
+  window.loadDropZone = function()
+  {
     $("div.dropzone")
       .dropzone(
       {
@@ -33,9 +54,13 @@ if (bodyTag)
         params: function(file)
         {
           var file = file[0];
-          return { document_type: $("#documentType").val(),
-                   tags: [],
-                   fileUnixTimestamp: file.lastModified }
+          return {
+            document_type: $("#documentType")
+              .val(),
+            tags: $("#tags")
+              .val(),
+            fileUnixTimestamp: file.lastModified
+          }
         },
         autoProcessQueue: true,
         parallelUploads: 1000,
@@ -43,26 +68,4 @@ if (bodyTag)
         acceptedFiles: "image/*,application/pdf"
       });
   };
-
-  window.loadTokensFields = function(query, document_id, tags)
-  {
-    var inputTokenFields = $(query)
-
-    inputTokenFields.tokenfield()
-
-    if (tags !== undefined)
-    {
-      inputTokenFields.tokenfield("setTokens", tags)
-      inputTokenFields.on('tokenfield:createtoken', function(e)
-        {
-          var tag = e.attrs.value
-          app.ports.createToken.send([document_id, tag])
-        })
-        .on('tokenfield:removedtoken', function(e)
-        {
-          var tag = e.attrs.value
-          app.ports.deleteToken.send([document_id, tag])
-        })
-    }
-  }
 }

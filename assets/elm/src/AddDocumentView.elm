@@ -35,7 +35,7 @@ view state =
                         , Html.input
                             [ Html.Attributes.type_ "text"
                             , Html.Attributes.class "form-control"
-                            , Html.Attributes.id "tokensField"
+                            , Html.Attributes.id "tags"
                             ]
                             []
                         ]
@@ -50,5 +50,5 @@ view state =
                         ]
                     ]
                 ]
-            , Html.Lazy.lazy (\a -> Helpers.script "loadDropZone();") state
+            , Html.Lazy.lazy (\_ -> Helpers.script ("loadDropZone();$('#tags').tagsinput({trimValue: true});")) state
             ]

@@ -25,7 +25,7 @@ defmodule Dms42.OcrProcessor do
     Process the OCR on a document PDF save the result.
   """
   @callback handle_cast({:process, document_id :: binary, absolute_file_path :: String.t(), mime_type :: String.t()}, state :: map) :: {:ok, state :: map}
-  def handle_cast({:process, document_id, absolute_file_path, "application/pdf"}, state) when is_binary(document_id) do
+  def handle_cast({:process, document_id, absolute_file_path, "application/pdf"}, state) do
     Logger.debug("Starting the OCR on the PDF document  #{absolute_file_path} ...")
       case Dms42.External.extract(absolute_file_path) do
         {:ok, ocr} ->
@@ -72,7 +72,9 @@ defmodule Dms42.OcrProcessor do
         x -> save_ocr(x, document_id)
       end
     rescue
-      _ -> Logger.warn("Error while processing the OCR for the file: #{file_path}")
+      x ->
+        IO.inspect(x)
+        Logger.warn("Error while processing the OCR for the file: #{file_path}")
     end
   end
 

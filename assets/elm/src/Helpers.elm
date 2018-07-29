@@ -108,6 +108,23 @@ removeDocument documents document_id =
             Dict.remove document_id x
 
 
+removeDocument2 :
+    Maybe (List Models.Document)
+    -> Models.DocumentId
+    -> List Models.Document
+removeDocument2 documents document_id =
+    let
+        local_document_id =
+            document_id
+    in
+        case documents of
+            Nothing ->
+                []
+
+            Just x ->
+                List.filter (\{ document_id } -> document_id == local_document_id) x
+
+
 documentsToDict : List Models.Document -> Dict String Models.Document
 documentsToDict documents =
     documents

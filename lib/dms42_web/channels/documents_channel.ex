@@ -6,6 +6,8 @@ defmodule Dms42Web.DocumentsChannel do
   alias Dms42.Models.DocumentType
   alias Dms42.DocumentsManager
   alias Dms42.DocumentsFinder
+  alias Dms42.DocumentPath
+  alias Dms42.TagManager
 
   def join("documents:lobby", payload, socket) do
     if authorized?(payload) do
@@ -22,13 +24,18 @@ defmodule Dms42Web.DocumentsChannel do
                                                 {:ok, uuid} = Ecto.UUID.load(type_id)
                                                 %{"name" => name, "id" => uuid}
                                               end)
-    documents = DocumentsManager.documents(0, 50)
+    documents = DocumentsManager.documents(0, 20)
     documents_ocr = DocumentsManager.ocr(documents |> Enum.map(fn %{"document_id" => x} ->
                                                                 {:ok, uuid} = Ecto.UUID.dump(x)
                                                                 uuid
                                                                end))
+    count = DocumentsManager.count()
 
-    Phoenix.Channel.push(socket, "initialLoad", %{"document-types": document_types, "documents": documents})
+    Phoenix.Channel.push(socket,
+                         "initialLoad",
+                         %{"document-types": document_types,
+                           "documents": documents,
+                           "count": count})
     Enum.each(documents_ocr,
               fn %{:document_id => did, :ocr => ocr} ->
                 {:ok, uuid} = Ecto.UUID.load(did)
@@ -52,7 +59,18 @@ defmodule Dms42Web.DocumentsChannel do
   end
 
   def handle_in("documents:search", %{"query" => query}, socket) do
-    Phoenix.Channel.push(socket, "searchResult", %{"result": DocumentsFinder.find(query) |> DocumentsManager.transform_to_viewmodels})
+    Phoenix.Channel.push(socket,
+                         "searchResult",
+                         %{"documents": DocumentsFinder.find(query) |> DocumentsManager.transform_to_viewmodels})
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("document:ocr", %{"document_id" => document_id}, socket) do
+    {:ok, uuid} = document_id |> Ecto.UUID.dump
+    document = DocumentsManager.get_original!(uuid)
+    %{document_id: did, mime_type: mime_type} = document
+    absolute_documents_path = DocumentPath.document_path!(document)
+    GenServer.cast(:ocr, {:process, did, absolute_documents_path, mime_type})
     {:reply, :ok, socket}
   end
 
@@ -60,7 +78,47 @@ defmodule Dms42Web.DocumentsChannel do
     {:ok, uuid} = document_id |> Ecto.UUID.dump
     Phoenix.Channel.push(socket,
                          "newDocument",
-                         %{"result": DocumentsManager.get(uuid) |> DocumentsManager.transform_to_viewmodel})
+                         DocumentsManager.get(uuid))
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("documents:get", %{"offset" => offset, "length" => length}, socket) do
+    documents = DocumentsManager.documents(offset, length)
+    documents_ocr = DocumentsManager.ocr(documents |> Enum.map(fn %{"document_id" => x} ->
+                                                                {:ok, uuid} = Ecto.UUID.dump(x)
+                                                                uuid
+                                                               end))
+    Phoenix.Channel.push(socket,
+                         "newDocuments",
+                         %{"documents": documents})
+    Enum.each(documents_ocr,
+              fn %{:document_id => did, :ocr => ocr} ->
+                {:ok, uuid} = Ecto.UUID.load(did)
+                Phoenix.Channel
+                       .push(socket,
+                             "ocr",
+                             %{document_id: uuid, ocr: ocr})
+              end)
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("document:new_tag", %{"tag" => tag, "document_id" => document_id}, socket) do
+    {:ok, uuid} = document_id |> Ecto.UUID.dump
+    TagManager.add_or_update!(uuid, tag)
+    tags = TagManager.get_tags(uuid)
+    Phoenix.Channel.push(socket,
+                         "newTags",
+                         %{"document_id": document_id, "tags": tags |> Enum.map(fn %{:name => tag} -> tag end)})
+    {:reply, :ok, socket}
+  end
+
+  def handle_in("document:delete_tag", %{"tag" => tag, "document_id" => document_id}, socket) do
+    {:ok, uuid} = document_id |> Ecto.UUID.dump
+    TagManager.remove!(uuid, tag)
+    tags = TagManager.get_tags(uuid)
+    Phoenix.Channel.push(socket,
+                         "newTags",
+                         %{"document_id": document_id, "tags": tags |> Enum.map(fn %{:name => tag} -> tag end)})
     {:reply, :ok, socket}
   end
 

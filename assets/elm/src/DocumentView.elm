@@ -3,6 +3,7 @@ module DocumentView exposing (..)
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
+import Html.Lazy
 import List
 import Models
 import Routing
@@ -101,37 +102,34 @@ documentImage state document =
 
         currentImage =
             Maybe.withDefault 0 thumbnails.currentImage
+    in
+        case countImages of
+            1 ->
+                Html.img
+                    [ Html.Attributes.alt original_file_name
+                    , Html.Attributes.src ("/documents/" ++ document_id ++ "/images/" ++ (toString currentImage))
+                    , Html.Attributes.class "img-fluid"
+                    ]
+                    []
 
-        content =
-            case countImages of
-                1 ->
-                    Html.img
+            _ ->
+                Html.div []
+                    [ Bootstrap.Pagination.defaultConfig
+                        |> Bootstrap.Pagination.ariaLabel "images-pagination"
+                        |> Bootstrap.Pagination.align Bootstrap.General.HAlign.centerXs
+                        |> Bootstrap.Pagination.itemsList (itemsList document)
+                        |> Bootstrap.Pagination.view
+                    , Html.img
                         [ Html.Attributes.alt original_file_name
                         , Html.Attributes.src ("/documents/" ++ document_id ++ "/images/" ++ (toString currentImage))
                         , Html.Attributes.class "img-fluid"
                         ]
                         []
-
-                _ ->
-                    Html.div []
-                        [ Bootstrap.Pagination.defaultConfig
-                            |> Bootstrap.Pagination.ariaLabel "images-pagination"
-                            |> Bootstrap.Pagination.align Bootstrap.General.HAlign.centerXs
-                            |> Bootstrap.Pagination.itemsList (itemsList document)
-                            |> Bootstrap.Pagination.view
-                        , Html.img
-                            [ Html.Attributes.alt original_file_name
-                            , Html.Attributes.src ("/documents/" ++ document_id ++ "/images/" ++ (toString currentImage))
-                            , Html.Attributes.class "img-fluid"
-                            ]
-                            []
-                        ]
-    in
-        content
+                    ]
 
 
 documentProperties : Models.AppState -> Models.Document -> Html Models.Msg
-documentProperties state { original_file_name, document_id, document_type_id, comments, datetimes, ocr } =
+documentProperties state { original_file_name, document_id, document_type_id, comments, datetimes, ocr, tags } =
     let
         { inserted_datetime, updated_datetime, original_file_datetime } =
             datetimes
@@ -153,6 +151,16 @@ documentProperties state { original_file_name, document_id, document_type_id, co
                 , Html.dd [] [ Html.text (Helpers.dateTimeToString (Maybe.withDefault Helpers.defaultDateTime updated_datetime)) ]
                 , Html.dt [] [ Html.text "Original date time" ]
                 , Html.dd [] [ Html.text (Helpers.dateTimeToString original_file_datetime) ]
+                , Html.dt [] [ Html.text "Tags" ]
+                , Html.dd []
+                    [ Html.input
+                        [ Html.Attributes.type_ "text"
+                        , Html.Attributes.class "form-control"
+                        , Html.Attributes.id "tags"
+                        , Html.Attributes.value <| String.join "," tags
+                        ]
+                        []
+                    ]
                 , Html.dt [] [ Html.text "Comments" ]
                 , Html.dd []
                     [ Bootstrap.Form.Textarea.textarea
@@ -176,7 +184,13 @@ documentProperties state { original_file_name, document_id, document_type_id, co
                         ]
                     ]
                 ]
+            , Html.Lazy.lazy (\a -> Helpers.script ("loadTokenFields(\"#tags\", " ++ toString document_id ++ ");")) state
             ]
+
+
+documentTags2String : List String -> String
+documentTags2String tags =
+    "[" ++ (String.join "," <| List.map (\x -> "\"" ++ x ++ "\"") tags) ++ "]"
 
 
 documentDetails : Models.AppState -> Models.Document -> Html Models.Msg
@@ -246,6 +260,20 @@ documentDetails state document =
                         ]
                     ]
                     [ Html.text "Delete" ]
+                ]
+            , Bootstrap.ButtonGroup.linkButtonGroup
+                [ Bootstrap.ButtonGroup.attrs
+                    [ Html.Attributes.class "mr-2"
+                    ]
+                ]
+                [ Bootstrap.ButtonGroup.linkButton
+                    [ Bootstrap.Button.warning
+                    , Bootstrap.Button.onClick (Models.ProcessOcr document_id)
+                    , Bootstrap.Button.attrs
+                        [ Html.Attributes.href "#"
+                        ]
+                    ]
+                    [ Html.text "OCR" ]
                 ]
             , Html.hr [] []
             , leftView

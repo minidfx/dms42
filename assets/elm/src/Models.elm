@@ -52,8 +52,8 @@ type alias Document =
     }
 
 
-type alias SearchResult =
-    { result : List Document
+type alias Documents =
+    { documents : List Document
     }
 
 
@@ -73,7 +73,15 @@ type alias AppState =
     , debouncer : Control.State Msg
     , error : Maybe String
     , modalState : Bootstrap.Modal.Visibility
-    , currentPages : Int
+    , documentsOffset : Int
+    , documentsLength : Int
+    , documentsCount : Int
+    }
+
+
+type alias DocumentTags =
+    { document_id : String
+    , tags : List String
     }
 
 
@@ -96,6 +104,7 @@ type alias Query =
 type alias InitialLoad =
     { documentTypes : List DocumentType
     , documents : List Document
+    , count : Int
     }
 
 
@@ -105,6 +114,8 @@ type Msg
     | PhoenixMsg (Phoenix.Socket.Msg Msg)
     | ReceiveInitialLoad Json.Encode.Value
     | ReceiveNewDocument Json.Encode.Value
+    | ReceiveNewDocuments Json.Encode.Value
+    | ReceiveNewTags Json.Encode.Value
     | UpdateDocumentComments DocumentId String
     | ChangeDocumentPage DocumentId Page
     | Search Query
@@ -115,9 +126,13 @@ type Msg
     | DeleteDocument DocumentId
     | DocumentDeleted (Result Http.Error String)
     | FetchDocument DocumentId
+    | FetchDocuments Int Int
     | ChangeDocumentsPage Page
     | ReceiveOcr Json.Encode.Value
     | ReceiveComments Json.Encode.Value
+    | ProcessOcr DocumentId
+    | NewTag ( Tag, DocumentId )
+    | DeleteTag ( Tag, DocumentId )
 
 
 initPhxSocket : Phoenix.Socket.Socket Msg
@@ -126,6 +141,8 @@ initPhxSocket =
         |> Phoenix.Socket.withDebug
         |> Phoenix.Socket.on "initialLoad" "documents:lobby" ReceiveInitialLoad
         |> Phoenix.Socket.on "newDocument" "documents:lobby" ReceiveNewDocument
+        |> Phoenix.Socket.on "newDocuments" "documents:lobby" ReceiveNewDocuments
+        |> Phoenix.Socket.on "newTags" "documents:lobby" ReceiveNewTags
         |> Phoenix.Socket.on "comments" "documents:lobby" ReceiveComments
         |> Phoenix.Socket.on "searchResult" "documents:lobby" ReceiveSearchResult
         |> Phoenix.Socket.on "ocr" "documents:lobby" ReceiveOcr
@@ -142,5 +159,7 @@ initialModel route =
     , debouncer = Control.initialState
     , error = Nothing
     , modalState = Bootstrap.Modal.hidden
-    , currentPages = 0
+    , documentsOffset = 0
+    , documentsLength = 20
+    , documentsCount = 0
     }

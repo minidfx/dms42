@@ -33,8 +33,8 @@ view state documentId =
 
 
 confirmDelete : Models.AppState -> Models.Document -> Html Models.Msg
-confirmDelete { modalState } { original_file_name, document_id } =
-    Bootstrap.Modal.config Models.CloseModal
+confirmDelete state { original_file_name, document_id } =
+    Bootstrap.Modal.config (Models.CloseModal "deleteDocument")
         |> Bootstrap.Modal.large
         |> Bootstrap.Modal.h5 []
             [ Html.text ("You are about to delete the document \"" ++ original_file_name ++ "\".")
@@ -45,7 +45,7 @@ confirmDelete { modalState } { original_file_name, document_id } =
         |> Bootstrap.Modal.footer []
             [ Bootstrap.Button.button
                 [ Bootstrap.Button.outlinePrimary
-                , Bootstrap.Button.attrs [ Html.Events.onClick Models.CloseModal ]
+                , Bootstrap.Button.attrs [ Html.Events.onClick <| Models.CloseModal "deleteDocument" ]
                 ]
                 [ Html.text "Close" ]
             , Bootstrap.Button.button
@@ -54,7 +54,24 @@ confirmDelete { modalState } { original_file_name, document_id } =
                 ]
                 [ Html.text "Delete" ]
             ]
-        |> Bootstrap.Modal.view modalState
+        |> Bootstrap.Modal.view (Helpers.safeGetModalState "deleteDocument" state)
+
+
+ocrSentDialog : Models.AppState -> Models.Document -> Html Models.Msg
+ocrSentDialog state { original_file_name } =
+    Bootstrap.Modal.config (Models.CloseModal "ocrSent")
+        |> Bootstrap.Modal.large
+        |> Bootstrap.Modal.h5 []
+            [ Html.text ("OCR sent as background job for the document \"" ++ original_file_name ++ "\".")
+            ]
+        |> Bootstrap.Modal.footer []
+            [ Bootstrap.Button.button
+                [ Bootstrap.Button.outlinePrimary
+                , Bootstrap.Button.attrs [ Html.Events.onClick <| Models.CloseModal "ocrSent" ]
+                ]
+                [ Html.text "Close" ]
+            ]
+        |> Bootstrap.Modal.view (Helpers.safeGetModalState "ocrSent" state)
 
 
 pageItem : Models.Document -> Int -> String -> Html Models.Msg
@@ -215,6 +232,7 @@ documentDetails state document =
     in
         Html.div []
             [ confirmDelete state document
+            , ocrSentDialog state document
             , Bootstrap.ButtonGroup.linkButtonGroup
                 [ Bootstrap.ButtonGroup.attrs
                     [ Html.Attributes.attribute "data-toggle" ""
@@ -254,7 +272,7 @@ documentDetails state document =
                     [ Html.text "Download" ]
                 , Bootstrap.ButtonGroup.linkButton
                     [ Bootstrap.Button.danger
-                    , Bootstrap.Button.onClick (Models.ShowModal)
+                    , Bootstrap.Button.onClick (Models.ShowModal "deleteDocument")
                     , Bootstrap.Button.attrs
                         [ Html.Attributes.href "#"
                         ]

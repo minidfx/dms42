@@ -9,11 +9,31 @@ import Rfc2822Datetime
 import Control
 import Control.Debounce as Debounce
 import Time exposing (Time)
+import Bootstrap.Modal
 
 
 script : String -> Html Models.Msg
 script code =
     Html.node "script" [ Html.Attributes.type_ "text/javascript" ] [ Html.text code ]
+
+
+addOrUpdateModalState : Models.ModalId -> Bootstrap.Modal.Visibility -> Models.AppState -> Models.AppState
+addOrUpdateModalState modalId visibility state =
+    let
+        { modalStates } =
+            state
+    in
+        { state | modalStates = Dict.insert modalId visibility modalStates }
+
+
+safeGetModalState : Models.ModalId -> Models.AppState -> Bootstrap.Modal.Visibility
+safeGetModalState modalId { modalStates } =
+    case Dict.get modalId modalStates of
+        Nothing ->
+            Bootstrap.Modal.hidden
+
+        Just x ->
+            x
 
 
 sendMsg : Models.Msg -> Cmd Models.Msg

@@ -135,11 +135,11 @@ update msg state =
             in
                 ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
 
-        Models.CloseModal ->
-            ( { state | modalState = Bootstrap.Modal.hidden }, Cmd.none )
+        Models.CloseModal modalId ->
+            ( Helpers.addOrUpdateModalState modalId Bootstrap.Modal.hidden state, Cmd.none )
 
-        Models.ShowModal ->
-            ( { state | modalState = Bootstrap.Modal.shown }, Cmd.none )
+        Models.ShowModal modalId ->
+            ( Helpers.addOrUpdateModalState modalId Bootstrap.Modal.shown state, Cmd.none )
 
         Models.DeleteDocument document_id ->
             let
@@ -169,13 +169,13 @@ update msg state =
             in
                 ( newState
                 , Cmd.batch
-                    [ Helpers.sendMsg Models.CloseModal
+                    [ Helpers.sendMsg (Models.CloseModal "deleteDocument")
                     , Navigation.newUrl "#documents"
                     ]
                 )
 
         Models.DocumentDeleted (Err _) ->
-            ( { state | error = Just "An error occurred to delete the document." }, Helpers.sendMsg Models.CloseModal )
+            ( { state | error = Just "An error occurred to delete the document." }, Helpers.sendMsg (Models.CloseModal "deleteDocument") )
 
         Models.ReceiveInitialLoad raw ->
             case Json.Decode.decodeValue JsonDecoders.initialLoadDecoder raw of
@@ -383,7 +383,12 @@ update msg state =
                 ( phxSocket, phxCmd ) =
                     Phoenix.Socket.push push_ state.phxSocket
             in
-                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+                ( { state | phxSocket = phxSocket }
+                , Cmd.batch
+                    [ Cmd.map Models.PhoenixMsg phxCmd
+                    , Helpers.sendMsg <| Models.ShowModal "ocrSent"
+                    ]
+                )
 
         Models.JoinChannel ->
             let

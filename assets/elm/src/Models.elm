@@ -72,7 +72,7 @@ type alias AppState =
     , phxSocket : Phoenix.Socket.Socket Msg
     , debouncer : Control.State Msg
     , error : Maybe String
-    , modalState : Bootstrap.Modal.Visibility
+    , modalStates : Dict ModalId Bootstrap.Modal.Visibility
     , documentsOffset : Int
     , documentsLength : Int
     , documentsCount : Int
@@ -101,6 +101,10 @@ type alias Query =
     String
 
 
+type alias ModalId =
+    String
+
+
 type alias InitialLoad =
     { documentTypes : List DocumentType
     , documents : List Document
@@ -121,8 +125,8 @@ type Msg
     | Search Query
     | ReceiveSearchResult Json.Encode.Value
     | Debouncer (Control Msg)
-    | CloseModal
-    | ShowModal
+    | CloseModal ModalId
+    | ShowModal ModalId
     | DeleteDocument DocumentId
     | DocumentDeleted (Result Http.Error String)
     | FetchDocument DocumentId
@@ -158,7 +162,7 @@ initialModel route =
     , phxSocket = initPhxSocket
     , debouncer = Control.initialState
     , error = Nothing
-    , modalState = Bootstrap.Modal.hidden
+    , modalStates = Dict.empty
     , documentsOffset = 0
     , documentsLength = 20
     , documentsCount = 0

@@ -2,6 +2,7 @@ module DocumentsView exposing (view)
 
 import Html exposing (Html)
 import Html.Attributes
+import Html.Events
 import Models
 import Rfc2822Datetime
 import Dict exposing (Dict)
@@ -9,9 +10,11 @@ import Bootstrap.Alert
 import Bootstrap.Card
 import Bootstrap.Card.Block
 import Bootstrap.Pagination
+import Bootstrap.Pagination.Item
 import Bootstrap.General.HAlign
 import Helpers
 import SharedViews
+import Debug
 
 
 documentsList : Models.AppState -> Html Models.Msg
@@ -27,12 +30,15 @@ documentsList state =
             Just d ->
                 let
                     documentAsList =
-                        Dict.values d |> List.take documentsLength
+                        Dict.values d
+                            |> List.sortBy (\{ datetimes } -> datetimes.inserted_datetime |> Helpers.dateTimeToString)
+                            |> List.reverse
+                            |> List.take documentsLength
 
                     pagination =
                         Bootstrap.Pagination.defaultConfig
                             |> Bootstrap.Pagination.ariaLabel "documents-pagination"
-                            |> Bootstrap.Pagination.itemsList (itemsList state)
+                            |> Bootstrap.Pagination.items (paginationItems state)
                             |> Bootstrap.Pagination.align Bootstrap.General.HAlign.centerXs
                             |> Bootstrap.Pagination.view
                 in
@@ -61,16 +67,110 @@ documentsList state =
                                 cards
 
 
-itemsList : Models.AppState -> Bootstrap.Pagination.ListConfig Int Models.Msg
-itemsList { documentsOffset, documentsLength, documentsCount } =
-    { selectedMsg = Models.ChangeDocumentsPage
-    , prevItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Previous" ]
-    , nextItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Next" ]
-    , activeIdx = (//) documentsOffset documentsLength
-    , data = List.range 1 ((+) 1 <| (//) documentsCount documentsLength)
-    , itemFn = \x _ -> Bootstrap.Pagination.ListItem [] [ Html.text <| toString <| (+) x 1 ]
-    , urlFn = \x _ -> "#documents"
-    }
+paginationItem : List (Html Models.Msg) -> Int -> Bool -> Bool -> Bootstrap.Pagination.Item.Item Models.Msg
+paginationItem content index isActive isDisabled =
+    Bootstrap.Pagination.Item.item
+        |> Bootstrap.Pagination.Item.active isActive
+        |> Bootstrap.Pagination.Item.disabled isDisabled
+        |> Bootstrap.Pagination.Item.link
+            [ Html.Attributes.href "#documents"
+            , Html.Attributes.class "custom-page-item"
+            , Html.Events.onClick (Models.ChangeDocumentsPage index)
+            ]
+            content
+
+
+paginationItems : Models.AppState -> List (Bootstrap.Pagination.Item.Item Models.Msg)
+paginationItems { documentsOffset, documentsLength, documentsCount } =
+    let
+        maxPages =
+            10
+
+        currentPage =
+            Debug.log "current" <|
+                (//) documentsOffset documentsLength
+
+        pages =
+            Debug.log "pages" <|
+                (//) documentsCount documentsLength
+
+        padding =
+            4
+
+        previous =
+            paginationItem
+                [ Html.span
+                    [ Html.Attributes.class "fa fa-backward"
+                    , Html.Attributes.attribute "aria-hidden" "true"
+                    ]
+                    []
+                , Html.span [ Html.Attributes.class "sr-only" ]
+                    [ Html.text "Previous" ]
+                ]
+                ((-) currentPage 1)
+                False
+                ((==) currentPage 0)
+
+        next =
+            paginationItem
+                [ Html.span
+                    [ Html.Attributes.class "fa fa-forward"
+                    , Html.Attributes.attribute "aria-hidden" "true"
+                    ]
+                    []
+                , Html.span [ Html.Attributes.class "sr-only" ]
+                    [ Html.text "Next" ]
+                ]
+                ((+) currentPage 1)
+                False
+                ((==) currentPage pages)
+
+        dotButton =
+            paginationItem
+                [ Html.span []
+                    [ Html.text "..." ]
+                ]
+                0
+                False
+                True
+
+        localMin =
+            Debug.log "min" <|
+                Basics.max 0 <|
+                    (-) currentPage padding
+
+        localMax =
+            Debug.log "max" <|
+                Basics.min pages <|
+                    (+) currentPage padding
+
+        firstPart =
+            case (>) ((-) currentPage padding) 0 of
+                True ->
+                    [ previous, dotButton ]
+
+                False ->
+                    [ previous ]
+
+        lastPart =
+            case (>) ((-) pages padding) currentPage of
+                True ->
+                    [ dotButton, next ]
+
+                False ->
+                    [ next ]
+    in
+        firstPart
+            ++ (List.range localMin localMax
+                    |> List.map
+                        (\x ->
+                            paginationItem [ Html.text <| toString <| (+) x 1 ]
+                                x
+                                ((==) x currentPage)
+                                False
+                        )
+               )
+            ++ lastPart
 
 
 view : Models.AppState -> Html Models.Msg

@@ -46,7 +46,8 @@ defmodule Dms42.Mixfile do
       {:timex, "~> 3.1"},
       {:exmagick, "~> 0.0.1"},
       {:temp, "~> 0.4"},
-      {:ex_mock, "~> 0.1.0", only: :test}
+      {:ex_mock, "~> 0.1.0", only: :test},
+      {:plug_cowboy, "~> 1.0"}
     ]
   end
 

@@ -53,5 +53,7 @@ defmodule Dms42.Repo.Migrations.CreateDocuments do
 
       timestamps()
     end
+
+    create unique_index(:documents_ocr, :document_id)
   end
 end

@@ -1,17 +1,15 @@
-module Models exposing (..)
+module Models exposing (AppState, Document, DocumentComments, DocumentDateTimes, DocumentId, DocumentOcr, DocumentTags, DocumentThumbnails, DocumentType, Documents, ModalId, Msg(..), Page, Query, SearchResult, Tag, initPhxSocket, initialModel)
 
-import Routing
-import Navigation
-import Json.Encode
-import Http
-import Dict exposing (Dict)
-import Rfc2822Datetime
-import Phoenix.Socket
-import Websocket
-import Json.Encode
-import Control exposing (Control)
-import Time exposing (Time)
 import Bootstrap.Modal
+import Control exposing (Control)
+import Dict exposing (Dict)
+import Http
+import Json.Encode
+import Navigation
+import Phoenix.Socket
+import Rfc2822Datetime
+import Routing
+import Time exposing (Time)
 
 
 type alias DocumentDateTimes =
@@ -53,6 +51,12 @@ type alias Document =
 
 
 type alias Documents =
+    { documents : List Document
+    , total : Int
+    }
+
+
+type alias SearchResult =
     { documents : List Document
     }
 
@@ -105,21 +109,14 @@ type alias ModalId =
     String
 
 
-type alias InitialLoad =
-    { documentTypes : List DocumentType
-    , documents : List Document
-    , count : Int
-    }
-
-
 type Msg
     = OnLocationChange Navigation.Location
     | JoinChannel
     | PhoenixMsg (Phoenix.Socket.Msg Msg)
-    | ReceiveInitialLoad Json.Encode.Value
     | ReceiveNewDocument Json.Encode.Value
-    | ReceiveNewDocuments Json.Encode.Value
+    | ReceiveNewDocuments (Result Http.Error Documents)
     | ReceiveNewTags Json.Encode.Value
+    | ReceiveDocumentTypes (Result Http.Error (List DocumentType))
     | UpdateDocumentComments DocumentId String
     | ChangeDocumentPage DocumentId Page
     | Search Query
@@ -131,35 +128,36 @@ type Msg
     | DocumentDeleted (Result Http.Error String)
     | FetchDocument DocumentId
     | FetchDocuments Int Int
+    | FetchDocumentTypes
     | ChangeDocumentsPage Page
     | ReceiveOcr Json.Encode.Value
     | ReceiveComments Json.Encode.Value
     | ProcessOcr DocumentId
     | NewTag ( Tag, DocumentId )
     | DeleteTag ( Tag, DocumentId )
+    | ProcessAllThumbnails
 
 
-initPhxSocket : Phoenix.Socket.Socket Msg
-initPhxSocket =
-    Phoenix.Socket.init Websocket.socketServer
+initPhxSocket : Navigation.Location -> Phoenix.Socket.Socket Msg
+initPhxSocket { hostname } =
+    Phoenix.Socket.init ("ws://" ++ hostname ++ ":4000/socket/websocket")
+        |> Phoenix.Socket.withHeartbeatInterval 30
         |> Phoenix.Socket.withDebug
-        |> Phoenix.Socket.on "initialLoad" "documents:lobby" ReceiveInitialLoad
         |> Phoenix.Socket.on "newDocument" "documents:lobby" ReceiveNewDocument
-        |> Phoenix.Socket.on "newDocuments" "documents:lobby" ReceiveNewDocuments
         |> Phoenix.Socket.on "newTags" "documents:lobby" ReceiveNewTags
         |> Phoenix.Socket.on "comments" "documents:lobby" ReceiveComments
         |> Phoenix.Socket.on "searchResult" "documents:lobby" ReceiveSearchResult
         |> Phoenix.Socket.on "ocr" "documents:lobby" ReceiveOcr
 
 
-initialModel : Routing.Route -> AppState
-initialModel route =
+initialModel : Navigation.Location -> Routing.Route -> AppState
+initialModel location route =
     { route = route
     , documents = Nothing
     , documentTypes = Nothing
     , searchQuery = Nothing
     , searchResult = Nothing
-    , phxSocket = initPhxSocket
+    , phxSocket = initPhxSocket location
     , debouncer = Control.initialState
     , error = Nothing
     , modalStates = Dict.empty

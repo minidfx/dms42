@@ -11,41 +11,40 @@ defmodule Dms42Web.DocumentsChannel do
 
   def join("documents:lobby", payload, socket) do
     if authorized?(payload) do
-      send(self(), :after_join)
       {:ok, socket}
     else
       {:error, %{reason: "unauthorized"}}
     end
   end
 
-  def handle_info(:after_join, socket) do
-    document_types = DocumentType |> Dms42.Repo.all
-                                  |> Enum.map(fn %{:name => name, :type_id => type_id} ->
-                                                {:ok, uuid} = Ecto.UUID.load(type_id)
-                                                %{"name" => name, "id" => uuid}
-                                              end)
-    documents = DocumentsManager.documents(0, 20)
-    documents_ocr = DocumentsManager.ocr(documents |> Enum.map(fn %{"document_id" => x} ->
-                                                                {:ok, uuid} = Ecto.UUID.dump(x)
-                                                                uuid
-                                                               end))
-    count = DocumentsManager.count()
-
-    Phoenix.Channel.push(socket,
-                         "initialLoad",
-                         %{"document-types": document_types,
-                           "documents": documents,
-                           "count": count})
-    Enum.each(documents_ocr,
-              fn %{:document_id => did, :ocr => ocr} ->
-                {:ok, uuid} = Ecto.UUID.load(did)
-                Phoenix.Channel
-                       .push(socket,
-                             "ocr",
-                             %{document_id: uuid, ocr: ocr})
-              end)
-    {:noreply, socket}
-  end
+  # def handle_info(:after_join, socket) do
+  #   document_types = DocumentType |> Dms42.Repo.all
+  #                                 |> Enum.map(fn %{:name => name, :type_id => type_id} ->
+  #                                               {:ok, uuid} = Ecto.UUID.load(type_id)
+  #                                               %{"name" => name, "id" => uuid}
+  #                                             end)
+  #   documents = DocumentsManager.documents(0, 20)
+  #   documents_ocr = DocumentsManager.ocr(documents |> Enum.map(fn %{"document_id" => x} ->
+  #                                                               {:ok, uuid} = Ecto.UUID.dump(x)
+  #                                                               uuid
+  #                                                              end))
+  #   count = DocumentsManager.count()
+  #
+  #   Phoenix.Channel.push(socket,
+  #                        "initialLoad",
+  #                        %{"document-types": document_types,
+  #                          "documents": documents,
+  #                          "count": count})
+  #   Enum.each(documents_ocr,
+  #             fn %{:document_id => did, :ocr => ocr} ->
+  #               {:ok, uuid} = Ecto.UUID.load(did)
+  #               Phoenix.Channel
+  #                      .push(socket,
+  #                            "ocr",
+  #                            %{document_id: uuid, ocr: ocr})
+  #             end)
+  #   {:noreply, socket}
+  # end
 
   def handle_in("document:comments", %{"comments" => comments, "document_id" => document_id}, socket) do
     {:ok, uuid} = Ecto.UUID.dump(document_id)
@@ -88,9 +87,10 @@ defmodule Dms42Web.DocumentsChannel do
                                                                 {:ok, uuid} = Ecto.UUID.dump(x)
                                                                 uuid
                                                                end))
+    count = DocumentsManager.count()
     Phoenix.Channel.push(socket,
                          "newDocuments",
-                         %{"documents": documents})
+                         %{"documents": documents, "count": count})
     Enum.each(documents_ocr,
               fn %{:document_id => did, :ocr => ocr} ->
                 {:ok, uuid} = Ecto.UUID.load(did)

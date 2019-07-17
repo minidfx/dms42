@@ -1,7 +1,7 @@
 defmodule Dms42.DocumentPath do
   alias Dms42.Models.Document
 
-  def start_link(), do: GenServer.start(__MODULE__, %{}, name: :document_path)
+  def start_link(), do: GenServer.start_link(__MODULE__, %{}, name: :document_path)
 
   def init(args) do
     relative_document_path = Application.get_env(:dms42, :documents_path)

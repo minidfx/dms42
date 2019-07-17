@@ -14,8 +14,9 @@ tagDecoder =
 
 documentsDecoder : Json.Decode.Decoder Models.Documents
 documentsDecoder =
-    Json.Decode.map Models.Documents
+    Json.Decode.map2 Models.Documents
         (Json.Decode.field "documents" (Json.Decode.list documentDecoder))
+        (Json.Decode.field "total" Json.Decode.int)
 
 
 documentDecoder : Json.Decode.Decoder Models.Document
@@ -29,6 +30,12 @@ documentDecoder =
         (Json.Decode.field "datetimes" documentDateTimesDecoder)
         (Json.Decode.field "thumbnails" documentThumbnails)
         (Json.Decode.maybe (Json.Decode.field "ocr" Json.Decode.string))
+
+
+searchResultDecoder : Json.Decode.Decoder Models.SearchResult
+searchResultDecoder =
+    Json.Decode.map Models.SearchResult
+        (Json.Decode.field "documents" (Json.Decode.list documentDecoder))
 
 
 documentThumbnails : Json.Decode.Decoder Models.DocumentThumbnails
@@ -61,6 +68,11 @@ datetime =
         Json.Decode.string |> Json.Decode.andThen convert
 
 
+documentTypesDecoder : Json.Decode.Decoder (List Models.DocumentType)
+documentTypesDecoder =
+    (Json.Decode.list documentTypeDecoder)
+
+
 documentTypeDecoder : Json.Decode.Decoder Models.DocumentType
 documentTypeDecoder =
     Json.Decode.map2 Models.DocumentType
@@ -81,11 +93,3 @@ commentsResultDecoder =
         (Json.Decode.field "document_id" Json.Decode.string)
         (Json.Decode.maybe (Json.Decode.field "comments" Json.Decode.string))
         (Json.Decode.field "updated_datetime" datetime)
-
-
-initialLoadDecoder : Json.Decode.Decoder Models.InitialLoad
-initialLoadDecoder =
-    Json.Decode.map3 Models.InitialLoad
-        (Json.Decode.field "document-types" (Json.Decode.list documentTypeDecoder))
-        (Json.Decode.field "documents" (Json.Decode.list documentDecoder))
-        (Json.Decode.field "count" Json.Decode.int)

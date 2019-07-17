@@ -1,30 +1,30 @@
-module Main exposing (..)
+module Main exposing (init, main, subscriptions, update, view)
 
+import AddDocumentView
+import Bootstrap.Modal
+import Control
+import Debug
+import Dict
+import DocumentView
+import DocumentsView
+import Helpers
+import HomeView
 import Html exposing (Html)
 import Http
-import Control
-import Models
-import Routing
-import Navigation
-import Debug
-import Json.Encode
 import Json.Decode
-import String
-import Ports
-import Dict
+import Json.Encode
+import JsonDecoders
+import Models
+import Navigation
 import PageView
-import HomeView
-import DocumentsView
-import DocumentView
-import AddDocumentView
-import Phoenix.Socket
 import Phoenix.Channel
 import Phoenix.Push
+import Phoenix.Socket
+import Ports
+import Routing
+import SettingsView
+import String
 import Task
-import Helpers
-import JsonDecoders
-import Debug
-import Bootstrap.Modal
 
 
 init : Navigation.Location -> ( Models.AppState, Cmd Models.Msg )
@@ -34,9 +34,33 @@ init location =
             Routing.parseLocation location
 
         initialState =
-            Models.initialModel currentRoute
+            Models.initialModel location currentRoute
+
+        { documentsOffset, documentsLength } =
+            initialState
+
+        commands =
+            case currentRoute of
+                Routing.Document did ->
+                    case Helpers.getDocument initialState did of
+                        Nothing ->
+                            [ Helpers.sendMsg <| Models.FetchDocument did ]
+
+                        _ ->
+                            [ Cmd.none ]
+
+                Routing.Documents ->
+                    [ Helpers.sendMsg <| Models.FetchDocuments documentsOffset documentsLength
+                    ]
+
+                Routing.AddDocuments ->
+                    [ Helpers.sendMsg <| Models.FetchDocumentTypes
+                    ]
+
+                _ ->
+                    []
     in
-        ( initialState, Helpers.sendMsg Models.JoinChannel )
+    ( initialState, Cmd.batch (Helpers.sendMsg Models.JoinChannel :: commands) )
 
 
 subscriptions : Models.AppState -> Sub Models.Msg
@@ -67,7 +91,7 @@ view state =
             PageView.view state DocumentsView.view
 
         Routing.Settings ->
-            PageView.view state (\x -> Html.div [] [])
+            PageView.view state SettingsView.view
 
 
 update : Models.Msg -> Models.AppState -> ( Models.AppState, Cmd Models.Msg )
@@ -78,29 +102,43 @@ update msg state =
                 route =
                     Routing.parseLocation location
             in
-                case route of
-                    Routing.Document did ->
-                        case Helpers.getDocument state did of
-                            Nothing ->
-                                ( { state | route = route }, Helpers.sendMsg <| Models.FetchDocument did )
+            case route of
+                Routing.AddDocuments ->
+                    ( { state | route = route }
+                    , Helpers.sendMsg <| Models.FetchDocumentTypes
+                    )
 
-                            _ ->
-                                ( { state | route = route }, Cmd.none )
+                Routing.Documents ->
+                    let
+                        { documentsOffset, documentsLength } =
+                            state
+                    in
+                    ( { state | route = route }
+                    , Helpers.sendMsg <| Models.FetchDocuments documentsOffset documentsLength
+                    )
 
-                    Routing.Home ->
-                        let
-                            { searchQuery } =
-                                state
-                        in
-                            case searchQuery of
-                                Nothing ->
-                                    ( { state | route = route }, Cmd.none )
+                Routing.Document did ->
+                    case Helpers.getDocument state did of
+                        Nothing ->
+                            ( { state | route = route }, Helpers.sendMsg <| Models.FetchDocument did )
 
-                                Just x ->
-                                    ( { state | route = route }, Helpers.sendMsg <| Models.Search x )
+                        _ ->
+                            ( { state | route = route }, Cmd.none )
 
-                    _ ->
-                        ( { state | route = route }, Cmd.none )
+                Routing.Home ->
+                    let
+                        { searchQuery } =
+                            state
+                    in
+                    case searchQuery of
+                        Nothing ->
+                            ( { state | route = route }, Cmd.none )
+
+                        Just x ->
+                            ( { state | route = route }, Helpers.sendMsg <| Models.Search x )
+
+                _ ->
+                    ( { state | route = route }, Cmd.none )
 
         Models.FetchDocument document_id ->
             let
@@ -116,24 +154,25 @@ update msg state =
                 ( phxSocket, phxCmd ) =
                     Phoenix.Socket.push push_ state.phxSocket
             in
-                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+            ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+
+        Models.FetchDocumentTypes ->
+            let
+                uri =
+                    "/api/document-types"
+            in
+            ( state
+            , Http.send Models.ReceiveDocumentTypes <| Http.get uri JsonDecoders.documentTypesDecoder
+            )
 
         Models.FetchDocuments offset length ->
             let
-                payload =
-                    Json.Encode.object
-                        [ ( "offset", Json.Encode.int offset )
-                        , ( "length", Json.Encode.int length )
-                        ]
-
-                push_ =
-                    Phoenix.Push.init "documents:get" "documents:lobby"
-                        |> Phoenix.Push.withPayload payload
-
-                ( phxSocket, phxCmd ) =
-                    Phoenix.Socket.push push_ state.phxSocket
+                uri =
+                    "/api/documents?offset=" ++ toString offset ++ "&length=" ++ toString length
             in
-                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+            ( state
+            , Http.send Models.ReceiveNewDocuments <| Http.get uri JsonDecoders.documentsDecoder
+            )
 
         Models.CloseModal modalId ->
             ( Helpers.addOrUpdateModalState modalId Bootstrap.Modal.hidden state, Cmd.none )
@@ -150,11 +189,11 @@ update msg state =
                         , body = Http.emptyBody
                         , timeout = Nothing
                         , headers = []
-                        , expect = Http.expectStringResponse (\{ body } -> (Json.Decode.decodeString (Json.Decode.field "document_id" Json.Decode.string) body))
+                        , expect = Http.expectStringResponse (\{ body } -> Json.Decode.decodeString (Json.Decode.field "document_id" Json.Decode.string) body)
                         , withCredentials = False
                         }
             in
-                ( state, Http.send Models.DocumentDeleted request )
+            ( state, Http.send Models.DocumentDeleted request )
 
         Models.DocumentDeleted (Ok document_id) ->
             let
@@ -167,33 +206,15 @@ update msg state =
                 newState =
                     { state | documents = Just documents, searchResult = Just searchResult }
             in
-                ( newState
-                , Cmd.batch
-                    [ Helpers.sendMsg (Models.CloseModal "deleteDocument")
-                    , Navigation.newUrl "#documents"
-                    ]
-                )
+            ( newState
+            , Cmd.batch
+                [ Helpers.sendMsg (Models.CloseModal "deleteDocument")
+                , Navigation.newUrl "#documents"
+                ]
+            )
 
         Models.DocumentDeleted (Err _) ->
             ( { state | error = Just "An error occurred to delete the document." }, Helpers.sendMsg (Models.CloseModal "deleteDocument") )
-
-        Models.ReceiveInitialLoad raw ->
-            case Json.Decode.decodeValue JsonDecoders.initialLoadDecoder raw of
-                Ok x ->
-                    ( { state
-                        | documentTypes = Just x.documentTypes
-                        , documents = Just (Helpers.mergeDocuments x.documents state.documents)
-                        , documentsCount = x.count
-                      }
-                    , Cmd.none
-                    )
-
-                Err error ->
-                    let
-                        _ =
-                            Debug.log "Error" error
-                    in
-                        ( state, Cmd.none )
 
         Models.Search query ->
             let
@@ -209,9 +230,9 @@ update msg state =
                 ( phxSocket, phxCmd ) =
                     Phoenix.Socket.push push_ state.phxSocket
             in
-                ( { state | phxSocket = phxSocket, searchQuery = Just query }
-                , Cmd.map Models.PhoenixMsg phxCmd
-                )
+            ( { state | phxSocket = phxSocket, searchQuery = Just query }
+            , Cmd.map Models.PhoenixMsg phxCmd
+            )
 
         Models.ChangeDocumentsPage page ->
             let
@@ -221,7 +242,7 @@ update msg state =
                 offset =
                     page * documentsLength
             in
-                ( { state | documentsOffset = offset }, Helpers.sendMsg <| Models.FetchDocuments offset documentsLength )
+            ( { state | documentsOffset = offset }, Helpers.sendMsg <| Models.FetchDocuments offset documentsLength )
 
         Models.ChangeDocumentPage document_id page ->
             let
@@ -234,18 +255,35 @@ update msg state =
                                     { thumbnails } =
                                         x
                                 in
-                                    { x | thumbnails = { thumbnails | currentImage = Just page } }
+                                { x | thumbnails = { thumbnails | currentImage = Just page } }
                             )
             in
-                case newStateResult of
-                    Err _ ->
-                        ( state, Cmd.none )
+            case newStateResult of
+                Err _ ->
+                    ( state, Cmd.none )
 
-                    Ok x ->
-                        ( x, Cmd.none )
+                Ok x ->
+                    ( x, Cmd.none )
 
         Models.Debouncer control ->
             Control.update (\x -> { state | debouncer = x }) state.debouncer control
+
+        Models.ReceiveNewTags raw ->
+            case Json.Decode.decodeValue JsonDecoders.tagDecoder raw of
+                Ok x ->
+                    let
+                        { document_id, tags } =
+                            x
+                    in
+                    case Helpers.updateDocumentProperties document_id (\x -> { x | tags = tags }) state of
+                        Err error ->
+                            ( { state | error = Just error }, Cmd.none )
+
+                        Ok x ->
+                            ( x, Cmd.none )
+
+                Err error ->
+                    ( { state | error = Just error }, Cmd.none )
 
         Models.ReceiveNewDocument raw ->
             case Json.Decode.decodeValue JsonDecoders.documentDecoder raw of
@@ -255,37 +293,28 @@ update msg state =
                 Err error ->
                     ( { state | error = Just error }, Cmd.none )
 
-        Models.ReceiveNewTags raw ->
-            case Json.Decode.decodeValue JsonDecoders.tagDecoder raw of
-                Ok x ->
-                    let
-                        { document_id, tags } =
-                            x
-                    in
-                        case Helpers.updateDocumentProperties document_id (\x -> { x | tags = tags }) state of
-                            Err error ->
-                                ( { state | error = Just error }, Cmd.none )
+        Models.ReceiveNewDocuments (Ok result) ->
+            let
+                { documents, total } =
+                    result
+            in
+            ( { state | documents = Just (documents |> Helpers.documentsToDict), documentsCount = total }
+            , Cmd.none
+            )
 
-                            Ok x ->
-                                ( x, Cmd.none )
+        Models.ReceiveNewDocuments (Err _) ->
+            ( { state | error = Just "Cannot fetch documents from the server." }, Cmd.none )
 
-                Err error ->
-                    ( { state | error = Just error }, Cmd.none )
+        Models.ReceiveDocumentTypes (Ok result) ->
+            ( { state | documentTypes = Just result }
+            , Cmd.none
+            )
 
-        Models.ReceiveNewDocuments raw ->
-            case Json.Decode.decodeValue JsonDecoders.documentsDecoder raw of
-                Ok x ->
-                    let
-                        { documents } =
-                            x
-                    in
-                        ( { state | documents = Just <| Helpers.documentsToDict documents }, Cmd.none )
-
-                Err error ->
-                    ( { state | error = Just error }, Cmd.none )
+        Models.ReceiveDocumentTypes (Err _) ->
+            ( { state | error = Just "Cannot fetch document types from the server." }, Cmd.none )
 
         Models.ReceiveSearchResult raw ->
-            case Json.Decode.decodeValue JsonDecoders.documentsDecoder raw of
+            case Json.Decode.decodeValue JsonDecoders.searchResultDecoder raw of
                 Ok x ->
                     let
                         { searchQuery } =
@@ -299,7 +328,7 @@ update msg state =
                                 _ ->
                                     Just x.documents
                     in
-                        ( { state | searchResult = result }, Cmd.none )
+                    ( { state | searchResult = result }, Cmd.none )
 
                 Err error ->
                     ( { state | error = Just error }, Cmd.none )
@@ -311,12 +340,12 @@ update msg state =
                         { document_id, ocr } =
                             x
                     in
-                        case state |> Helpers.updateDocumentProperties document_id (\y -> { y | ocr = Just ocr }) of
-                            Err _ ->
-                                ( state, Cmd.none )
+                    case state |> Helpers.updateDocumentProperties document_id (\y -> { y | ocr = Just ocr }) of
+                        Err _ ->
+                            ( state, Cmd.none )
 
-                            Ok x ->
-                                ( x, Cmd.none )
+                        Ok x ->
+                            ( x, Cmd.none )
 
                 Err error ->
                     ( state, Cmd.none )
@@ -328,26 +357,26 @@ update msg state =
                         { document_id, comments, updated_datetime } =
                             x
                     in
-                        case
-                            state
-                                |> Helpers.updateDocumentProperties
-                                    document_id
-                                    (\y ->
-                                        let
-                                            { datetimes } =
-                                                y
-                                        in
-                                            { y
-                                                | comments = Maybe.withDefault Nothing (Just comments)
-                                                , datetimes = { datetimes | updated_datetime = Just updated_datetime }
-                                            }
-                                    )
-                        of
-                            Err x ->
-                                ( { state | error = Just x }, Cmd.none )
+                    case
+                        state
+                            |> Helpers.updateDocumentProperties
+                                document_id
+                                (\y ->
+                                    let
+                                        { datetimes } =
+                                            y
+                                    in
+                                    { y
+                                        | comments = Maybe.withDefault Nothing (Just comments)
+                                        , datetimes = { datetimes | updated_datetime = Just updated_datetime }
+                                    }
+                                )
+                    of
+                        Err x ->
+                            ( { state | error = Just x }, Cmd.none )
 
-                            Ok x ->
-                                ( x, Cmd.none )
+                        Ok x ->
+                            ( x, Cmd.none )
 
                 Err error ->
                     ( { state | error = Just error }, Cmd.none )
@@ -367,7 +396,7 @@ update msg state =
                 ( phxSocket, phxCmd ) =
                     Phoenix.Socket.push push_ state.phxSocket
             in
-                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+            ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
 
         Models.ProcessOcr document_id ->
             let
@@ -383,12 +412,12 @@ update msg state =
                 ( phxSocket, phxCmd ) =
                     Phoenix.Socket.push push_ state.phxSocket
             in
-                ( { state | phxSocket = phxSocket }
-                , Cmd.batch
-                    [ Cmd.map Models.PhoenixMsg phxCmd
-                    , Helpers.sendMsg <| Models.ShowModal "ocrSent"
-                    ]
-                )
+            ( { state | phxSocket = phxSocket }
+            , Cmd.batch
+                [ Cmd.map Models.PhoenixMsg phxCmd
+                , Helpers.sendMsg <| Models.ShowModal "ocrSent"
+                ]
+            )
 
         Models.JoinChannel ->
             let
@@ -398,7 +427,7 @@ update msg state =
                 ( phxSocket, phxCmd ) =
                     Phoenix.Socket.join channel state.phxSocket
             in
-                ( { state | phxSocket = phxSocket }, Cmd.batch [ Cmd.map Models.PhoenixMsg phxCmd ] )
+            ( { state | phxSocket = phxSocket }, Cmd.batch [ Cmd.map Models.PhoenixMsg phxCmd ] )
 
         Models.NewTag ( tag, document_id ) ->
             let
@@ -415,7 +444,7 @@ update msg state =
                 ( phxSocket, phxCmd ) =
                     Phoenix.Socket.push push_ state.phxSocket
             in
-                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+            ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
 
         Models.DeleteTag ( tag, document_id ) ->
             let
@@ -432,14 +461,17 @@ update msg state =
                 ( phxSocket, phxCmd ) =
                     Phoenix.Socket.push push_ state.phxSocket
             in
-                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+            ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
 
         Models.PhoenixMsg msg ->
             let
                 ( phxSocket, phxCmd ) =
                     Phoenix.Socket.update msg state.phxSocket
             in
-                ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+            ( { state | phxSocket = phxSocket }, Cmd.map Models.PhoenixMsg phxCmd )
+
+        Models.ProcessAllThumbnails ->
+            ( state, Helpers.sendMsg <| Models.ShowModal "processAllThumnails" )
 
 
 main : Program Never Models.AppState Models.Msg

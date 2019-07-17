@@ -4,10 +4,9 @@ defmodule Dms42.ThumbnailProcessor do
   require Logger
 
   alias Dms42.DocumentPath
-  alias Dms42.DocumentsManager
 
   def start_link() do
-    GenServer.start(
+    GenServer.start_link(
       __MODULE__,
       %{
         thumbnails_path: Application.get_env(:dms42, :thumbnails_path) |> Path.absname(),
@@ -15,6 +14,14 @@ defmodule Dms42.ThumbnailProcessor do
       },
       name: :thumbnail
     )
+  end
+
+  def init(args) do
+    {:ok, args}
+  end
+
+  def terminate(reason, _) do
+    IO.inspect(reason)
   end
 
   def handle_cast({:process, document, "application/pdf"}, %{:thumbnails_path => tp, :documents_path => dp} = state) do
@@ -40,8 +47,6 @@ defmodule Dms42.ThumbnailProcessor do
       |> ExMagick.attr!(:adjoin, false)
       |> ExMagick.attr!(:magick, "PNG")
       |> ExMagick.image_dump(big_thumbnail_file_path)
-
-      Dms42Web.Endpoint.broadcast!("documents:lobby", "newDocument", document |> DocumentsManager.transform_to_viewmodel)
     rescue
       x -> IO.inspect(x)
     end
@@ -63,20 +68,10 @@ defmodule Dms42.ThumbnailProcessor do
       |> ExMagick.thumb!(155, 220)
       |> ExMagick.attr!(:magick, "PNG")
       |> ExMagick.image_dump(small_thumbnail_file_path)
-
-      Dms42Web.Endpoint.broadcast!("documents:lobby", "newDocument", document |> DocumentsManager.transform_to_viewmodel)
     rescue
       x -> IO.inspect(x)
     end
 
     {:noreply, state}
-  end
-
-  def init(args) do
-    {:ok, args}
-  end
-
-  def terminate(reason, _) do
-    IO.inspect(reason)
   end
 end

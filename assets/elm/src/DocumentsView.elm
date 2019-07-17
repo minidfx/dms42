@@ -87,12 +87,10 @@ paginationItems { documentsOffset, documentsLength, documentsCount } =
             10
 
         currentPage =
-            Debug.log "current" <|
-                (//) documentsOffset documentsLength
+            (//) documentsOffset documentsLength
 
         pages =
-            Debug.log "pages" <|
-                (//) documentsCount documentsLength
+            (//) documentsCount documentsLength
 
         padding =
             4
@@ -135,14 +133,12 @@ paginationItems { documentsOffset, documentsLength, documentsCount } =
                 True
 
         localMin =
-            Debug.log "min" <|
-                Basics.max 0 <|
-                    (-) currentPage padding
+            Basics.max 0 <|
+                (-) currentPage padding
 
         localMax =
-            Debug.log "max" <|
-                Basics.min pages <|
-                    (+) currentPage padding
+            Basics.min pages <|
+                (+) currentPage padding
 
         firstPart =
             case (>) ((-) currentPage padding) 0 of

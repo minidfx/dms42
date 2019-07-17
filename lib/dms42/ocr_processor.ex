@@ -8,7 +8,7 @@ defmodule Dms42.OcrProcessor do
 
   @doc false
   def start_link() do
-    GenServer.start(__MODULE__, %{}, name: :ocr)
+    GenServer.start_link(__MODULE__, %{}, name: :ocr)
   end
 
   @doc false
@@ -27,30 +27,30 @@ defmodule Dms42.OcrProcessor do
   @callback handle_cast({:process, document_id :: binary, absolute_file_path :: String.t(), mime_type :: String.t()}, state :: map) :: {:ok, state :: map}
   def handle_cast({:process, document_id, absolute_file_path, "application/pdf"}, state) do
     Logger.debug("Starting the OCR on the PDF document  #{absolute_file_path} ...")
-      case Dms42.External.extract(absolute_file_path) do
-        {:ok, ocr} ->
-            Logger.debug("OCR extracted successfully from the PDF #{absolute_file_path}")
-            save_ocr(ocr, document_id)
-        {:error, error} ->
-          try do
-            Logger.warn(error)
+    case Dms42.External.extract(absolute_file_path) do
+      {:ok, ocr} ->
+          Logger.debug("OCR extracted successfully from the PDF #{absolute_file_path}")
+          save_ocr(ocr, document_id)
+      {:error, error} ->
+        try do
+          Logger.warn(error)
 
-            Temp.track!()
-            file_path = Temp.path!()
+          Temp.track!()
+          file_path = Temp.path!()
 
-            ExMagick.init!()
-            |> ExMagick.attr!(:density, "300")
-            |> ExMagick.image_load!(absolute_file_path)
-            |> ExMagick.attr!(:adjoin, true)
-            |> ExMagick.attr!(:magick, "PNG")
-            |> ExMagick.image_dump(file_path)
+          ExMagick.init!()
+          |> ExMagick.attr!(:density, "300")
+          |> ExMagick.image_load!(absolute_file_path)
+          |> ExMagick.attr!(:adjoin, true)
+          |> ExMagick.attr!(:magick, "PNG")
+          |> ExMagick.image_dump(file_path)
 
-            send_to_tesseract(file_path, document_id)
-          rescue
-            x ->
-              Logger.error(x)
-          end
-      end
+          send_to_tesseract(file_path, document_id)
+        rescue
+          x ->
+            Logger.error(x)
+        end
+    end
     {:noreply, state}
   end
 
@@ -85,7 +85,6 @@ defmodule Dms42.OcrProcessor do
                                                        %{document_id: document_id,
                                                          ocr: ocr,
                                                          ocr_normalized: ocr |> DocumentsFinder.normalize}))
-    {:ok, uuid} = Ecto.UUID.load(document_id)
-    Dms42Web.Endpoint.broadcast!("documents:lobby", "ocr", %{ document_id: uuid, ocr: ocr })
+    {:ok, _} = Ecto.UUID.load(document_id)
   end
 end

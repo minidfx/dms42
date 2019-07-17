@@ -105,10 +105,11 @@ defmodule Dms42Web.DocumentsController do
   end
 
   @doc false
-  def documents(conn, %{"start" => start, "length" => length}) do
+  def documents(conn, %{"offset" => offset, "length" => length}) do
     conn
     |> put_resp_content_type("application/json")
-    |> send_resp(200, DocumentsManager.documents(start, length) |> Poison.encode!)
+    |> send_resp(200, %{"documents": DocumentsManager.documents(offset, length),
+                        "total": DocumentsManager.count()} |> Poison.encode!)
   end
   def documents(conn, %{"query" => query}) do
     conn |> put_resp_content_type("application/json")

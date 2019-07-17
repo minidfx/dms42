@@ -8,6 +8,8 @@ defmodule Dms42.DocumentsManager do
   alias Dms42.TransactionHelper
   alias Dms42.DocumentPath
 
+  alias Dms42.MapHelper
+
   import Ecto.Query
 
   @doc """
@@ -24,6 +26,12 @@ defmodule Dms42.DocumentsManager do
                     tags,
                     bytes},
                     60_000)
+  end
+
+  @spec generate_thumbnails() :: :ok
+  def generate_thumbnails() do
+    Document |> Dms42.Repo.all
+             |> Enum.each(fn %Document{ :mime_type => mime_type } = x -> GenServer.cast(:thumbnail, {:process, x, mime_type}) end)
   end
 
   @doc """
@@ -53,7 +61,7 @@ defmodule Dms42.DocumentsManager do
   def documents(offset, length) do
     Document |> limit(^length)
              |> offset(^offset)
-             |> order_by(asc: :inserted_at)
+             |> order_by(desc: :inserted_at)
              |> Dms42.Repo.all
              |> transform_to_viewmodels
   end
@@ -79,18 +87,16 @@ defmodule Dms42.DocumentsManager do
   end
 
   @spec get(document_id :: binary) :: map
-  def get_original!(document_id) when is_binary(document_id) do
-    Document |> Dms42.Repo.get_by!(document_id: document_id)
-  end
+  def get_original!(document_id) when is_binary(document_id),
+    do: Document |> Dms42.Repo.get_by!(document_id: document_id)
 
   @spec transform_to_viewmodels(list(Documents)) :: list(map)
   def transform_to_viewmodels(documents), do: documents |> Enum.map(&transform_to_viewmodel/1)
 
   @spec transform_to_viewmodel(Document) :: map
   def transform_to_viewmodel(%Document{:document_id => did} = document) do
-    document = Map.put(document,
-                       :tags,
-                       TagManager.get_tags(did) |> Enum.map(fn %Tag{:name => tag} -> tag end))
+    document = Map.put(document, :tags, TagManager.get_tags(did) |> Enum.map(fn %Tag{:name => tag} -> tag end))
+
     %{ :comments => comments,
        :document_id => did,
        :document_type_id => doc_type_id,
@@ -100,20 +106,20 @@ defmodule Dms42.DocumentsManager do
        :original_file_datetime => original_file_datetime,
        :original_file_name => original_file_name
       } = document
+
       images = DocumentPath.big_thumbnail_paths!(document)
+
       {:ok, document_id_string} = Ecto.UUID.load(did)
       {:ok, document_type_id_string} = Ecto.UUID.load(doc_type_id)
-      datetimes = case updated do
-                    nil -> %{
-                            "inserted_datetime" => inserted |> to_rfc2822,
-                            "original_file_datetime" => original_file_datetime |> to_rfc2822
-                          }
-                    x -> %{
-                      "inserted_datetime" => inserted |> to_rfc2822,
-                      "updated_datetime" => x |> to_rfc2822,
-                      "original_file_datetime" => original_file_datetime |> to_rfc2822
-                    }
-                  end
+
+      datetimes = %{
+                    "inserted_datetime" => inserted |> to_rfc2822,
+                    "original_file_datetime" => original_file_datetime |> to_rfc2822
+                  }
+      |> MapHelper.put_if("updated_datetime", fn -> updated |> to_rfc2822 end, updated != nil)
+
+      document_ocr = DocumentOcr |> Dms42.Repo.get_by(document_id: did)
+
       %{
         "datetimes" => datetimes,
         "comments" => comments |> null_to_string,
@@ -123,6 +129,12 @@ defmodule Dms42.DocumentsManager do
         "original_file_name" => original_file_name,
         "thumbnails" => %{ "count-images": images |> Enum.count }
       }
+      |> MapHelper.put_if(:ocr,
+                          fn ->
+                            %{:ocr => ocr} = document_ocr
+                            ocr
+                          end,
+                          document_ocr != nil)
   end
 
   @spec to_rfc2822(Timex.Types.valid_datetime()) :: String.t()

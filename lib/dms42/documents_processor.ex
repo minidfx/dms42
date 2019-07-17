@@ -10,7 +10,7 @@ defmodule Dms42.DocumentsProcessor do
   alias Dms42.DocumentsManager
 
   def start_link() do
-    GenServer.start(__MODULE__, %{}, name: :documents_processor)
+    GenServer.start_link(__MODULE__, %{}, name: :documents_processor)
   end
 
   def init(args) do

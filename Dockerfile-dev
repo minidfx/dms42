@@ -1,4 +1,4 @@
-FROM elixir:1.6
+FROM elixir:1.9.4
 
 LABEL Burgy Benjamin aka MiniDfx
 
@@ -8,9 +8,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV MIX_ENV=dev
 
 RUN mkdir /app && \
-    curl -sL https://deb.nodesource.com/setup_9.x | bash - && \
+    curl -sL https://deb.nodesource.com/setup_12.x | bash - && \
     apt-get update && \
-    apt-get install -y gcc\
+    apt-get install -y nodejs \
+                       gcc\
                        make\
                        libtool-bin\
                        libgraphicsmagick1-dev\
@@ -21,13 +22,11 @@ RUN mkdir /app && \
                        ghostscript-x\
                        libgs-dev\
                        xpdf\
-		       graphicsmagick && \
+		                   graphicsmagick && \
     npm install --unsafe-perm -g elm && \
     npm install -g brunch
 
 WORKDIR /app
-
-VOLUME /app
 
 RUN mix local.hex --force && \
     mix local.rebar --force

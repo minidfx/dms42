@@ -5,7 +5,7 @@ defmodule Dms42.Mixfile do
     [
       app: :dms42,
       version: "0.0.1",
-      elixir: "~> 1.4",
+      elixir: "~> 1.9.4",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -47,7 +47,7 @@ defmodule Dms42.Mixfile do
       {:exmagick, "~> 0.0.1"},
       {:temp, "~> 0.4"},
       {:ex_mock, "~> 0.1.0", only: :test},
-      {:plug_cowboy, "~> 1.0"}
+      {:dialyxir, "~> 1.0.0-rc.7", only: [:dev], runtime: false},
     ]
   end
 

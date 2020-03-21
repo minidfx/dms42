@@ -58,7 +58,7 @@ config :phoenix, :stacktrace_depth, 20
 config :dms42, Dms42.Repo,
   adapter: Ecto.Adapters.Postgres,
   username: "postgres",
-  password: "postgres",
+  password: "Mm%5uasm4GoZBNe%AWF(Lu8nQlczs[2Q",
   database: "dms42_dev",
-  hostname: "postgres",
+  hostname: "192.168.1.155",
   pool_size: 10

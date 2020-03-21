@@ -12,17 +12,17 @@
     "update": "^0.7.4"
   },
   "devDependencies": {
-    "babel-brunch": "6.1.1",
-    "babel-preset-env": "^1.6.1",
+    "babel-brunch": "7.0.1",
+    "babel-preset-env": "^1.7.0",
     "bootstrap": "^4.1.1",
     "bootstrap4-tagsinput-douglasanpa": "^4.1.2",
-    "brunch": "2.10.12",
-    "clean-css-brunch": "2.10.0",
+    "brunch": "3.0.0",
+    "clean-css-brunch": "3.0.0",
     "copyfilemon-brunch": "^3.3.0",
-    "dropzone": "^5.2.0",
-    "elm-brunch": "^0.10.0",
+    "dropzone": "^5.7.0",
+    "elm-brunch": "^0.12.0",
     "i": "^0.3.6",
-    "npm": "^5.10.0",
+    "npm": "^6.14.3",
     "uglify-js-brunch": "2.10.0"
   }
 }

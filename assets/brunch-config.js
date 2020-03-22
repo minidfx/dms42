@@ -60,8 +60,9 @@ exports.config = {
     elmBrunch:
     {
       elmFolder: "elm",
-      mainModules: ["src/Elm.elm"],
-      outputFolder: "../vendor"
+      mainModules: ["src/Main.elm"],
+      outputFolder: "../vendor",
+      outputFile: "elm.js"
     },
     babel:
     {

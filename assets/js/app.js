@@ -1,13 +1,7 @@
-// Import dependencies
-//
-// If you no longer want to use a dependency, remember
-// to also remove its path from "config.paths.watched".
-// import "phoenix_html"
+import css from '../css/app.css'
 
-// Import local files
-//
-// Local files can be imported directly using relative
-// paths "./socket" or full ones "web/static/js/socket".
+import 'dropzone/dist/min/dropzone.min.js'
+import 'bootstrap4-tagsinput-douglasanpa/tagsinput.js'
 
 const bodyTag = document.getElementsByTagName('body')
 if (bodyTag) {
@@ -21,11 +15,11 @@ if (bodyTag) {
                 trimValue: true
             })
         inputTokenFields.on("itemAdded", function (event) {
-            var tag = event.item
+            const tag = event.item
             app.ports.newTag.send([tag, document_id])
         })
         inputTokenFields.on("itemRemoved", function (event) {
-            var tag = event.item
+            const tag = event.item
             app.ports.deleteTag.send([tag, document_id])
         })
     }

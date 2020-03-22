@@ -22,6 +22,14 @@ module.exports = (env, options) => ({
   module: {
     rules: [
       {
+        test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
+        loader: "url-loader?limit=10000&mimetype=application/font-woff"
+      },
+      {
+        test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
+        loader: "file-loader"
+      },
+      {
         test: /\.js$/,
         exclude: /node_modules/,
         use: {
@@ -31,28 +39,11 @@ module.exports = (env, options) => ({
       {
         test: /\.css$/,
         use: [MiniCssExtractPlugin.loader, 'css-loader']
-      },
-      {
-        test: /\.elm$/,
-        exclude: [/elm\/elm-stuff/, /node_modules/],
-        use: {
-          loader: 'elm-webpack-loader',
-          options: {
-            cwd: path.resolve(__dirname, 'elm'),
-            files: [
-              'src/Main.elm'
-            ]
-          }
-        }
       }
     ]
   },
   plugins: [
     new MiniCssExtractPlugin({filename: '../css/app.css'}),
-    new CopyWebpackPlugin([{from: 'static/', to: '../'},
-      {
-        from: path.resolve(__dirname, 'node_modules/dropzone/dist/dropzone.js'),
-        to: path.resolve(__dirname, 'vendor/')
-      }])
+    new CopyWebpackPlugin([{from: 'static/', to: '../'}])
   ]
 });

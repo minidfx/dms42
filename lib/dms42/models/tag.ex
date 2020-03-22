@@ -2,7 +2,7 @@ defmodule Dms42.Models.Tag do
   use Ecto.Schema
 
   import Ecto.Changeset
-  
+
   alias Dms42.Models.Tag
 
   schema "tags" do

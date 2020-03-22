@@ -29,7 +29,7 @@ defmodule Dms42.ThumbnailProcessor do
       file_path = DocumentPath.document_path!(document)
       Logger.debug("Processing the thumbnail for the document #{file_path} ...")
       thumbnail_folder_path = String.replace_prefix(file_path, dp, tp)
-      :ok = thumbnail_folder_path |> File.mkdir_p
+      :ok = thumbnail_folder_path |> File.mkdir_p()
       small_thumbnail_file_path = Path.join([thumbnail_folder_path, "small.png"])
       big_thumbnail_file_path = Path.join([thumbnail_folder_path, "big-%0d.png"])
       Logger.debug("Will save the thumbnail into #{thumbnail_folder_path}.")
@@ -59,7 +59,7 @@ defmodule Dms42.ThumbnailProcessor do
       file_path = DocumentPath.document_path!(document)
       Logger.debug("Processing the thumbnail for the document #{file_path} ...")
       thumbnail_folder_path = String.replace_prefix(file_path, dp, tp)
-      :ok = thumbnail_folder_path |> File.mkdir_p
+      :ok = thumbnail_folder_path |> File.mkdir_p()
       small_thumbnail_file_path = Path.join([thumbnail_folder_path, "small.png"])
       Logger.debug("Will save the thumbnail into #{thumbnail_folder_path}.")
 

@@ -22,59 +22,84 @@ defmodule Dms42Web.DocumentsController do
         "fileUnixTimestamp" => file_timestamp
       }) do
     bytes = File.read!(temp_file_path)
+
     case DocumentsManager.is_document_exists?(bytes) do
-      :true ->
-        conn |> put_resp_content_type("text/plain")
-             |> send_resp(400, "The document already exists")
-      :false ->
-        DocumentsManager.add(original_file_name,
-                            mime_type,
-                            file_timestamp |> String.to_integer |> Timex.from_unix(:milliseconds),
-                            document_type,
-                            tags |> String.split(",", trim: true),
-                            bytes)
+      true ->
+        conn
+        |> put_resp_content_type("text/plain")
+        |> send_resp(400, "The document already exists")
+
+      false ->
+        DocumentsManager.add(
+          original_file_name,
+          mime_type,
+          file_timestamp |> String.to_integer() |> Timex.from_unix(:milliseconds),
+          document_type,
+          tags |> String.split(",", trim: true),
+          bytes
+        )
+
         conn |> send_resp(200, "")
     end
   end
+
   def upload_documents(conn, _params), do: conn |> send_resp(400, "Argument not recognized.")
 
   @doc false
   def download(conn, %{"document_id" => document_id}) do
     case valid_document_query(conn, document_id) do
-      {:error, conn} -> conn |> send_resp(404, "")
+      {:error, conn} ->
+        conn |> send_resp(404, "")
+
       {:ok, conn, document} ->
         %{:mime_type => mime_type, :original_file_name => filename} = document
         documentPath = DocumentPath.document_path!(document)
-        conn |> put_resp_content_type(mime_type)
-             |> put_resp_header("Content-Disposition", "attachment; filename=\"#{filename}\"")
-             |> send_file(200, documentPath)
+
+        conn
+        |> put_resp_content_type(mime_type)
+        |> put_resp_header("Content-Disposition", "attachment; filename=\"#{filename}\"")
+        |> send_file(200, documentPath)
     end
   end
 
   @doc false
   def thumbnail(conn, %{"document_id" => document_id}) do
     case valid_document_query(conn, document_id) do
-      {:error, conn} -> conn
-      {:ok, conn, document} -> absolute_file_path = DocumentPath.small_thumbnail_path!(document)
-                               conn |> put_resp_content_type("image/png")
-                                    |> put_resp_header("cache-control", "private, max-age=300")
-                                    |> send_file(200, absolute_file_path)
+      {:error, conn} ->
+        conn
+
+      {:ok, conn, document} ->
+        absolute_file_path = DocumentPath.small_thumbnail_path!(document)
+
+        conn
+        |> put_resp_content_type("image/png")
+        |> put_resp_header("cache-control", "private, max-age=300")
+        |> send_file(200, absolute_file_path)
     end
   end
 
   @doc false
   def document_image(conn, %{"document_id" => document_id, "image_id" => image_id}) do
     case valid_document_query(conn, document_id) do
-      {:error, conn} -> conn
+      {:error, conn} ->
+        conn
+
       {:ok, conn, document} ->
-        path = DocumentPath.big_thumbnail_paths!(document) |> Enum.at(image_id |> String.to_integer)
+        path = DocumentPath.big_thumbnail_paths!(document) |> Enum.at(image_id |> String.to_integer())
+
         case path do
-          nil -> conn |> send_resp(404, "")
+          nil ->
+            conn |> send_resp(404, "")
+
           x ->
             case File.exists?(x) do
-              false -> conn |> send_resp(404, "")
-              true -> conn |> put_resp_content_type("image/png")
-                           |> send_file(200, x)
+              false ->
+                conn |> send_resp(404, "")
+
+              true ->
+                conn
+                |> put_resp_content_type("image/png")
+                |> send_file(200, x)
             end
         end
     end
@@ -83,24 +108,39 @@ defmodule Dms42Web.DocumentsController do
   @doc false
   def document_image(conn, %{"document_id" => document_id}) do
     case valid_document_query(conn, document_id) do
-      {:error, conn} -> conn
-      {:ok, conn, document} -> [absolute_file_path] = DocumentPath.big_thumbnail_paths!(document) |> Enum.take(1)
-                                case File.exists?(absolute_file_path) do
-                                  false -> conn |> put_status(404)
-                                  true ->
-                                    conn |> put_resp_content_type("image/png")
-                                         |> send_file(200, absolute_file_path)
-                                end
+      {:error, conn} ->
+        conn
+
+      {:ok, conn, document} ->
+        [absolute_file_path] = DocumentPath.big_thumbnail_paths!(document) |> Enum.take(1)
+
+        case File.exists?(absolute_file_path) do
+          false ->
+            conn |> put_status(404)
+
+          true ->
+            conn
+            |> put_resp_content_type("image/png")
+            |> send_file(200, absolute_file_path)
+        end
     end
   end
 
   @doc false
   def document(conn, %{"document_id" => document_id}) do
     case valid_document_query(conn, document_id) do
-      {:error, conn} -> conn
-      {:ok, conn, document} -> conn |> put_resp_content_type("application/json")
-                                    |> send_resp(200, document |> DocumentsManager.transform_to_viewmodel
-                                                               |> Poison.encode!)
+      {:error, conn} ->
+        conn
+
+      {:ok, conn, document} ->
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(
+          200,
+          document
+          |> DocumentsManager.transform_to_viewmodel()
+          |> Poison.encode!()
+        )
     end
   end
 
@@ -108,19 +148,23 @@ defmodule Dms42Web.DocumentsController do
   def documents(conn, %{"offset" => offset, "length" => length}) do
     conn
     |> put_resp_content_type("application/json")
-    |> send_resp(200, %{"documents": DocumentsManager.documents(offset, length),
-                        "total": DocumentsManager.count()} |> Poison.encode!)
+    |> send_resp(
+      200,
+      %{documents: DocumentsManager.documents(offset, length), total: DocumentsManager.count()} |> Poison.encode!()
+    )
   end
+
   def documents(conn, %{"query" => query}) do
-    conn |> put_resp_content_type("application/json")
-         |> send_resp(200, DocumentsFinder.find(query) |> DocumentsManager.transform_to_viewmodels |> Poison.encode!)
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(200, DocumentsFinder.find(query) |> DocumentsManager.transform_to_viewmodels() |> Poison.encode!())
   end
 
   @doc false
   def document_types(conn, _params) do
     document_types =
       DocumentType
-      |> Dms42.Repo.all
+      |> Dms42.Repo.all()
       |> Enum.map(fn %{:name => name, :type_id => type_id} ->
         {:ok, uuid} = Ecto.UUID.load(type_id)
         %{"name" => name, "id" => uuid}
@@ -128,39 +172,49 @@ defmodule Dms42Web.DocumentsController do
 
     conn
     |> put_resp_content_type("application/json")
-    |> send_resp(200, document_types |> Poison.encode!)
+    |> send_resp(200, document_types |> Poison.encode!())
   end
 
   @doc false
   def create_tag(conn, %{"document_id" => document_id, "tag" => tag}) do
-    {:ok, binary_document_id} = document_id |> Ecto.UUID.dump
+    {:ok, binary_document_id} = document_id |> Ecto.UUID.dump()
     TagManager.add_or_update!(binary_document_id, tag)
     conn |> send_resp(200, "")
   end
 
   @doc false
   def delete_tag(conn, %{"document_id" => document_id, "tag" => tag}) do
-    {:ok, binary_document_id} = document_id |> Ecto.UUID.dump
+    {:ok, binary_document_id} = document_id |> Ecto.UUID.dump()
     TagManager.remove!(binary_document_id, tag)
-    conn |> send_resp(200, %{document_id: document_id, tag: tag} |> Poison.encode!)
+    conn |> send_resp(200, %{document_id: document_id, tag: tag} |> Poison.encode!())
   end
 
   @doc false
   def delete_document(conn, %{"document_id" => document_id}) do
-    {:ok, binary_document_id} = document_id |> Ecto.UUID.dump
+    {:ok, binary_document_id} = document_id |> Ecto.UUID.dump()
     DocumentsManager.remove!(binary_document_id)
-    conn |> send_resp(200, %{document_id: document_id} |> Poison.encode!)
+    conn |> send_resp(200, %{document_id: document_id} |> Poison.encode!())
   end
 
   defp valid_document_query(conn, document_id) do
     case Ecto.UUID.dump(document_id) do
-      :error -> {:error, conn |> put_resp_content_type("text/plain")
-                              |> send_resp(400, "The given UUID is invalid: document_id")}
-      {:ok, uuid} -> case Dms42.Repo.get_by(Document, document_id: uuid) do
-                      nil -> {:error, conn |> put_resp_content_type("text/plain")
-                                           |> send_resp(404, "The given UUID is not found: #{uuid}")}
-                      x -> {:ok, conn, x}
-                     end
+      :error ->
+        {:error,
+         conn
+         |> put_resp_content_type("text/plain")
+         |> send_resp(400, "The given UUID is invalid: document_id")}
+
+      {:ok, uuid} ->
+        case Dms42.Repo.get_by(Document, document_id: uuid) do
+          nil ->
+            {:error,
+             conn
+             |> put_resp_content_type("text/plain")
+             |> send_resp(404, "The given UUID is not found: #{uuid}")}
+
+          x ->
+            {:ok, conn, x}
+        end
     end
   end
 end

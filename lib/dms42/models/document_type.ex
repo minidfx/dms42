@@ -2,7 +2,7 @@ defmodule Dms42.Models.DocumentType do
   use Ecto.Schema
 
   import Ecto.Changeset
-  
+
   alias Dms42.Models.DocumentType
 
   schema "document_types" do

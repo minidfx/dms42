@@ -1,48 +1,46 @@
-import css from '../css/app.css'
+import '../css/app.css'
 
-import 'dropzone/dist/min/dropzone.min.js'
+import $ from 'jquery'
+import Dropzone from 'dropzone'
 import 'bootstrap4-tagsinput-douglasanpa/tagsinput.js'
 
-const bodyTag = document.getElementsByTagName('body')
-if (bodyTag) {
-    const app = Elm.Main.embed(bodyTag[0])
+import Elm from '../elm/src/Main.elm'
 
-    window.loadTokenFields = function (query, document_id) {
-        const inputTokenFields = $(query)
+// Disable auto discover for all elements:
+Dropzone.autoDiscover = false
 
-        inputTokenFields.tagsinput(
-            {
-                trimValue: true
-            })
-        inputTokenFields.on("itemAdded", function (event) {
-            const tag = event.item
-            app.ports.newTag.send([tag, document_id])
+const app = Elm.Elm.Main.init({node: document.getElementsByName("body")})
+
+app.ports.dropZone.subscribe(function(jQueryPath) {
+    $(jQueryPath).dropzone(
+        {
+            url: "/api/documents",
+            params: function (file) {
+                const localFile = file[0]
+                return {
+                    tags: $("#tags").val(),
+                    fileUnixTimestamp: localFile.lastModified
+                }
+            },
+            autoProcessQueue: true,
+            parallelUploads: 1000,
+            ignoreHiddenFiles: true,
+            acceptedFiles: "image/*,application/pdf"
+        });
+});
+app.ports.tags.subscribe(function(jQueryPath) {
+    const inputTokenFields = $(jQueryPath)
+
+    inputTokenFields.tagsinput(
+        {
+            trimValue: true
         })
-        inputTokenFields.on("itemRemoved", function (event) {
-            const tag = event.item
-            app.ports.deleteTag.send([tag, document_id])
-        })
-    }
-
-    window.loadDropZone = function () {
-        $("div.dropzone")
-            .dropzone(
-                {
-                    url: "/api/documents",
-                    params: function (file) {
-                        var file = file[0];
-                        return {
-                            document_type: $("#documentType")
-                                .val(),
-                            tags: $("#tags")
-                                .val(),
-                            fileUnixTimestamp: file.lastModified
-                        }
-                    },
-                    autoProcessQueue: true,
-                    parallelUploads: 1000,
-                    ignoreHiddenFiles: true,
-                    acceptedFiles: "image/*,application/pdf"
-                });
-    };
-}
+    inputTokenFields.on("itemAdded", function (event) {
+        const tag = event.item
+        // app.ports.newTag.send([tag, document_id])
+    })
+    inputTokenFields.on("itemRemoved", function (event) {
+        const tag = event.item
+        // app.ports.deleteTag.send([tag, document_id])
+    })
+})

@@ -22,6 +22,16 @@ module.exports = (env, options) => ({
   module: {
     rules: [
       {
+        test: /jquery.+\.js$/,
+        use: [{
+          loader: 'expose-loader',
+          options: 'jQuery'
+        }, {
+          loader: 'expose-loader',
+          options: '$'
+        }]
+      },
+      {
         test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
         loader: "url-loader?limit=10000&mimetype=application/font-woff"
       },
@@ -38,7 +48,27 @@ module.exports = (env, options) => ({
       },
       {
         test: /\.css$/,
-        use: [MiniCssExtractPlugin.loader, 'css-loader']
+        use: [
+          MiniCssExtractPlugin.loader,
+          {
+            loader: 'css-loader',
+            options: {
+              url: true
+            }
+          }]
+      },
+      {
+        test: /\.elm$/,
+        exclude: [/elm-stuff/, /node_modules/],
+        use: {
+          loader: 'elm-webpack-loader',
+          options: {
+            cwd: path.resolve(__dirname, 'elm/'),
+            files: [
+              path.resolve(__dirname, 'elm/src/Main.elm')
+            ]
+          }
+        }
       }
     ]
   },

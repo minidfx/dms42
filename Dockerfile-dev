@@ -10,7 +10,7 @@ ENV MIX_ENV=dev
 RUN mkdir /app && \
     curl -sL https://deb.nodesource.com/setup_12.x | bash - && \
     apt-get update && \
-    apt-get install -y nodejs \
+    apt-get install -y nodejs\
                        gcc\
                        make\
                        libtool-bin\
@@ -22,7 +22,8 @@ RUN mkdir /app && \
                        ghostscript-x\
                        libgs-dev\
                        xpdf\
-		                   graphicsmagick && \
+                       graphicsmagick\
+                       inotify-tools && \
     npm install --unsafe-perm -g elm && \
     npm install -g brunch
 

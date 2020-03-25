@@ -6,8 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="author" content="Burgy Benjamin aka minidfx">
 
-    <title>Dms42</title>
-
     <!--  Application CSS -->
     <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
   </head>

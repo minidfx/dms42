@@ -2,19 +2,30 @@
 @import '~bootstrap/dist/css/bootstrap-grid.min.css';
 @import '~bootstrap/dist/css/bootstrap-reboot.min.css';
 @import '~bootstrap4-tagsinput-douglasanpa/tagsinput.css';
-@import '~font-awesome/css/font-awesome.min.css';
 @import '~dropzone/dist/min/dropzone.min.css';
 @import '~dropzone/dist/min/basic.min.css';
+@import '~@fortawesome/fontawesome-free/css/all.min.css';
 
 @import "dropzone.css";
 
 div.home-search
 {
   height: 200px;
-  padding-top: 50px;
 }
 
 main.container
 {
-  padding-top: 100px;
+  padding-top: 150px;
+}
+
+span.documents {
+  font-size: 1.4em;
+}
+
+span.documents i {
+  margin-left: 5px;
+}
+
+.highlight {
+  color: #0062cc;
 }

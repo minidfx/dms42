@@ -69,15 +69,20 @@ app.ports.dropZone.subscribe(request => {
                 () => {
                     app.ports.uploadCompleted.send(null)
                 })
-                .on('complete', x => {
-                    window.setTimeout(() => {
-                            localDropZone.removeFile(x)
-                        
-                            // HACK: Not the best way because for each file the queue is processed.
-                            localDropZone.processQueue()
-                        },
-                        3000)
-                })
+                .on('complete',
+                    x => {
+                        if (x.status !== 'success') {
+                            return
+                        }
+
+                        window.setTimeout(() => {
+                                localDropZone.removeFile(x)
+
+                                // HACK: Not the best way because for each file the queue is processed.
+                                localDropZone.processQueue()
+                            },
+                            3000)
+                    })
         })
 })
 app.ports.tags.subscribe(request => {

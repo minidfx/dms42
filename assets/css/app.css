@@ -6,7 +6,8 @@
 @import '~dropzone/dist/min/basic.min.css';
 @import '~@fortawesome/fontawesome-free/css/all.min.css';
 
-@import "dropzone.css";
+@import 'dropzone.css';
+@import 'typeaheads.css';
 
 div.home-search
 {

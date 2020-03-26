@@ -2,8 +2,8 @@ import '../css/app.css'
 
 import $ from 'jquery'
 import Dropzone from 'dropzone'
-import 'typeahead.js'
 import 'bootstrap4-tagsinput-douglasanpa/tagsinput.js'
+import 'typeahead.js/dist/typeahead.jquery.min.js'
 import '@fortawesome/fontawesome-free'
 
 import Elm from '../elm/src/Main.elm'

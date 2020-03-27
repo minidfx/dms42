@@ -1,11 +1,11 @@
 defmodule Dms42.External do
   require Logger
 
-  def tesseract!(img_path, [lang: lang]) when not is_list(lang) do
+  def tesseract!(img_path, lang: lang) when not is_list(lang) do
     exec_tesseract(img_path, [lang])
   end
 
-  def tesseract!(img_path, [lang: langs]) do
+  def tesseract!(img_path, lang: langs) do
     exec_tesseract(img_path, langs)
   end
 
@@ -13,7 +13,7 @@ defmodule Dms42.External do
     Temp.track!()
     tmp_path = Temp.path!("dms42")
 
-    case System.cmd("pdftotext", [pdf_path, tmp_path]) do
+    case System.cmd("pdftotext", ["-eol", "unix", "-nopgbrk", "-q", pdf_path, tmp_path]) do
       {_, 0} ->
         ocr =
           File.read!(tmp_path)
@@ -32,9 +32,10 @@ defmodule Dms42.External do
   end
 
   defp exec_tesseract(img_path, langs) do
-    {input, output} = {img_path, "stdout"}
-    args = [input, output, "-l", langs_str(langs)]
-    {txt, 0} = System.cmd("tesseract", args, stderr_to_stdout: true)
+    langs_flatten = langs_str(langs)
+    args = [img_path, "stdout", "-l", ]
+    Logger.info("Languages passed to tesseract: #{langs_flatten}")
+    {txt, 0} = System.cmd("tesseract", args, stderr_to_stdout: false)
     txt |> String.trim()
   end
 

@@ -30,7 +30,7 @@ update state =
 
 startUpload : Cmd Models.Msg
 startUpload =
-    Ports.upload { jQueryPath = "div.dropzone" }
+    Ports.upload { jQueryPath = "div.dropzone", jQueryTagsPath = "#tags" }
 
 
 view : Models.State -> Html Models.Msg

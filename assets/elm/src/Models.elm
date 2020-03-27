@@ -19,6 +19,7 @@ type alias DropZoneRequest =
 
 type alias UploadRequest =
     { jQueryPath : String
+    , jQueryTagsPath : String
     }
 
 

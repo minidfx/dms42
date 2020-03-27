@@ -100,7 +100,7 @@ app.ports.tags.subscribe(request => {
         })
 })
 app.ports.upload.subscribe(request => {
-    const {jQueryPath} = request
+    const {jQueryPath, jQueryTagsPath} = request
     const localDropZone = $(jQueryPath)[0].dropzone
     const newFiles = localDropZone.files.filter(x => x.status !== "success")
 
@@ -109,4 +109,5 @@ app.ports.upload.subscribe(request => {
     }
 
     localDropZone.processQueue()
+    $(jQueryTagsPath).tagsinput('removeAll');
 })

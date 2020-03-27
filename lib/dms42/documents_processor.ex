@@ -1,4 +1,6 @@
 defmodule Dms42.DocumentsProcessor do
+  use Pipe
+
   require Logger
 
   alias Dms42.Models.Document
@@ -21,20 +23,50 @@ defmodule Dms42.DocumentsProcessor do
     IO.inspect(reason)
   end
 
-  def handle_call({:process, file_name, mime_type, original_file_datetime, document_type, tags, bytes}, _, state) do
-    result =
-      %NewDocumentProcessingContext{
-        document: %Document{
-          inserted_at: DateTime.utc_now(),
-          original_file_name: file_name,
-          original_file_name_normalized: file_name |> DocumentsFinder.normalize(),
-          document_id: Ecto.UUID.bingenerate(),
-          original_file_datetime: original_file_datetime,
-          mime_type: mime_type
-        },
-        type: document_type,
-        transaction: Ecto.Multi.new()
-      }
+  def handle_call(
+        {:process, file_name, mime_type, original_file_datetime, document_type, tags, bytes},
+        _,
+        state
+      ) do
+    case internal_handle_new_document(
+           file_name,
+           mime_type,
+           original_file_datetime,
+           document_type,
+           tags,
+           bytes
+         ) do
+      {:ok, _} ->
+        {:reply, :ok, state}
+
+      {:error, reason} ->
+        {:reply, {:error, reason}, state}
+    end
+  end
+
+  defp internal_handle_new_document(
+         file_name,
+         mime_type,
+         original_file_datetime,
+         document_type,
+         tags,
+         bytes
+       ) do
+    Pipe.pipe_matching(
+      {:ok, _},
+      {:ok,
+       %NewDocumentProcessingContext{
+         document: %Document{
+           inserted_at: DateTime.utc_now(),
+           original_file_name: file_name,
+           original_file_name_normalized: file_name |> DocumentsFinder.normalize(),
+           document_id: Ecto.UUID.bingenerate(),
+           original_file_datetime: original_file_datetime,
+           mime_type: mime_type
+         },
+         type: document_type,
+         transaction: Ecto.Multi.new()
+       }}
       |> valid_file_type
       |> valid_file_path
       |> valid_document_type
@@ -43,21 +75,19 @@ defmodule Dms42.DocumentsProcessor do
       |> insert_to_database
       |> insert_tags(tags)
       |> commit
-
-    case result do
-      {:ok, document} ->
-        file_path = DocumentPath.document_path!(document)
-        Logger.info("Document #{file_path} successfully added.")
-        {:reply, :ok, state}
-
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
-    end
+      |> post_process
+    )
   end
 
-  defp commit({:error, _reason} = error), do: error
+  defp post_process({:ok, document}) do
+    file_path = DocumentPath.document_path!(document)
+    Logger.info("Document #{file_path} successfully added.")
+    {:ok, file_path}
+  end
 
-  defp commit({:ok, %NewDocumentProcessingContext{:transaction => transaction, :document => document}}) do
+  defp commit(
+         {:ok, %NewDocumentProcessingContext{:transaction => transaction, :document => document}}
+       ) do
     case Dms42.Repo.transaction(transaction) do
       {:error, table, _, _} ->
         DocumentPath.document_path!(document) |> File.rm!()
@@ -75,7 +105,9 @@ defmodule Dms42.DocumentsProcessor do
     end
   end
 
-  def valid_document_type({:ok, %NewDocumentProcessingContext{:type => document_type_string_id} = context}) do
+  def valid_document_type(
+        {:ok, %NewDocumentProcessingContext{:type => document_type_string_id} = context}
+      ) do
     {:ok, uuid} = Ecto.UUID.dump(document_type_string_id)
 
     case Dms42.Repo.get_by(DocumentType, type_id: uuid) do
@@ -88,26 +120,33 @@ defmodule Dms42.DocumentsProcessor do
     end
   end
 
-  def valid_document_type({:error, _} = error), do: error
-
-  defp insert_tags({:error, _reason} = error, _), do: error
   defp insert_tags(result, []), do: result
 
   defp insert_tags(
-         {:ok, %NewDocumentProcessingContext{:transaction => transaction, :document => %Document{:document_id => document_id}} = context},
+         {:ok,
+          %NewDocumentProcessingContext{
+            :transaction => transaction,
+            :document => %Document{:document_id => document_id}
+          } = context},
          tags
        ) do
     [tag | tail] = tags
 
     insert_tags(
-      {:ok, %NewDocumentProcessingContext{context | :transaction => transaction |> TagManager.add_or_update(document_id, tag)}},
+      {:ok,
+       %NewDocumentProcessingContext{
+         context
+         | :transaction => transaction |> TagManager.add_or_update(document_id, tag)
+       }},
       tail
     )
   end
 
-  defp insert_to_database({:error, _reason} = error), do: error
-
-  defp insert_to_database({:ok, %NewDocumentProcessingContext{:transaction => transaction, :document => document} = context}) do
+  defp insert_to_database(
+         {:ok,
+          %NewDocumentProcessingContext{:transaction => transaction, :document => document} =
+            context}
+       ) do
     {:ok,
      %NewDocumentProcessingContext{
        context
@@ -124,10 +163,11 @@ defmodule Dms42.DocumentsProcessor do
     {:error, "Not implemented"}
   end
 
-  defp is_document_exists({:error, _} = error, _), do: error
-
   defp is_document_exists(
-         {:ok, %NewDocumentProcessingContext{:document => %{:original_file_name => file_name} = document} = context},
+         {:ok,
+          %NewDocumentProcessingContext{
+            :document => %{:original_file_name => file_name} = document
+          } = context},
          bytes
        ) do
     case DocumentsManager.is_document_exists(bytes) do
@@ -140,10 +180,10 @@ defmodule Dms42.DocumentsProcessor do
     end
   end
 
-  defp valid_file_path({:error, _reason} = error), do: error
-
   defp valid_file_path({:ok, %NewDocumentProcessingContext{:document => document} = context}) do
-    absolute_thumbnails_folder_path = DocumentPath.small_thumbnail_path!(document) |> Path.dirname()
+    absolute_thumbnails_folder_path =
+      DocumentPath.small_thumbnail_path!(document) |> Path.dirname()
+
     absolute_documents_folder_path = DocumentPath.document_path!(document) |> Path.dirname()
     documents_folder_result = absolute_documents_folder_path |> File.mkdir_p()
     thumbnails_folder_result = absolute_thumbnails_folder_path |> File.mkdir_p()
@@ -153,17 +193,22 @@ defmodule Dms42.DocumentsProcessor do
         {:ok, context}
 
       {_, {:error, reason}} ->
-        {:error, "Cannot create the folder structure #{absolute_thumbnails_folder_path}: " <> Atom.to_string(reason)}
+        {:error,
+         "Cannot create the folder structure #{absolute_thumbnails_folder_path}: " <>
+           Atom.to_string(reason)}
 
       {{:error, reason}, _} ->
-        {:error, "Cannot create the folder structure #{absolute_documents_folder_path}: " <> Atom.to_string(reason)}
+        {:error,
+         "Cannot create the folder structure #{absolute_documents_folder_path}: " <>
+           Atom.to_string(reason)}
     end
   end
 
-  defp save_file({:error, _reason} = error, _bytes), do: error
-
   defp save_file(
-         {:ok, %NewDocumentProcessingContext{:document => %Document{:original_file_name => file_name} = document} = context},
+         {:ok,
+          %NewDocumentProcessingContext{
+            :document => %Document{:original_file_name => file_name} = document
+          } = context},
          bytes
        ) do
     file_path = DocumentPath.document_path!(document)
@@ -184,7 +229,11 @@ defmodule Dms42.DocumentsProcessor do
     end
   end
 
-  defp valid_file_type(%{:document => %Document{:mime_type => mime_type, :original_file_name => file_name}} = context) do
+  defp valid_file_type(
+         {:ok,
+          %{:document => %Document{:mime_type => mime_type, :original_file_name => file_name}} =
+           context}
+       ) do
     allowed_types = ["application/pdf", "image/jpeg", "image/png"]
 
     case Enum.any?(allowed_types, fn x -> x == mime_type end) do

@@ -2,6 +2,8 @@ module Models exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
+import Http
+import Time
 import Url
 
 
@@ -23,15 +25,48 @@ type alias UploadRequest =
     }
 
 
+type alias DocumentThumbnails =
+    { countImages : Int
+    , currentImage : Maybe Int
+    }
+
+
+type alias DocumentDateTimes =
+    { inserted_datetime : Time.Posix
+    , updated_datetime : Maybe Time.Posix
+    , original_file_datetime : Time.Posix
+    }
+
+
 type alias Document =
-    { id : String
+    { comments : Maybe String
+    , id : String
+    , type_id : String
+    , tags : List String
+    , original_file_name : String
+    , datetimes : DocumentDateTimes
+    , thumbnails : DocumentThumbnails
+    , ocr : Maybe String
+    }
+
+
+type alias Documents =
+    { documents : List Document
+    , total : Int
+    }
+
+
+type alias DocumentsRequest =
+    { offset : Int
+    , length : Int
     }
 
 
 type alias State =
     { key : Nav.Key
     , url : Url.Url
-    , documents : Maybe (List Document)
+    , documents : Maybe Documents
+    , documentsRequest : Maybe DocumentsRequest
     , uploading : Bool
     }
 
@@ -41,8 +76,10 @@ type Msg
     | UrlChanged Url.Url
     | StartUpload
     | UploadCompleted
+    | GotDocuments (Result Http.Error Documents)
+    | Error String
 
 
 modelFactory : Nav.Key -> Url.Url -> State
 modelFactory key url =
-    State key url Nothing False
+    State key url Nothing Nothing False

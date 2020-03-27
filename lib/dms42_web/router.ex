@@ -13,17 +13,6 @@ defmodule Dms42Web.Router do
     plug(:accepts, ["json"])
   end
 
-  scope "/", Dms42Web do
-    # Use the default browser stack
-    pipe_through(:browser)
-
-    get("/documents/thumbnail/:document_id", DocumentsController, :thumbnail)
-    get("/documents/:document_id/images", DocumentsController, :document_image)
-    get("/documents/:document_id/images/:image_id", DocumentsController, :document_image)
-
-    get("/*path", PageController, :index)
-  end
-
   # Other scopes may use custom stacks.
   scope "/api", Dms42Web do
     pipe_through(:api)
@@ -44,5 +33,16 @@ defmodule Dms42Web.Router do
     get("/document-types", DocumentsController, :document_types)
 
     post("/settings/thumbnails", SettingsController, :process_all_thumbnails)
+  end
+
+  scope "/", Dms42Web do
+    # Use the default browser stack
+    pipe_through(:browser)
+
+    get("/documents/thumbnail/:document_id", DocumentsController, :thumbnail)
+    get("/documents/:document_id/images", DocumentsController, :document_image)
+    get("/documents/:document_id/images/:image_id", DocumentsController, :document_image)
+
+    get("/*path", PageController, :index)
   end
 end

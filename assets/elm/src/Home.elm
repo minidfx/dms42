@@ -1,8 +1,12 @@
-module Home exposing (..)
+module Home exposing (view)
 
 import Html exposing (Html)
 import Html.Attributes
 import Models
+
+
+
+-- Public members
 
 
 view : Models.State -> Html Models.Msg

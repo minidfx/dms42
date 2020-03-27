@@ -7,7 +7,7 @@ import Documents
 import Home
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Models
+import Models exposing (Documents)
 import Ports
 import Settings
 import Url
@@ -43,6 +43,13 @@ init flags url key =
         "/documents/add" ->
             AddDocuments.init flags key initialState
 
+        "/documents" ->
+            let
+                request =
+                    { offset = 0, length = 10 }
+            in
+            ( { initialState | documentsRequest = Just request }, Documents.getDocuments request )
+
         _ ->
             ( initialState, Cmd.none )
 
@@ -54,6 +61,12 @@ init flags url key =
 update : Models.Msg -> Models.State -> ( Models.State, Cmd Models.Msg )
 update msg model =
     case msg of
+        Models.Error message ->
+            ( model, Cmd.none )
+
+        Models.GotDocuments documentsResult ->
+            Documents.handleDocuments model documentsResult
+
         Models.LinkClicked urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
@@ -80,6 +93,13 @@ update msg model =
             case url.path of
                 "/documents/add" ->
                     AddDocuments.update newModel
+
+                "/documents" ->
+                    let
+                        request =
+                            { offset = 0, length = 10 }
+                    in
+                    ( { newModel | documentsRequest = Just request }, Documents.getDocuments request )
 
                 _ ->
                     ( newModel

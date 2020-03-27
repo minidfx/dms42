@@ -1,4 +1,4 @@
-module AddDocuments exposing (..)
+module AddDocuments exposing (init, startUpload, update, view)
 
 import Browser.Navigation as Nav
 import Html exposing (Html)
@@ -6,6 +6,10 @@ import Html.Attributes
 import Html.Events
 import Models
 import Ports
+
+
+
+-- Public members
 
 
 init : () -> Nav.Key -> Models.State -> ( Models.State, Cmd Models.Msg )
@@ -26,11 +30,6 @@ update state =
         , Ports.tags { jQueryPath = "#tags", existingTags = [ "jocelyne", "benjamin" ] }
         ]
     )
-
-
-startUpload : Cmd Models.Msg
-startUpload =
-    Ports.upload { jQueryPath = "div.dropzone", jQueryTagsPath = "#tags" }
 
 
 view : Models.State -> Html Models.Msg
@@ -73,3 +72,12 @@ view { uploading } =
                 ]
             ]
         ]
+
+
+startUpload : Cmd Models.Msg
+startUpload =
+    Ports.upload { jQueryPath = "div.dropzone", jQueryTagsPath = "#tags" }
+
+
+
+-- Private members

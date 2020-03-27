@@ -1,7 +1,11 @@
-module Settings exposing (..)
+module Settings exposing (view)
 
 import Html exposing (Html)
 import Models
+
+
+
+-- Public members
 
 
 view : Models.State -> Html Models.Msg

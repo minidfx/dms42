@@ -92,7 +92,8 @@ defmodule Dms42.TagManager do
   @doc """
     Removes the tag passing the given id from the document using a transaction.
   """
-  def remove(transaction, document_id, tag_name) when is_binary(document_id) and is_bitstring(tag_name) do
+  def remove(transaction, document_id, tag_name)
+      when is_binary(document_id) and is_bitstring(tag_name) do
     tag_name_normalized = tag_name |> DocumentsFinder.normalize()
 
     case Dms42.Repo.get_by(Tag, name_normalized: tag_name_normalized) do
@@ -104,9 +105,13 @@ defmodule Dms42.TagManager do
   @doc """
     Removes the tag from the document using a transaction.
   """
-  def remove(transaction, document_id, %Tag{:tag_id => tid, :name => t_name} = tag) when is_binary(document_id) and is_map(tag) do
+  def remove(transaction, document_id, %Tag{:tag_id => tid, :name => t_name} = tag)
+      when is_binary(document_id) and is_map(tag) do
     transaction
-    |> Ecto.Multi.delete_all("tag_#{t_name}", from(DocumentTag, where: [document_id: ^document_id, tag_id: ^tid]))
+    |> Ecto.Multi.delete_all(
+      "tag_#{t_name}",
+      from(DocumentTag, where: [document_id: ^document_id, tag_id: ^tid])
+    )
     |> clean_tag(tag)
   end
 
@@ -135,11 +140,14 @@ defmodule Dms42.TagManager do
 
   def clean_document_tags(transaction, document_id) when is_binary(document_id) do
     # NOTE: Use the reduce function to passthru the transaction to every requests but it's not a reduction!
-    get_tags(document_id) |> Enum.reduce(transaction, fn tag, t -> remove(t, document_id, tag) end)
+    get_tags(document_id)
+    |> Enum.reduce(transaction, fn tag, t -> remove(t, document_id, tag) end)
   end
 
   defp clean_tag(transaction, %Tag{:tag_id => tag_id} = tag) do
-    result = from(dt in DocumentTag, where: dt.tag_id == ^tag_id, select: count(dt.id)) |> Dms42.Repo.all()
+    result =
+      from(dt in DocumentTag, where: dt.tag_id == ^tag_id, select: count(dt.id))
+      |> Dms42.Repo.all()
 
     case result do
       [0] -> transaction |> Ecto.Multi.delete("clean_tag_#{tag_id}", tag)

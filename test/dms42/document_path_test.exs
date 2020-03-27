@@ -40,7 +40,10 @@ defmodule Dms42Web.DocumentPathTest do
     document_id = Ecto.UUID.bingenerate()
     {:ok, uuid} = Ecto.UUID.load(document_id)
     {:ok, inserted_at, _} = DateTime.from_iso8601("2015-01-23T23:50:07Z")
-    result = DocumentPath.small_thumbnail_path!(%Document{document_id: uuid, inserted_at: inserted_at})
+
+    result =
+      DocumentPath.small_thumbnail_path!(%Document{document_id: uuid, inserted_at: inserted_at})
+
     current_folder = System.cwd()
     expected_result = "#{current_folder}/thumbnails/2015/1/23/#{uuid}/small.png"
     assert expected_result == result

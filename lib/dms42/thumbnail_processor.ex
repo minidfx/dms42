@@ -24,7 +24,10 @@ defmodule Dms42.ThumbnailProcessor do
     IO.inspect(reason)
   end
 
-  def handle_cast({:process, document, "application/pdf"}, %{:thumbnails_path => tp, :documents_path => dp} = state) do
+  def handle_cast(
+        {:process, document, "application/pdf"},
+        %{:thumbnails_path => tp, :documents_path => dp} = state
+      ) do
     try do
       file_path = DocumentPath.document_path!(document)
       Logger.debug("Processing the thumbnail for the document #{file_path} ...")
@@ -54,7 +57,10 @@ defmodule Dms42.ThumbnailProcessor do
     {:noreply, state}
   end
 
-  def handle_cast({:process, document, _}, %{:thumbnails_path => tp, :documents_path => dp} = state) do
+  def handle_cast(
+        {:process, document, _},
+        %{:thumbnails_path => tp, :documents_path => dp} = state
+      ) do
     try do
       file_path = DocumentPath.document_path!(document)
       Logger.debug("Processing the thumbnail for the document #{file_path} ...")

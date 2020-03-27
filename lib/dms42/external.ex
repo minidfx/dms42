@@ -33,7 +33,7 @@ defmodule Dms42.External do
 
   defp exec_tesseract(img_path, langs) do
     langs_flatten = langs_str(langs)
-    args = [img_path, "stdout", "-l", ]
+    args = [img_path, "stdout", "-l"]
     Logger.info("Languages passed to tesseract: #{langs_flatten}")
     {txt, 0} = System.cmd("tesseract", args, stderr_to_stdout: false)
     txt |> String.trim()

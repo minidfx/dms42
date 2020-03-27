@@ -40,7 +40,16 @@ defmodule Dms42.DocumentPath do
       )
       when is_bitstring(document_id) do
     %{:year => year, :month => month, :day => day} = DateTime.utc_now()
-    document_path = Path.join([path, year |> Integer.to_string(), month |> Integer.to_string(), day |> Integer.to_string(), document_id])
+
+    document_path =
+      Path.join([
+        path,
+        year |> Integer.to_string(),
+        month |> Integer.to_string(),
+        day |> Integer.to_string(),
+        document_id
+      ])
+
     {:reply, {:ok, document_path}, state}
   end
 
@@ -51,7 +60,16 @@ defmodule Dms42.DocumentPath do
       )
       when is_bitstring(document_id) do
     %{:year => year, :month => month, :day => day} = DateTime.utc_now()
-    document_path = Path.join([path, year |> Integer.to_string(), month |> Integer.to_string(), day |> Integer.to_string(), document_id])
+
+    document_path =
+      Path.join([
+        path,
+        year |> Integer.to_string(),
+        month |> Integer.to_string(),
+        day |> Integer.to_string(),
+        document_id
+      ])
+
     {:reply, {:ok, document_path}, state}
   end
 
@@ -70,7 +88,16 @@ defmodule Dms42.DocumentPath do
       ) do
     %{:year => year, :month => month, :day => day} = datetime
     {:ok, uuid} = Ecto.UUID.load(document_id)
-    document_path = Path.join([absolute_document_path, year |> Integer.to_string(), month |> Integer.to_string(), day |> Integer.to_string(), uuid])
+
+    document_path =
+      Path.join([
+        absolute_document_path,
+        year |> Integer.to_string(),
+        month |> Integer.to_string(),
+        day |> Integer.to_string(),
+        uuid
+      ])
+
     {:reply, {:ok, document_path}, state}
   end
 
@@ -81,7 +108,16 @@ defmodule Dms42.DocumentPath do
       )
       when is_bitstring(document_id) do
     %{:year => year, :month => month, :day => day} = DateTime.utc_now()
-    document_path = Path.join([path, year |> Integer.to_string(), month |> Integer.to_string(), day |> Integer.to_string(), document_id])
+
+    document_path =
+      Path.join([
+        path,
+        year |> Integer.to_string(),
+        month |> Integer.to_string(),
+        day |> Integer.to_string(),
+        document_id
+      ])
+
     {:reply, {:ok, document_path}, state}
   end
 
@@ -94,7 +130,14 @@ defmodule Dms42.DocumentPath do
     %{:year => year, :month => month, :day => day} = DateTime.utc_now()
 
     small_thumbnail_path =
-      Path.join([path, year |> Integer.to_string(), month |> Integer.to_string(), day |> Integer.to_string(), document_id, "small.png"])
+      Path.join([
+        path,
+        year |> Integer.to_string(),
+        month |> Integer.to_string(),
+        day |> Integer.to_string(),
+        document_id,
+        "small.png"
+      ])
 
     {:reply, {:ok, small_thumbnail_path}, state}
   end
@@ -106,12 +149,27 @@ defmodule Dms42.DocumentPath do
       ) do
     %{:year => year, :month => month, :day => day} = datetime
     {:ok, uuid} = Ecto.UUID.load(document_id)
-    small_thumbnail_path = Path.join([path, year |> Integer.to_string(), month |> Integer.to_string(), day |> Integer.to_string(), uuid, "small.png"])
+
+    small_thumbnail_path =
+      Path.join([
+        path,
+        year |> Integer.to_string(),
+        month |> Integer.to_string(),
+        day |> Integer.to_string(),
+        uuid,
+        "small.png"
+      ])
+
     {:reply, {:ok, small_thumbnail_path}, state}
   end
 
   def handle_call(
-        {:big_thumbnail_paths, %Document{:document_id => document_id, :inserted_at => datetime, :mime_type => "application/pdf"}},
+        {:big_thumbnail_paths,
+         %Document{
+           :document_id => document_id,
+           :inserted_at => datetime,
+           :mime_type => "application/pdf"
+         }},
         _from,
         %{:absolute_thumbnail_path => path} = state
       ) do
@@ -124,7 +182,13 @@ defmodule Dms42.DocumentPath do
         %{:year => year, :month => month, :day => day} = x
 
         files =
-          Path.join([path, year |> Integer.to_string(), month |> Integer.to_string(), day |> Integer.to_string(), uuid])
+          Path.join([
+            path,
+            year |> Integer.to_string(),
+            month |> Integer.to_string(),
+            day |> Integer.to_string(),
+            uuid
+          ])
           |> list_big_thumbnails
 
         {:reply, {:ok, files}, state}
@@ -143,7 +207,16 @@ defmodule Dms42.DocumentPath do
       x ->
         {:ok, uuid} = Ecto.UUID.load(document_id)
         %{:year => year, :month => month, :day => day} = x
-        document_file_path = Path.join([path, year |> Integer.to_string(), month |> Integer.to_string(), day |> Integer.to_string(), uuid])
+
+        document_file_path =
+          Path.join([
+            path,
+            year |> Integer.to_string(),
+            month |> Integer.to_string(),
+            day |> Integer.to_string(),
+            uuid
+          ])
+
         {:reply, {:ok, [document_file_path]}, state}
     end
   end
@@ -157,7 +230,13 @@ defmodule Dms42.DocumentPath do
     %{:year => year, :month => month, :day => day} = DateTime.utc_now()
 
     files =
-      Path.join([path, year |> Integer.to_string(), month |> Integer.to_string(), day |> Integer.to_string(), document_id])
+      Path.join([
+        path,
+        year |> Integer.to_string(),
+        month |> Integer.to_string(),
+        day |> Integer.to_string(),
+        document_id
+      ])
       |> list_big_thumbnails
 
     {:reply, {:ok, files}, state}

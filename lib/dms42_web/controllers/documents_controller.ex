@@ -18,7 +18,6 @@ defmodule Dms42Web.DocumentsController do
           :path => temp_file_path
         },
         "tags" => tags,
-        "document_type" => document_type,
         "fileUnixTimestamp" => file_timestamp
       }) do
     bytes = File.read!(temp_file_path)
@@ -34,7 +33,7 @@ defmodule Dms42Web.DocumentsController do
           original_file_name,
           mime_type,
           file_timestamp |> String.to_integer() |> Timex.from_unix(:milliseconds),
-          document_type,
+          "91d2e90e-d96c-4f51-9fea-802f9873c1bb",
           tags |> String.split(",", trim: true),
           bytes
         )
@@ -85,7 +84,8 @@ defmodule Dms42Web.DocumentsController do
         conn
 
       {:ok, conn, document} ->
-        path = DocumentPath.big_thumbnail_paths!(document) |> Enum.at(image_id |> String.to_integer())
+        path =
+          DocumentPath.big_thumbnail_paths!(document) |> Enum.at(image_id |> String.to_integer())
 
         case path do
           nil ->
@@ -150,14 +150,20 @@ defmodule Dms42Web.DocumentsController do
     |> put_resp_content_type("application/json")
     |> send_resp(
       200,
-      %{documents: DocumentsManager.documents(offset, length), total: DocumentsManager.count()} |> Poison.encode!()
+      %{documents: DocumentsManager.documents(offset, length), total: DocumentsManager.count()}
+      |> Poison.encode!()
     )
   end
 
   def documents(conn, %{"query" => query}) do
     conn
     |> put_resp_content_type("application/json")
-    |> send_resp(200, DocumentsFinder.find(query) |> DocumentsManager.transform_to_viewmodels() |> Poison.encode!())
+    |> send_resp(
+      200,
+      DocumentsFinder.find(query)
+      |> DocumentsManager.transform_to_viewmodels()
+      |> Poison.encode!()
+    )
   end
 
   @doc false

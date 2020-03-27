@@ -18,14 +18,16 @@ defmodule Dms42.DocumentsManager do
     GenServer.call(
       :documents_processor,
       {:process, file_name, mime_type, original_file_datetime, document_type, tags, bytes},
-      60_000
+      60_000 * 15
     )
   end
 
   def generate_thumbnails() do
     Document
     |> Dms42.Repo.all()
-    |> Enum.each(fn %Document{:mime_type => mime_type} = x -> GenServer.cast(:thumbnail, {:process, x, mime_type}) end)
+    |> Enum.each(fn %Document{:mime_type => mime_type} = x ->
+      GenServer.cast(:thumbnail, {:process, x, mime_type})
+    end)
   end
 
   @doc """
@@ -84,7 +86,12 @@ defmodule Dms42.DocumentsManager do
   def transform_to_viewmodels(documents), do: documents |> Enum.map(&transform_to_viewmodel/1)
 
   def transform_to_viewmodel(%Document{:document_id => did} = document) do
-    document = Map.put(document, :tags, TagManager.get_tags(did) |> Enum.map(fn %Tag{:name => tag} -> tag end))
+    document =
+      Map.put(
+        document,
+        :tags,
+        TagManager.get_tags(did) |> Enum.map(fn %Tag{:name => tag} -> tag end)
+      )
 
     %{
       :comments => comments,

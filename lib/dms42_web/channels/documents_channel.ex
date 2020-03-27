@@ -46,14 +46,24 @@ defmodule Dms42Web.DocumentsChannel do
   #   {:noreply, socket}
   # end
 
-  def handle_in("document:comments", %{"comments" => comments, "document_id" => document_id}, socket) do
+  def handle_in(
+        "document:comments",
+        %{"comments" => comments, "document_id" => document_id},
+        socket
+      ) do
     {:ok, uuid} = Ecto.UUID.dump(document_id)
-    %{comments: comments_updated, updated_at: updated} = DocumentsManager.edit_comments!(uuid, comments)
+
+    %{comments: comments_updated, updated_at: updated} =
+      DocumentsManager.edit_comments!(uuid, comments)
 
     Phoenix.Channel.push(
       socket,
       "comments",
-      %{document_id: document_id, comments: comments_updated, updated_datetime: updated |> DocumentsManager.to_rfc2822()}
+      %{
+        document_id: document_id,
+        comments: comments_updated,
+        updated_datetime: updated |> DocumentsManager.to_rfc2822()
+      }
     )
 
     {:reply, :ok, socket}

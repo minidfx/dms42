@@ -232,7 +232,7 @@ defmodule Dms42.DocumentsProcessor do
   defp valid_file_type(
          {:ok,
           %{:document => %Document{:mime_type => mime_type, :original_file_name => file_name}} =
-           context}
+            context}
        ) do
     allowed_types = ["application/pdf", "image/jpeg", "image/png"]
 

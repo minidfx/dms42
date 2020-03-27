@@ -47,7 +47,8 @@ defmodule Dms42.Mixfile do
       {:exmagick, "~> 0.0.1"},
       {:temp, "~> 0.4"},
       {:ex_mock, "~> 0.1.0", only: :test},
-      {:dialyxir, "~> 1.0.0-rc.7", only: [:dev], runtime: false}
+      {:dialyxir, "~> 1.0.0-rc.7", only: [:dev], runtime: false},
+      {:pipe, "~> 0.0.2"}
     ]
   end
 

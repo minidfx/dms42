@@ -56,12 +56,31 @@ handleDocuments state result =
         Ok x ->
             ( { state | documents = Just x }, Cmd.none )
 
-        Err _ ->
-            ( state, Cmd.none )
+        Err message ->
+            ( { state | error = Just <| httpErrorToString message }, Cmd.none )
 
 
 
 -- Private members
+
+
+httpErrorToString : Http.Error -> String
+httpErrorToString error =
+    case error of
+        Http.BadUrl x ->
+            x
+
+        Http.Timeout ->
+            "timeout"
+
+        Http.NetworkError ->
+            "NetworkError"
+
+        Http.BadStatus x ->
+            String.fromInt x
+
+        Http.BadBody x ->
+            x
 
 
 documentDateTimesDecoder : Json.Decode.Decoder Models.DocumentDateTimes

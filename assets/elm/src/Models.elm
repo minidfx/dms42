@@ -68,6 +68,7 @@ type alias State =
     , documents : Maybe Documents
     , documentsRequest : Maybe DocumentsRequest
     , uploading : Bool
+    , error : Maybe String
     }
 
 
@@ -77,9 +78,8 @@ type Msg
     | StartUpload
     | UploadCompleted
     | GotDocuments (Result Http.Error Documents)
-    | Error String
 
 
 modelFactory : Nav.Key -> Url.Url -> State
 modelFactory key url =
-    State key url Nothing Nothing False
+    State key url Nothing Nothing False Nothing

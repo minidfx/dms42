@@ -61,9 +61,6 @@ init flags url key =
 update : Models.Msg -> Models.State -> ( Models.State, Cmd Models.Msg )
 update msg model =
     case msg of
-        Models.Error message ->
-            ( model, Cmd.none )
-
         Models.GotDocuments documentsResult ->
             Documents.handleDocuments model documentsResult
 
@@ -88,7 +85,7 @@ update msg model =
         Models.UrlChanged url ->
             let
                 newModel =
-                    { model | url = url }
+                    { model | url = url, error = Nothing }
             in
             case url.path of
                 "/documents/add" ->
@@ -168,13 +165,21 @@ mainView state =
 
                 _ ->
                     Home.view state
+
+        mainContent =
+            case state.error of
+                Just x ->
+                    [ Html.div [ Html.Attributes.class "error alert alert-danger" ] [ Html.text x ], content ]
+
+                Nothing ->
+                    [ content ]
     in
     [ navbar
     , Html.main_
         [ Html.Attributes.class "container"
         , Html.Attributes.attribute "role" "main"
         ]
-        [ content ]
+        mainContent
     ]
 
 

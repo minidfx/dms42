@@ -30,3 +30,7 @@ span.documents i {
 .highlight {
   color: #0062cc;
 }
+
+div.error {
+  margin-top: -5em;
+}

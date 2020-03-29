@@ -9,6 +9,7 @@ import Html.Attributes
 import Html.Events
 import Models
 import String.Format
+import Time
 import Url
 import Url.Builder
 
@@ -18,8 +19,11 @@ import Url.Builder
 
 
 card : Models.State -> Models.DocumentResponse -> Html Models.Msg
-card { key, url } { datetimes, id, tags } =
+card { key, url, userTimeZone } { datetimes, id, tags } =
     let
+        timeZone =
+            userTimeZone |> Maybe.withDefault Time.utc
+
         { inserted_datetime, updated_datetime } =
             datetimes
 
@@ -46,7 +50,7 @@ card { key, url } { datetimes, id, tags } =
             ]
             []
         |> Bootstrap.Card.block []
-            [ Bootstrap.Card.Block.text [] [ Html.text "date time" ]
+            [ Bootstrap.Card.Block.text [] [ Html.text <| Helpers.posix2String timeZone inserted_datetime ]
             , Bootstrap.Card.Block.text [] [ flattenTags tags ]
             ]
         |> Bootstrap.Card.view

@@ -4,7 +4,7 @@ import Browser
 import Browser.Navigation as Nav
 import Dict exposing (Dict)
 import Http
-import Time
+import Time exposing (Posix)
 import Url
 
 
@@ -88,6 +88,7 @@ type alias State =
     , tagsResponse : Maybe (List String)
     , uploading : Bool
     , error : Maybe String
+    , userTimeZone : Maybe Time.Zone
     }
 
 
@@ -98,3 +99,4 @@ type Msg
     | UploadCompleted
     | GotDocuments (Result Http.Error DocumentsResponse)
     | PaginationMsg Int
+    | GetUserTimeZone Time.Zone

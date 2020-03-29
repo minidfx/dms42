@@ -7,6 +7,8 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Models exposing (DocumentsResponse)
 import Ports
+import Task
+import Time
 import Url exposing (Url)
 import Url.Parser exposing (..)
 import Views.AddDocuments
@@ -50,27 +52,36 @@ routes =
 init : () -> Url.Url -> Nav.Key -> ( Models.State, Cmd Models.Msg )
 init flags url key =
     let
+        defaultActions =
+            Task.perform Models.GetUserTimeZone Time.here
+
         route =
             Url.Parser.parse routes url |> Maybe.withDefault Models.Home
 
         initialState =
             Factories.stateFactory key url route
+
+        ( state, commands ) =
+            case route of
+                Models.AddDocuments ->
+                    Views.AddDocuments.init flags key initialState
+
+                Models.Documents ->
+                    Views.Documents.init flags key initialState
+
+                Models.Document id ->
+                    Views.Document.init flags key initialState id
+
+                Models.Settings ->
+                    ( initialState, Cmd.none )
+
+                Models.Home ->
+                    ( initialState, Cmd.none )
+
+        newCommands =
+            Cmd.batch [ defaultActions, commands ]
     in
-    case route of
-        Models.AddDocuments ->
-            Views.AddDocuments.init flags key initialState
-
-        Models.Documents ->
-            Views.Documents.init flags key initialState
-
-        Models.Document id ->
-            Views.Document.init flags key initialState
-
-        Models.Settings ->
-            ( initialState, Cmd.none )
-
-        Models.Home ->
-            ( initialState, Cmd.none )
+    ( state, newCommands )
 
 
 
@@ -129,6 +140,11 @@ update msg model =
 
                 Models.Home ->
                     ( newModel, Cmd.none )
+
+        Models.GetUserTimeZone zone ->
+            ( { model | userTimeZone = Just zone }
+            , Cmd.none
+            )
 
 
 

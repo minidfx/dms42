@@ -13,6 +13,8 @@ import Iso8601
 import Json.Decode
 import Models
 import String.Format
+import Task
+import Time as Task
 import Views.Shared
 
 
@@ -22,30 +24,12 @@ import Views.Shared
 
 init : () -> Nav.Key -> Models.State -> ( Models.State, Cmd Models.Msg )
 init _ _ initialState =
-    let
-        request =
-            { offset = 0, length = 5 }
-
-        documentsState =
-            initialState.documentsState
-                |> Maybe.withDefault Factories.documentsStateFactory
-                |> Helpers.fluentUpdate (\x -> { x | documentsRequest = Just request, length = request.length })
-    in
-    ( { initialState | documentsState = Just documentsState }, getDocuments request )
+    internalUpdate initialState
 
 
 update : Models.State -> ( Models.State, Cmd Models.Msg )
 update state =
-    let
-        request =
-            { offset = 0, length = 5 }
-
-        documentsState =
-            state.documentsState
-                |> Maybe.withDefault Factories.documentsStateFactory
-                |> Helpers.fluentUpdate (\x -> { x | documentsRequest = Just request, length = request.length })
-    in
-    ( { state | documentsState = Just documentsState }, getDocuments request )
+    internalUpdate state
 
 
 view : Models.State -> List (Html Models.Msg)
@@ -124,6 +108,22 @@ handleDocuments state result =
 
 
 -- Private members
+
+
+internalUpdate : Models.State -> ( Models.State, Cmd Models.Msg )
+internalUpdate state =
+    let
+        request =
+            { offset = 0, length = 5 }
+
+        documentsState =
+            state.documentsState
+                |> Maybe.withDefault Factories.documentsStateFactory
+                |> Helpers.fluentUpdate (\x -> { x | documentsRequest = Just request, length = request.length })
+    in
+    ( { state | documentsState = Just documentsState }
+    , Cmd.batch [ getDocuments request ]
+    )
 
 
 paginationItem : List (Html Models.Msg) -> Int -> Bool -> Bool -> Bootstrap.Pagination.Item.Item Models.Msg

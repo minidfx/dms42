@@ -7,7 +7,7 @@ import Url
 
 stateFactory : Nav.Key -> Url.Url -> Models.Route -> Models.State
 stateFactory key url route =
-    Models.State key url route Nothing Nothing False Nothing
+    Models.State key url route Nothing Nothing False Nothing Nothing
 
 
 documentsStateFactory : Models.DocumentsState

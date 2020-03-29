@@ -68,7 +68,6 @@ type alias DocumentsState =
     , offset : Int
     , length : Int
     , total : Int
-    , document : Maybe DocumentResponse
     }
 
 

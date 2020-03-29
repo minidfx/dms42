@@ -17,5 +17,4 @@ documentsStateFactory =
     , offset = 0
     , total = 0
     , length = 0
-    , document = Nothing
     }

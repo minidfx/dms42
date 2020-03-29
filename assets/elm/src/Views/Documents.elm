@@ -13,8 +13,6 @@ import Iso8601
 import Json.Decode
 import Models
 import String.Format
-import Task
-import Time as Task
 import Views.Shared
 
 
@@ -103,7 +101,9 @@ handleDocuments state result =
             ( { state | documentsState = Just documentsState }, Cmd.none )
 
         Err message ->
-            ( { state | error = Just <| httpErrorToString message }, Cmd.none )
+            ( { state | error = Just <| httpErrorToString message, documentsState = Nothing }
+            , Cmd.none
+            )
 
 
 

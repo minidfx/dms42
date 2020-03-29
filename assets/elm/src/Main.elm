@@ -70,7 +70,7 @@ init flags url key =
                     Views.Documents.init flags key initialState
 
                 Models.Document id ->
-                    Views.Document.init flags key initialState id
+                    Views.Document.init flags key initialState
 
                 Models.Settings ->
                     ( initialState, Cmd.none )
@@ -132,8 +132,8 @@ update msg model =
                 Models.Documents ->
                     Views.Documents.update newModel
 
-                Models.Document id ->
-                    Views.Document.update newModel id
+                Models.Document _ ->
+                    Views.Document.update newModel
 
                 Models.Settings ->
                     ( newModel, Cmd.none )
@@ -212,8 +212,8 @@ mainView state =
                 Models.Home ->
                     Views.Home.view state
 
-                Models.Document _ ->
-                    Views.Document.view state
+                Models.Document id ->
+                    Views.Document.view state id
 
         mainContent =
             case state.error of

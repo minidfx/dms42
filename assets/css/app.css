@@ -48,3 +48,11 @@ div.cards .card {
 div.cards .card .card-img-top {
   cursor: pointer;
 }
+
+div.card-body {
+  padding: 0.6em !important;
+}
+
+p.card-text {
+  font-size: 0.8em;
+}

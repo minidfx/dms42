@@ -343,3 +343,5 @@ temp/
 # End of https://www.gitignore.io/api/elm,node,rider,elixir,phoenix,jetbrains,intellij+all
 _ReSharper.Caches/
 assets/vendor/
+/documents/
+/thumbnails/

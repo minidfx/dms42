@@ -2,6 +2,7 @@ module Models exposing (..)
 
 import Browser
 import Browser.Navigation as Nav
+import Dict exposing (Dict)
 import Http
 import Time
 import Url
@@ -9,7 +10,6 @@ import Url
 
 type alias TagsRequest =
     { jQueryPath : String
-    , existingTags : List String
     }
 
 
@@ -38,7 +38,7 @@ type alias DocumentDateTimes =
     }
 
 
-type alias Document =
+type alias DocumentResponse =
     { comments : Maybe String
     , id : String
     , type_id : String
@@ -50,8 +50,8 @@ type alias Document =
     }
 
 
-type alias Documents =
-    { documents : List Document
+type alias DocumentsResponse =
+    { documents : List DocumentResponse
     , total : Int
     }
 
@@ -62,11 +62,30 @@ type alias DocumentsRequest =
     }
 
 
+type alias DocumentsState =
+    { documents : Maybe (Dict String DocumentResponse)
+    , documentsRequest : Maybe DocumentsRequest
+    , offset : Int
+    , length : Int
+    , total : Int
+    , document : Maybe DocumentResponse
+    }
+
+
+type Route
+    = Documents
+    | Document String
+    | AddDocuments
+    | Settings
+    | Home
+
+
 type alias State =
     { key : Nav.Key
     , url : Url.Url
-    , documents : Maybe Documents
-    , documentsRequest : Maybe DocumentsRequest
+    , route : Route
+    , documentsState : Maybe DocumentsState
+    , tagsResponse : Maybe (List String)
     , uploading : Bool
     , error : Maybe String
     }
@@ -77,9 +96,5 @@ type Msg
     | UrlChanged Url.Url
     | StartUpload
     | UploadCompleted
-    | GotDocuments (Result Http.Error Documents)
-
-
-modelFactory : Nav.Key -> Url.Url -> State
-modelFactory key url =
-    State key url Nothing Nothing False Nothing
+    | GotDocuments (Result Http.Error DocumentsResponse)
+    | PaginationMsg Int

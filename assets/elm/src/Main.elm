@@ -1,16 +1,19 @@
 module Main exposing (init, main, subscriptions, update, view)
 
-import AddDocuments
 import Browser
 import Browser.Navigation as Nav
-import Documents
-import Home
+import Factories
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Models exposing (Documents)
+import Models exposing (DocumentsResponse)
 import Ports
-import Settings
-import Url
+import Url exposing (Url)
+import Url.Parser exposing (..)
+import Views.AddDocuments
+import Views.Document
+import Views.Documents
+import Views.Home
+import Views.Settings
 
 
 
@@ -33,24 +36,40 @@ main =
 -- MODEL
 
 
+routes : Url.Parser.Parser (Models.Route -> a) a
+routes =
+    Url.Parser.oneOf
+        [ Url.Parser.map Models.Documents (Url.Parser.s "documents")
+        , Url.Parser.map Models.AddDocuments (Url.Parser.s "documents" </> Url.Parser.s "add")
+        , Url.Parser.map Models.Document (Url.Parser.s "documents" </> Url.Parser.string)
+        , Url.Parser.map Models.Settings (Url.Parser.s "settings")
+        , Url.Parser.map Models.Home (Url.Parser.s "/")
+        ]
+
+
 init : () -> Url.Url -> Nav.Key -> ( Models.State, Cmd Models.Msg )
 init flags url key =
     let
+        route =
+            Url.Parser.parse routes url |> Maybe.withDefault Models.Home
+
         initialState =
-            Models.modelFactory key url
+            Factories.stateFactory key url route
     in
-    case url.path of
-        "/documents/add" ->
-            AddDocuments.init flags key initialState
+    case route of
+        Models.AddDocuments ->
+            Views.AddDocuments.init flags key initialState
 
-        "/documents" ->
-            let
-                request =
-                    { offset = 0, length = 10 }
-            in
-            ( { initialState | documentsRequest = Just request }, Documents.getDocuments request )
+        Models.Documents ->
+            Views.Documents.init flags key initialState
 
-        _ ->
+        Models.Document id ->
+            Views.Document.init flags key initialState
+
+        Models.Settings ->
+            ( initialState, Cmd.none )
+
+        Models.Home ->
             ( initialState, Cmd.none )
 
 
@@ -61,8 +80,13 @@ init flags url key =
 update : Models.Msg -> Models.State -> ( Models.State, Cmd Models.Msg )
 update msg model =
     case msg of
+        Models.PaginationMsg x ->
+            ( model
+            , Cmd.none
+            )
+
         Models.GotDocuments documentsResult ->
-            Documents.handleDocuments model documentsResult
+            Views.Documents.handleDocuments model documentsResult
 
         Models.LinkClicked urlRequest ->
             case urlRequest of
@@ -74,7 +98,7 @@ update msg model =
 
         Models.StartUpload ->
             ( { model | uploading = True }
-            , AddDocuments.startUpload
+            , Cmd.batch [ Views.AddDocuments.startUpload ]
             )
 
         Models.UploadCompleted ->
@@ -84,24 +108,27 @@ update msg model =
 
         Models.UrlChanged url ->
             let
+                route =
+                    Url.Parser.parse routes url |> Maybe.withDefault Models.Home
+
                 newModel =
-                    { model | url = url, error = Nothing }
+                    { model | url = url, route = route, error = Nothing }
             in
-            case url.path of
-                "/documents/add" ->
-                    AddDocuments.update newModel
+            case route of
+                Models.AddDocuments ->
+                    Views.AddDocuments.update newModel
 
-                "/documents" ->
-                    let
-                        request =
-                            { offset = 0, length = 10 }
-                    in
-                    ( { newModel | documentsRequest = Just request }, Documents.getDocuments request )
+                Models.Documents ->
+                    Views.Documents.update newModel
 
-                _ ->
-                    ( newModel
-                    , Cmd.none
-                    )
+                Models.Document id ->
+                    Views.Document.update newModel id
+
+                Models.Settings ->
+                    ( newModel, Cmd.none )
+
+                Models.Home ->
+                    ( newModel, Cmd.none )
 
 
 
@@ -152,27 +179,37 @@ navbar =
 mainView : Models.State -> List (Html Models.Msg)
 mainView state =
     let
+        { route } =
+            state
+
         content =
-            case state.url.path of
-                "/documents" ->
-                    Documents.view state
+            case route of
+                Models.Documents ->
+                    Views.Documents.view state
 
-                "/settings" ->
-                    Settings.view state
+                Models.Settings ->
+                    Views.Settings.view state
 
-                "/documents/add" ->
-                    AddDocuments.view state
+                Models.AddDocuments ->
+                    Views.AddDocuments.view state
 
-                _ ->
-                    Home.view state
+                Models.Home ->
+                    Views.Home.view state
+
+                Models.Document _ ->
+                    Views.Document.view state
 
         mainContent =
             case state.error of
                 Just x ->
-                    [ Html.div [ Html.Attributes.class "error alert alert-danger" ] [ Html.text x ], content ]
+                    [ Html.div []
+                        [ Html.div [ Html.Attributes.class "error alert alert-danger" ] [ Html.text x ]
+                        ]
+                    , Html.div [] content
+                    ]
 
                 Nothing ->
-                    [ content ]
+                    content
     in
     [ navbar
     , Html.main_

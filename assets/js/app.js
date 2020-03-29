@@ -4,6 +4,7 @@ import $ from 'jquery'
 import Dropzone from 'dropzone'
 import 'bootstrap4-tagsinput-douglasanpa/tagsinput.js'
 import 'typeahead.js/dist/typeahead.jquery.min.js'
+import Bloodhound from 'typeahead.js/dist/bloodhound.min.js'
 import '@fortawesome/fontawesome-free'
 
 import Elm from '../elm/src/Main.elm'
@@ -86,15 +87,23 @@ app.ports.dropZone.subscribe(request => {
         })
 })
 app.ports.tags.subscribe(request => {
-    const {jQueryPath, existingTags} = request
+    const {jQueryPath} = request
     waitForNode(jQueryPath,
         x => {
+            const tags = new Bloodhound({
+                datumTokenizer: Bloodhound.tokenizers.whitespace,
+                queryTokenizer: Bloodhound.tokenizers.whitespace,
+                // url points to a json file that contains an array of country names, see
+                // https://github.com/twitter/typeahead.js/blob/gh-pages/data/countries.json
+                prefetch: '/api/tags'
+            })
+
             x.tagsinput(
                 {
                     trimValue: true,
                     typeaheadjs: {
                         name: 'existingTags',
-                        source: substringMatcher(existingTags)
+                        source: tags
                     }
                 })
         })

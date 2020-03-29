@@ -138,8 +138,7 @@ defmodule Dms42.DocumentsManager do
   end
 
   def to_rfc2822(datetime) do
-    {:ok, x} = Timex.format(datetime, "%a, %d %b %Y %H:%M:%S +0000", :strftime)
-    x
+    Timex.format!(datetime, "{ISO:Extended:Z}")
   end
 
   def is_document_exists?(bytes) do

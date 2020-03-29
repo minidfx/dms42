@@ -34,7 +34,7 @@ defmodule Dms42.DocumentsFinder do
     do:
       term
       |> String.normalize(:nfd)
-      |> String.replace(~r/[^A-Za-z\s]/u, "")
+      |> String.replace(~r/[^A-Za-z0-9\s]/u, "")
 
   defp find_by_terms(terms) when is_list(terms),
     do:

@@ -1,4 +1,4 @@
-module Home exposing (view)
+module Views.Home exposing (view)
 
 import Html exposing (Html)
 import Html.Attributes
@@ -9,9 +9,9 @@ import Models
 -- Public members
 
 
-view : Models.State -> Html Models.Msg
+view : Models.State -> List (Html Models.Msg)
 view state =
-    Html.div [ Html.Attributes.class "home-search" ]
+    [ Html.div [ Html.Attributes.class "home-search" ]
         [ Html.div
             [ Html.Attributes.class "input-group mb-3" ]
             [ Html.input
@@ -26,3 +26,4 @@ view state =
                 ]
             ]
         ]
+    ]

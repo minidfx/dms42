@@ -17,6 +17,7 @@ div.home-search
 main.container
 {
   padding-top: 150px;
+  max-width: 1200px !important;
 }
 
 span.documents {
@@ -33,4 +34,17 @@ span.documents i {
 
 div.error {
   margin-top: -5em;
+}
+
+div.badges .badge {
+  padding: 0.48em;
+  margin: 0.1em;
+}
+
+div.cards .card {
+  margin: 0 0.15em 0.3em 0.15em;
+}
+
+div.cards .card .card-img-top {
+  cursor: pointer;
 }

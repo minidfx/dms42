@@ -14,10 +14,13 @@ div.home-search
   height: 200px;
 }
 
-main.container
+div.bd-dms42
 {
-  padding-top: 150px;
-  max-width: 1200px !important;
+  padding: 8em 3em 3em 3em;
+}
+
+div.document > .row {
+  margin-bottom: 2em;
 }
 
 span.documents {

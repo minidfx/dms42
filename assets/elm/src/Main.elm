@@ -11,6 +11,7 @@ import Task
 import Time
 import Url exposing (Url)
 import Url.Parser exposing (..)
+import Url.Parser.Query
 import Views.AddDocuments
 import Views.Document
 import Views.Documents
@@ -41,7 +42,7 @@ main =
 routes : Url.Parser.Parser (Models.Route -> a) a
 routes =
     Url.Parser.oneOf
-        [ Url.Parser.map Models.Documents (Url.Parser.s "documents")
+        [ Url.Parser.map Models.Documents (Url.Parser.s "documents" <?> Url.Parser.Query.int "offset")
         , Url.Parser.map Models.AddDocuments (Url.Parser.s "documents" </> Url.Parser.s "add")
         , Url.Parser.map Models.Document (Url.Parser.s "documents" </> Url.Parser.string)
         , Url.Parser.map Models.Settings (Url.Parser.s "settings")
@@ -66,8 +67,8 @@ init flags url key =
                 Models.AddDocuments ->
                     Views.AddDocuments.init flags key initialState
 
-                Models.Documents ->
-                    Views.Documents.init flags key initialState
+                Models.Documents offset ->
+                    Views.Documents.init flags key initialState offset
 
                 Models.Document id ->
                     Views.Document.init flags key initialState
@@ -129,8 +130,8 @@ update msg model =
                 Models.AddDocuments ->
                     Views.AddDocuments.update newModel
 
-                Models.Documents ->
-                    Views.Documents.update newModel
+                Models.Documents offset ->
+                    Views.Documents.update newModel offset
 
                 Models.Document _ ->
                     Views.Document.update newModel
@@ -145,6 +146,9 @@ update msg model =
             ( { model | userTimeZone = Just zone }
             , Cmd.none
             )
+
+        Models.None ->
+            ( model, Cmd.none )
 
 
 
@@ -200,8 +204,8 @@ mainView state =
 
         content =
             case route of
-                Models.Documents ->
-                    Views.Documents.view state
+                Models.Documents offset ->
+                    Views.Documents.view state offset
 
                 Models.Settings ->
                     Views.Settings.view state
@@ -229,10 +233,10 @@ mainView state =
     in
     [ navbar
     , Html.main_
-        [ Html.Attributes.class "container"
+        [ Html.Attributes.class "container-fluid"
         , Html.Attributes.attribute "role" "main"
         ]
-        mainContent
+        [ Html.div [ Html.Attributes.class "bd-dms42" ] mainContent ]
     ]
 
 

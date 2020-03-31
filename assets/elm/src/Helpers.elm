@@ -1,8 +1,8 @@
-module Helpers exposing (fluentSelect, fluentUpdate, httpErrorToString, protocol2String)
+module Helpers exposing (basePath, fluentSelect, fluentUpdate, httpErrorToString, protocol2String)
 
 import Http
-import Time
-import Url
+import String.Format
+import Url exposing (Url)
 
 
 
@@ -46,3 +46,18 @@ protocol2String protocol =
 
         Url.Https ->
             "https"
+
+
+basePath : Url -> String
+basePath { protocol, host, port_ } =
+    case port_ of
+        Just x ->
+            "{{ protocol }}://{{ host }}:{{ port }}"
+                |> (String.Format.namedValue "protocol" <| protocol2String <| protocol)
+                |> String.Format.namedValue "host" host
+                |> (String.Format.namedValue "port" <| String.fromInt x)
+
+        Nothing ->
+            "{{ protocol }}://{{ host }}:{{ port }}"
+                |> (String.Format.namedValue "protocol" <| protocol2String <| protocol)
+                |> String.Format.namedValue "host" host

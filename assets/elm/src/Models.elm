@@ -65,14 +65,13 @@ type alias DocumentsRequest =
 type alias DocumentsState =
     { documents : Maybe (Dict String DocumentResponse)
     , documentsRequest : Maybe DocumentsRequest
-    , offset : Int
     , length : Int
     , total : Int
     }
 
 
 type Route
-    = Documents
+    = Documents (Maybe Int)
     | Document String
     | AddDocuments
     | Settings
@@ -99,3 +98,4 @@ type Msg
     | GotDocuments (Result Http.Error DocumentsResponse)
     | PaginationMsg Int
     | GetUserTimeZone Time.Zone
+    | None

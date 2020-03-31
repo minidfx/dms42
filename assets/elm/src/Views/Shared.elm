@@ -1,4 +1,4 @@
-module Views.Shared exposing (badge, card, flattenTags, posix2String)
+module Views.Shared exposing (badge, card, flattenTags, posix2String, tagsinputs)
 
 import Bootstrap.Card
 import Bootstrap.Card.Block
@@ -36,27 +36,11 @@ card { key, url, userTimeZone } { datetimes, id, tags } =
 
         { inserted_datetime, updated_datetime } =
             datetimes
-
-        { protocol, host, port_ } =
-            url
-
-        basePath =
-            case port_ of
-                Just x ->
-                    "{{ protocol }}://{{ host }}:{{ port }}"
-                        |> (String.Format.namedValue "protocol" <| Helpers.protocol2String <| protocol)
-                        |> String.Format.namedValue "host" host
-                        |> (String.Format.namedValue "port" <| String.fromInt x)
-
-                Nothing ->
-                    "{{ protocol }}://{{ host }}:{{ port }}"
-                        |> (String.Format.namedValue "protocol" <| Helpers.protocol2String <| protocol)
-                        |> String.Format.namedValue "host" host
     in
     Bootstrap.Card.config [ Bootstrap.Card.light, Bootstrap.Card.attrs [ Html.Attributes.style "max-width" "155px" ] ]
         |> Bootstrap.Card.imgTop
             [ Html.Attributes.src <| ("/documents/thumbnail/{{ }}" |> String.Format.value id)
-            , Html.Events.onClick <| Models.LinkClicked <| Browser.Internal <| Maybe.withDefault url <| Url.fromString <| Url.Builder.crossOrigin basePath [ "documents", id ] []
+            , Html.Events.onClick <| Models.LinkClicked <| Browser.Internal <| Maybe.withDefault url <| Url.fromString <| Url.Builder.crossOrigin (Helpers.basePath url) [ "documents", id ] []
             ]
             []
         |> Bootstrap.Card.block []
@@ -74,6 +58,18 @@ badge tag =
 flattenTags : List String -> Html Models.Msg
 flattenTags tags =
     Html.div [ Html.Attributes.class "badges d-flex flex-wrap" ] (List.map (\x -> badge x) tags)
+
+
+tagsinputs : List String -> Html Models.Msg
+tagsinputs tags =
+    Html.input
+        [ Html.Attributes.type_ "text"
+        , Html.Attributes.class "form-control typeahead"
+        , Html.Attributes.id "tags"
+        , Html.Attributes.attribute "data-role" "tagsinput"
+        , Html.Attributes.value <| String.join "," <| tags
+        ]
+        []
 
 
 

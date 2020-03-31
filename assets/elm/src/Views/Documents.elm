@@ -2,6 +2,7 @@ module Views.Documents exposing (getDocuments, handleDocuments, init, update, vi
 
 import Bootstrap.Pagination
 import Bootstrap.Pagination.Item
+import Browser
 import Browser.Navigation as Nav
 import Dict
 import Factories
@@ -13,6 +14,8 @@ import Iso8601
 import Json.Decode
 import Models
 import String.Format
+import Url exposing (Url)
+import Url.Builder
 import Views.Shared
 
 
@@ -20,22 +23,25 @@ import Views.Shared
 -- Public members
 
 
-init : () -> Nav.Key -> Models.State -> ( Models.State, Cmd Models.Msg )
-init _ _ initialState =
-    internalUpdate initialState
+init : () -> Nav.Key -> Models.State -> Maybe Int -> ( Models.State, Cmd Models.Msg )
+init _ _ initialState offset =
+    internalUpdate initialState offset
 
 
-update : Models.State -> ( Models.State, Cmd Models.Msg )
-update state =
-    internalUpdate state
+update : Models.State -> Maybe Int -> ( Models.State, Cmd Models.Msg )
+update state offset =
+    internalUpdate state offset
 
 
-view : Models.State -> List (Html Models.Msg)
-view state =
+view : Models.State -> Maybe Int -> List (Html Models.Msg)
+view state offset =
     let
         documentsState =
             state.documentsState
                 |> Maybe.withDefault Factories.documentsStateFactory
+
+        { total } =
+            documentsState
 
         documents =
             documentsState.documents
@@ -45,7 +51,7 @@ view state =
         [ Html.div [ Html.Attributes.class "col-md-6" ]
             [ Html.span
                 [ Html.Attributes.class "documents align-middle" ]
-                [ Html.text <| String.fromInt <| List.length <| Dict.keys documents
+                [ Html.text <| String.fromInt <| total
                 , Html.i
                     [ Html.Attributes.class "fa fa-file highlight"
                     , Html.Attributes.title "Documents"
@@ -67,7 +73,7 @@ view state =
         [ Html.div [ Html.Attributes.class "cards d-flex justify-content-center flex-wrap" ] (cards state (Dict.values documents) [])
         ]
     , Html.div [ Html.Attributes.class "row d-flex align-items-start" ]
-        [ pagination documentsState
+        [ pagination state offset
         ]
     ]
 
@@ -110,11 +116,11 @@ handleDocuments state result =
 -- Private members
 
 
-internalUpdate : Models.State -> ( Models.State, Cmd Models.Msg )
-internalUpdate state =
+internalUpdate : Models.State -> Maybe Int -> ( Models.State, Cmd Models.Msg )
+internalUpdate state offset =
     let
         request =
-            { offset = 0, length = 5 }
+            { offset = Maybe.withDefault 0 offset, length = 10 }
 
         documentsState =
             state.documentsState
@@ -126,56 +132,34 @@ internalUpdate state =
     )
 
 
-paginationItem : List (Html Models.Msg) -> Int -> Bool -> Bool -> Bootstrap.Pagination.Item.Item Models.Msg
-paginationItem content index isActive isDisabled =
-    Bootstrap.Pagination.Item.item
-        |> Bootstrap.Pagination.Item.active isActive
-        |> Bootstrap.Pagination.Item.disabled isDisabled
-        |> Bootstrap.Pagination.Item.link
-            [ Html.Attributes.href <| ("/documents?offset={{ }}" |> (String.Format.value <| String.fromInt index))
-            , Html.Attributes.class "custom-page-item"
-            ]
-            content
+paginationItems : Models.State -> Maybe Int -> Bootstrap.Pagination.ListConfig Int Models.Msg
+paginationItems state offset =
+    let
+        localOffset =
+            Maybe.withDefault 0 offset
+
+        documentsState =
+            Maybe.withDefault Factories.documentsStateFactory <| state.documentsState
+
+        { total, length } =
+            documentsState
+    in
+    { selectedMsg = \x -> Models.None
+    , prevItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Previous" ]
+    , nextItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Next" ]
+    , activeIdx = (//) ((-) localOffset -1) length
+    , data = List.range 0 <| (//) total length
+    , itemFn = \x _ -> Bootstrap.Pagination.ListItem [] [ Html.text <| String.fromInt <| (+) x 1 ]
+    , urlFn = \x _ -> "/documents?offset={{ }}" |> (String.Format.value <| String.fromInt <| (*) x length)
+    }
 
 
-
---paginationItems : Models.DocumentsState -> Bootstrap.Pagination.ListConfig a msg
---paginationItems documentsState =
---    let
---        { offset, total, length } =
---            documentsState
---
---        pageCount =
---            (//) total length
---
---        currentPage =
---            (//) offset length
---
---        defaultUrl =
---            { protocol = Url.Http
---            , host = ""
---            , port_ = Nothing
---            , path = ""
---            , query = Nothing
---            , fragment = Nothing
---            }
---    in
---    { selectedMsg = \x -> Models.UrlChanged <| Maybe.withDefault defaultUrl <| Url.fromString ""
---    , prevItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Previous" ]
---    , nextItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Next" ]
---    , activeIdx = currentPage
---    , data = []
---    , itemFn = \x _ -> Bootstrap.Pagination.ListItem [] [ Html.text <| String.fromInt <| (+) x 1 ]
---    , urlFn = \x _ -> "/documents?offset={{ }}" |> (String.Format.value <| String.fromInt <| (+) x 1)
---    }
-
-
-pagination : Models.DocumentsState -> Html Models.Msg
-pagination documentsState =
+pagination : Models.State -> Maybe Int -> Html Models.Msg
+pagination state offset =
     Bootstrap.Pagination.defaultConfig
         |> Bootstrap.Pagination.listAttrs [ Html.Attributes.class "ml-auto mr-auto" ]
         |> Bootstrap.Pagination.ariaLabel "documents-pagination"
-        --|> Bootstrap.Pagination.itemsList []
+        |> Bootstrap.Pagination.itemsList (paginationItems state offset)
         |> Bootstrap.Pagination.view
 
 

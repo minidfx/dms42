@@ -14,7 +14,6 @@ documentsStateFactory : Models.DocumentsState
 documentsStateFactory =
     { documents = Nothing
     , documentsRequest = Nothing
-    , offset = 0
     , total = 0
     , length = 0
     }

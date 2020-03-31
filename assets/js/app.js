@@ -25,28 +25,6 @@ const waitForNode = (jQueryPath, callback) => {
     callback(htmlTag)
 }
 
-const substringMatcher = strings => {
-    return (q, cb) => {
-        let matches, substringRegex
-
-        // an array that will be populated with substring matches
-        matches = []
-
-        // regex used to determine if a string contains the substring `q`
-        substringRegex = new RegExp(q, 'i')
-
-        // iterate through the pool of strings and for any string that
-        // contains the substring `q`, add it to the `matches` array
-        $.each(strings, function (i, str) {
-            if (substringRegex.test(str)) {
-                matches.push(str)
-            }
-        })
-        
-        cb(matches)
-    }
-}
-
 app.ports.dropZone.subscribe(request => {
     const {jQueryPath, jQueryTagsPath} = request
     waitForNode(jQueryPath,
@@ -61,7 +39,7 @@ app.ports.dropZone.subscribe(request => {
                     }
                 },
                 autoProcessQueue: false,
-                parallelUploads: 5,
+                parallelUploads: 30,
                 ignoreHiddenFiles: true,
                 acceptedFiles: "image/*,application/pdf"
             })[0].dropzone

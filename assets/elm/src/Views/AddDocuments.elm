@@ -6,6 +6,7 @@ import Html.Attributes
 import Html.Events
 import Models
 import Ports
+import Views.Shared
 
 
 
@@ -33,7 +34,11 @@ update state =
 
 
 view : Models.State -> List (Html Models.Msg)
-view { uploading } =
+view state =
+    let
+        { uploading } =
+            state
+    in
     [ Html.div [ Html.Attributes.class "row", Html.Attributes.style "margin-bottom" "20px" ]
         [ Html.div [ Html.Attributes.class "col" ]
             [ Html.div [ Html.Attributes.class "dropzone needsclick dz-clickable" ]
@@ -45,14 +50,7 @@ view { uploading } =
         ]
     , Html.div [ Html.Attributes.class "row", Html.Attributes.style "margin-bottom" "20px" ]
         [ Html.div [ Html.Attributes.class "col" ]
-            [ Html.input
-                [ Html.Attributes.type_ "text"
-                , Html.Attributes.class "form-control typeahead"
-                , Html.Attributes.id "tags"
-                , Html.Attributes.attribute "data-role" "tagsinput"
-                ]
-                []
-            ]
+            [ Views.Shared.tagsinputs [] ]
         ]
     , Html.div [ Html.Attributes.class "row" ]
         [ Html.div [ Html.Attributes.class "col d-flex" ]

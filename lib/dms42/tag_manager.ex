@@ -90,29 +90,29 @@ defmodule Dms42.TagManager do
   end
 
   @doc """
+    Removes the tag from the document using a transaction.
+  """
+  def remove(transaction, document_id, %Tag{:tag_id => tid, :name => t_name} = tag)
+      when is_binary(document_id) do
+    transaction
+    |> Ecto.Multi.delete_all(
+         "tag_#{t_name}",
+         from(DocumentTag, where: [document_id: ^document_id, tag_id: ^tid])
+       )
+    |> clean_tag(tag)
+  end
+  
+  @doc """
     Removes the tag passing the given id from the document using a transaction.
   """
   def remove(transaction, document_id, tag_name)
-      when is_binary(document_id) and is_bitstring(tag_name) do
+      when is_binary(document_id) do
     tag_name_normalized = tag_name |> DocumentsFinder.normalize()
 
     case Dms42.Repo.get_by(Tag, name_normalized: tag_name_normalized) do
       nil -> transaction
       tag -> transaction |> remove(document_id, tag)
     end
-  end
-
-  @doc """
-    Removes the tag from the document using a transaction.
-  """
-  def remove(transaction, document_id, %Tag{:tag_id => tid, :name => t_name} = tag)
-      when is_binary(document_id) and is_map(tag) do
-    transaction
-    |> Ecto.Multi.delete_all(
-      "tag_#{t_name}",
-      from(DocumentTag, where: [document_id: ^document_id, tag_id: ^tid])
-    )
-    |> clean_tag(tag)
   end
 
   def remove!(document_id, tag_name) when is_binary(document_id) do
@@ -148,9 +148,9 @@ defmodule Dms42.TagManager do
     result =
       from(dt in DocumentTag, where: dt.tag_id == ^tag_id, select: count(dt.id))
       |> Dms42.Repo.all()
-
+      
     case result do
-      [0] -> transaction |> Ecto.Multi.delete("clean_tag_#{tag_id}", tag)
+      [1] -> transaction |> Ecto.Multi.delete("clean_tag_#{tag_id}", tag)
       _ -> transaction
     end
   end

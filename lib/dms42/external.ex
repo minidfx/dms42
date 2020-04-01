@@ -17,7 +17,6 @@ defmodule Dms42.External do
       {_, 0} ->
         ocr =
           File.read!(tmp_path)
-          |> :unicode.characters_to_binary(:latin1)
           |> String.trim()
 
         case ocr do
@@ -36,7 +35,7 @@ defmodule Dms42.External do
     args = [img_path, "stdout", "-l"]
     Logger.info("Languages passed to tesseract: #{langs_flatten}")
     {txt, 0} = System.cmd("tesseract", args, stderr_to_stdout: false)
-    txt |> String.trim()
+    txt |> String.graphemes() |> String.trim()
   end
 
   defp langs_str(langs) do

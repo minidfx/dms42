@@ -1,10 +1,10 @@
 module Views.Documents exposing (getDocuments, handleDocuments, init, update, view)
 
 import Bootstrap.Pagination
-import Bootstrap.Pagination.Item
-import Browser
+import Bootstrap.Spinner
+import Bootstrap.Text
 import Browser.Navigation as Nav
-import Dict
+import Dict exposing (Dict)
 import Factories
 import Helpers exposing (httpErrorToString)
 import Html exposing (Html)
@@ -14,8 +14,6 @@ import Iso8601
 import Json.Decode
 import Models
 import String.Format
-import Url exposing (Url)
-import Url.Builder
 import Views.Shared
 
 
@@ -46,6 +44,24 @@ view state offset =
         documents =
             documentsState.documents
                 |> Maybe.withDefault Dict.empty
+
+        showLoading =
+            state.isLoading && total < 1
+
+        content =
+            case showLoading of
+                True ->
+                    Html.div [ Html.Attributes.class "ml-auto mr-auto" ]
+                        [ Bootstrap.Spinner.spinner
+                            [ Bootstrap.Spinner.large
+                            , Bootstrap.Spinner.color Bootstrap.Text.primary
+                            , Bootstrap.Spinner.attrs [ Html.Attributes.class "m-5" ]
+                            ]
+                            [ Bootstrap.Spinner.srMessage "Loading ..." ]
+                        ]
+
+                False ->
+                    internalDocumentsView state <| Dict.values documents
     in
     [ Html.div [ Html.Attributes.class "row" ]
         [ Html.div [ Html.Attributes.class "col-md-6" ]
@@ -70,8 +86,7 @@ view state offset =
         ]
     , Html.hr [ Html.Attributes.style "margin-top" "0.3em" ] []
     , Html.div [ Html.Attributes.class "row" ]
-        [ Html.div [ Html.Attributes.class "cards d-flex justify-content-center flex-wrap" ] (cards state (Dict.values documents) [])
-        ]
+        [ content ]
     , Html.div [ Html.Attributes.class "row d-flex align-items-start" ]
         [ pagination state offset
         ]
@@ -90,6 +105,10 @@ cards state documents acc =
 
 handleDocuments : Models.State -> Result Http.Error Models.DocumentsResponse -> ( Models.State, Cmd Models.Msg )
 handleDocuments state result =
+    let
+        stateWithoutLoading =
+            { state | isLoading = False }
+    in
     case result of
         Ok response ->
             let
@@ -100,20 +119,25 @@ handleDocuments state result =
                     documents |> List.map (\x -> ( x.id, x )) |> Dict.fromList
 
                 documentsState =
-                    state.documentsState
+                    stateWithoutLoading.documentsState
                         |> Maybe.withDefault Factories.documentsStateFactory
                         |> Helpers.fluentUpdate (\x -> { x | documents = Just documentsDictionarized, total = total })
             in
-            ( { state | documentsState = Just documentsState }, Cmd.none )
+            ( { stateWithoutLoading | documentsState = Just documentsState }, Cmd.none )
 
         Err message ->
-            ( { state | error = Just <| httpErrorToString message, documentsState = Nothing }
+            ( { stateWithoutLoading | error = Just <| httpErrorToString message, documentsState = Nothing }
             , Cmd.none
             )
 
 
 
 -- Private members
+
+
+internalDocumentsView : Models.State -> List Models.DocumentResponse -> Html Models.Msg
+internalDocumentsView state documents =
+    Html.div [ Html.Attributes.class "cards d-flex justify-content-center flex-wrap" ] (cards state documents [])
 
 
 internalUpdate : Models.State -> Maybe Int -> ( Models.State, Cmd Models.Msg )
@@ -127,7 +151,7 @@ internalUpdate state offset =
                 |> Maybe.withDefault Factories.documentsStateFactory
                 |> Helpers.fluentUpdate (\x -> { x | documentsRequest = Just request, length = request.length })
     in
-    ( { state | documentsState = Just documentsState }
+    ( { state | documentsState = Just documentsState, isLoading = True }
     , Cmd.batch [ getDocuments request ]
     )
 
@@ -147,7 +171,7 @@ paginationItems state offset =
     { selectedMsg = \x -> Models.None
     , prevItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Previous" ]
     , nextItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Next" ]
-    , activeIdx = (//) ((-) localOffset -1) length
+    , activeIdx = (//) ((+) localOffset 1) length
     , data = List.range 0 <| (//) total length
     , itemFn = \x _ -> Bootstrap.Pagination.ListItem [] [ Html.text <| String.fromInt <| (+) x 1 ]
     , urlFn = \x _ -> "/documents?offset={{ }}" |> (String.Format.value <| String.fromInt <| (*) x length)

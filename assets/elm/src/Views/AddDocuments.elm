@@ -5,7 +5,7 @@ import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 import Models
-import Ports
+import Ports.Gates
 import Views.Shared
 
 
@@ -17,8 +17,8 @@ init : () -> Nav.Key -> Models.State -> ( Models.State, Cmd Models.Msg )
 init _ _ initialState =
     ( initialState
     , Cmd.batch
-        [ Ports.dropZone { jQueryPath = "div.dropzone", jQueryTagsPath = "#tags" }
-        , Ports.tags { jQueryPath = "#tags" }
+        [ Ports.Gates.dropZone { jQueryPath = "div.dropzone", jQueryTagsPath = "#tags" }
+        , Ports.Gates.tags { jQueryPath = "#tags", registerEvents = False, documentId = Nothing }
         ]
     )
 
@@ -27,8 +27,8 @@ update : Models.State -> ( Models.State, Cmd Models.Msg )
 update state =
     ( state
     , Cmd.batch
-        [ Ports.dropZone { jQueryPath = "div.dropzone", jQueryTagsPath = "#tags" }
-        , Ports.tags { jQueryPath = "#tags" }
+        [ Ports.Gates.dropZone { jQueryPath = "div.dropzone", jQueryTagsPath = "#tags" }
+        , Ports.Gates.tags { jQueryPath = "#tags", registerEvents = False, documentId = Nothing }
         ]
     )
 
@@ -73,7 +73,7 @@ view state =
 
 startUpload : Cmd Models.Msg
 startUpload =
-    Ports.upload { jQueryPath = "div.dropzone", jQueryTagsPath = "#tags" }
+    Ports.Gates.upload { jQueryPath = "div.dropzone", jQueryTagsPath = "#tags" }
 
 
 

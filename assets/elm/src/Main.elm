@@ -5,8 +5,10 @@ import Browser.Navigation as Nav
 import Factories
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Json.Decode
 import Models exposing (DocumentsResponse)
-import Ports
+import Ports.Gates
+import Ports.Models
 import Task
 import Time
 import Url exposing (Url)
@@ -71,7 +73,7 @@ init flags url key =
                     Views.Documents.init flags key initialState offset
 
                 Models.Document id ->
-                    Views.Document.init flags key initialState
+                    Views.Document.init flags key initialState id
 
                 Models.Settings ->
                     ( initialState, Cmd.none )
@@ -133,8 +135,8 @@ update msg model =
                 Models.Documents offset ->
                     Views.Documents.update newModel offset
 
-                Models.Document _ ->
-                    Views.Document.update newModel
+                Models.Document id ->
+                    Views.Document.update newModel id
 
                 Models.Settings ->
                     ( newModel, Cmd.none )
@@ -150,6 +152,18 @@ update msg model =
         Models.None ->
             ( model, Cmd.none )
 
+        Models.AddTags { documentId, tags } ->
+            ( model, Views.Document.addTags documentId tags )
+
+        Models.RemoveTags { documentId, tags } ->
+            ( model, Views.Document.removeTags documentId tags )
+
+        Models.DidRemoveTags result ->
+            ( model, Cmd.none )
+
+        Models.DidAddTags result ->
+            ( model, Cmd.none )
+
 
 
 -- SUBSCRIPTIONS
@@ -157,7 +171,11 @@ update msg model =
 
 subscriptions : Models.State -> Sub Models.Msg
 subscriptions _ =
-    Ports.uploadCompleted (always Models.UploadCompleted)
+    Sub.batch
+        [ Ports.Gates.uploadCompleted (always Models.UploadCompleted)
+        , Ports.Gates.addTags Models.AddTags
+        , Ports.Gates.removeTags Models.RemoveTags
+        ]
 
 
 

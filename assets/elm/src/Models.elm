@@ -4,25 +4,10 @@ import Browser
 import Browser.Navigation as Nav
 import Dict exposing (Dict)
 import Http
+import Json.Encode
+import Ports.Models
 import Time exposing (Posix)
 import Url
-
-
-type alias TagsRequest =
-    { jQueryPath : String
-    }
-
-
-type alias DropZoneRequest =
-    { jQueryPath : String
-    , jQueryTagsPath : String
-    }
-
-
-type alias UploadRequest =
-    { jQueryPath : String
-    , jQueryTagsPath : String
-    }
 
 
 type alias DocumentThumbnails =
@@ -87,6 +72,7 @@ type alias State =
     , uploading : Bool
     , error : Maybe String
     , userTimeZone : Maybe Time.Zone
+    , isLoading : Bool
     }
 
 
@@ -98,4 +84,8 @@ type Msg
     | GotDocuments (Result Http.Error DocumentsResponse)
     | PaginationMsg Int
     | GetUserTimeZone Time.Zone
+    | AddTags Ports.Models.TagsAdded
+    | RemoveTags Ports.Models.TagsRemoved
+    | DidRemoveTags (Result Http.Error ())
+    | DidAddTags (Result Http.Error ())
     | None

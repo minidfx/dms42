@@ -2,8 +2,8 @@ import '../css/app.css'
 
 import $ from 'jquery'
 import Dropzone from 'dropzone'
+import 'typeahead.js'
 import 'bootstrap4-tagsinput-douglasanpa/tagsinput.js'
-import 'typeahead.js/dist/typeahead.jquery.min.js'
 import Bloodhound from 'typeahead.js/dist/bloodhound.min.js'
 import '@fortawesome/fontawesome-free'
 
@@ -65,7 +65,7 @@ app.ports.dropZone.subscribe(request => {
         })
 })
 app.ports.tags.subscribe(request => {
-    const {jQueryPath} = request
+    const {jQueryPath, registerEvents, documentId} = request
     waitForNode(jQueryPath,
         x => {
             const tags = new Bloodhound({
@@ -80,10 +80,24 @@ app.ports.tags.subscribe(request => {
                 {
                     trimValue: true,
                     typeaheadjs: {
-                        name: 'existingTags',
+                        name: 'tags',
                         source: tags
                     }
                 })
+
+            if (registerEvents) {
+                if(!documentId) {
+                    throw new Error("The documentId is missing.")
+                }
+                
+                x
+                    .on('itemRemoved', t => {
+                        app.ports.removeTags.send({documentId: documentId, tags: [t.item]})
+                    })
+                    .on('itemAdded', t => {
+                        app.ports.addTags.send({documentId: documentId, tags: [t.item]})
+                    })
+            }
         })
 })
 app.ports.upload.subscribe(request => {

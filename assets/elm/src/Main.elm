@@ -6,7 +6,6 @@ import Browser.Navigation as Nav
 import Factories
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Json.Decode
 import Models exposing (DocumentsResponse)
 import Ports.Gates
 import Ports.Models
@@ -47,7 +46,7 @@ routes =
     Url.Parser.oneOf
         [ Url.Parser.map Models.Documents (Url.Parser.s "documents" <?> Url.Parser.Query.int "offset")
         , Url.Parser.map Models.AddDocuments (Url.Parser.s "documents" </> Url.Parser.s "add")
-        , Url.Parser.map Models.Document (Url.Parser.s "documents" </> Url.Parser.string)
+        , Url.Parser.map Models.Document (Url.Parser.s "documents" </> Url.Parser.string <?> Url.Parser.Query.int "offset")
         , Url.Parser.map Models.Settings (Url.Parser.s "settings")
         , Url.Parser.map Models.Home (Url.Parser.s "/")
         ]
@@ -73,7 +72,7 @@ init flags url key =
                 Models.Documents offset ->
                     Views.Documents.init flags key initialState offset
 
-                Models.Document id page ->
+                Models.Document id _ ->
                     Views.Document.init flags key initialState id
 
                 Models.Settings ->
@@ -95,11 +94,6 @@ init flags url key =
 update : Models.Msg -> Models.State -> ( Models.State, Cmd Models.Msg )
 update msg model =
     case msg of
-        Models.PaginationMsg x ->
-            ( model
-            , Cmd.none
-            )
-
         Models.GotDocuments documentsResult ->
             Views.Documents.handleDocuments model documentsResult
 
@@ -136,7 +130,7 @@ update msg model =
                 Models.Documents offset ->
                     Views.Documents.update newModel offset
 
-                Models.Document id page ->
+                Models.Document id _ ->
                     Views.Document.update newModel id
 
                 Models.Settings ->
@@ -149,9 +143,6 @@ update msg model =
             ( { model | userTimeZone = Just zone }
             , Cmd.none
             )
-
-        Models.None ->
-            ( model, Cmd.none )
 
         Models.AddTags { documentId, tags } ->
             ( model, Views.Document.addTags documentId tags )
@@ -179,6 +170,9 @@ update msg model =
 
         Models.DidDeleteDocument result ->
             Views.Document.didDeleteDocument model result
+
+        Models.None ->
+            ( model, Cmd.none )
 
 
 
@@ -251,8 +245,8 @@ mainView state =
                 Models.Home ->
                     Views.Home.view state
 
-                Models.Document id page ->
-                    Views.Document.view state id
+                Models.Document id offset ->
+                    Views.Document.view state id offset
 
         mainContent =
             case state.error of

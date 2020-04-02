@@ -1,5 +1,6 @@
 module Views.Documents exposing (getDocuments, handleDocuments, init, update, view)
 
+import Bootstrap.General.HAlign
 import Bootstrap.Pagination
 import Bootstrap.Spinner
 import Bootstrap.Text
@@ -85,10 +86,12 @@ view state offset =
             ]
         ]
     , Html.hr [ Html.Attributes.style "margin-top" "0.3em" ] []
-    , Html.div [ Html.Attributes.class "row" ]
-        [ content ]
-    , Html.div [ Html.Attributes.class "row d-flex align-items-start" ]
-        [ pagination state offset
+    , Html.div [ Html.Attributes.class "row documents" ]
+        [ Html.div [ Html.Attributes.class "col" ]
+            [ pagination state offset
+            , content
+            , pagination state offset
+            ]
         ]
     ]
 
@@ -137,22 +140,23 @@ handleDocuments state result =
 
 internalDocumentsView : Models.State -> List Models.DocumentResponse -> Html Models.Msg
 internalDocumentsView state documents =
-    Html.div [ Html.Attributes.class "cards d-flex justify-content-center flex-wrap" ] (cards state documents [])
+    Html.div [ Html.Attributes.class "cards d-flex justify-content-start flex-wrap" ] (cards state documents [])
 
 
 internalUpdate : Models.State -> Maybe Int -> ( Models.State, Cmd Models.Msg )
 internalUpdate state offset =
     let
-        request =
-            { offset = Maybe.withDefault 0 offset, length = 10 }
-
         documentsState =
-            state.documentsState
-                |> Maybe.withDefault Factories.documentsStateFactory
-                |> Helpers.fluentUpdate (\x -> { x | documentsRequest = Just request, length = request.length })
+            Maybe.withDefault Factories.documentsStateFactory <| state.documentsState
+
+        { length } =
+            documentsState
+
+        localOffset =
+            Maybe.withDefault 0 <| offset
     in
-    ( { state | documentsState = Just documentsState, isLoading = True }
-    , Cmd.batch [ getDocuments request ]
+    ( { state | isLoading = True }
+    , Cmd.batch [ getDocuments { offset = localOffset, length = length } ]
     )
 
 
@@ -168,7 +172,7 @@ paginationItems state offset =
         { total, length } =
             documentsState
     in
-    { selectedMsg = \x -> Models.None
+    { selectedMsg = \_ -> Models.None
     , prevItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Previous" ]
     , nextItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Next" ]
     , activeIdx = (//) ((+) localOffset 1) length
@@ -181,7 +185,7 @@ paginationItems state offset =
 pagination : Models.State -> Maybe Int -> Html Models.Msg
 pagination state offset =
     Bootstrap.Pagination.defaultConfig
-        |> Bootstrap.Pagination.listAttrs [ Html.Attributes.class "ml-auto mr-auto" ]
+        |> Bootstrap.Pagination.align Bootstrap.General.HAlign.centerXs
         |> Bootstrap.Pagination.ariaLabel "documents-pagination"
         |> Bootstrap.Pagination.itemsList (paginationItems state offset)
         |> Bootstrap.Pagination.view

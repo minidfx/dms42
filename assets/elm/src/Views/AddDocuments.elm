@@ -18,7 +18,8 @@ init _ _ initialState =
     ( initialState
     , Cmd.batch
         [ Ports.Gates.dropZone { jQueryPath = "div.dropzone", jQueryTagsPath = "#tags" }
-        , Ports.Gates.tags { jQueryPath = "#tags", registerEvents = False, documentId = Nothing }
+        , Ports.Gates.tags { jQueryPath = "#tags", documentId = Nothing }
+        , Ports.Gates.clearCacheTags ()
         ]
     )
 
@@ -28,7 +29,8 @@ update state =
     ( state
     , Cmd.batch
         [ Ports.Gates.dropZone { jQueryPath = "div.dropzone", jQueryTagsPath = "#tags" }
-        , Ports.Gates.tags { jQueryPath = "#tags", registerEvents = False, documentId = Nothing }
+        , Ports.Gates.tags { jQueryPath = "#tags", documentId = Nothing }
+        , Ports.Gates.clearCacheTags ()
         ]
     )
 

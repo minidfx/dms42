@@ -8,13 +8,22 @@ import Url
 
 stateFactory : Nav.Key -> Url.Url -> Models.Route -> Models.State
 stateFactory key url route =
-    Models.State key url route Nothing Nothing False Nothing Nothing False Bootstrap.Modal.hidden
+    { key = key
+    , url = url
+    , route = route
+    , documentsState = Nothing
+    , tagsResponse = Nothing
+    , uploading = False
+    , error = Nothing
+    , userTimeZone = Nothing
+    , isLoading = False
+    , modalVisibility = Bootstrap.Modal.hidden
+    }
 
 
 documentsStateFactory : Models.DocumentsState
 documentsStateFactory =
     { documents = Nothing
-    , documentsRequest = Nothing
     , total = 0
-    , length = 0
+    , length = 20
     }

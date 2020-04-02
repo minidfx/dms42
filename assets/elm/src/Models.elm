@@ -1,10 +1,10 @@
 module Models exposing (..)
 
+import Bootstrap.Modal
 import Browser
 import Browser.Navigation as Nav
 import Dict exposing (Dict)
 import Http
-import Json.Encode
 import Ports.Models
 import Time exposing (Posix)
 import Url
@@ -12,7 +12,7 @@ import Url
 
 type alias DocumentThumbnails =
     { countImages : Int
-    , currentImage : Maybe Int
+    , offset : Maybe Int
     }
 
 
@@ -47,9 +47,14 @@ type alias DocumentsRequest =
     }
 
 
+type alias DocumentRequest =
+    { documentId : String
+    , offset : Int
+    }
+
+
 type alias DocumentsState =
     { documents : Maybe (Dict String DocumentResponse)
-    , documentsRequest : Maybe DocumentsRequest
     , length : Int
     , total : Int
     }
@@ -57,7 +62,7 @@ type alias DocumentsState =
 
 type Route
     = Documents (Maybe Int)
-    | Document String
+    | Document String (Maybe Int)
     | AddDocuments
     | Settings
     | Home
@@ -83,7 +88,6 @@ type Msg
     | StartUpload
     | UploadCompleted
     | GotDocuments (Result Http.Error DocumentsResponse)
-    | PaginationMsg Int
     | GetUserTimeZone Time.Zone
     | AddTags Ports.Models.TagsAdded
     | RemoveTags Ports.Models.TagsRemoved

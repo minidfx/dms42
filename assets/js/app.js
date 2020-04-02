@@ -65,7 +65,8 @@ app.ports.dropZone.subscribe(request => {
         })
 })
 app.ports.tags.subscribe(request => {
-    const {jQueryPath, registerEvents, documentId} = request
+    const {jQueryPath, documentId} = request
+    
     waitForNode(jQueryPath,
         x => {
             const tags = new Bloodhound({
@@ -85,11 +86,7 @@ app.ports.tags.subscribe(request => {
                     }
                 })
 
-            if (registerEvents) {
-                if(!documentId) {
-                    throw new Error("The documentId is missing.")
-                }
-                
+            if (documentId) {
                 x
                     .on('itemRemoved', t => {
                         app.ports.removeTags.send({documentId: documentId, tags: [t.item]})
@@ -99,6 +96,9 @@ app.ports.tags.subscribe(request => {
                     })
             }
         })
+})
+app.ports.clearCacheTags.subscribe(() => {
+    window.localStorage.removeItem('__/api/tags__data')
 })
 app.ports.upload.subscribe(request => {
     const {jQueryPath, jQueryTagsPath} = request

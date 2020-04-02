@@ -3,7 +3,6 @@ module Ports.Models exposing (..)
 
 type alias TagsRequest =
     { jQueryPath : String
-    , registerEvents : Bool
     , documentId : Maybe String
     }
 

@@ -1,6 +1,7 @@
-module Views.Document exposing (addTags, init, removeTags, update, view)
+module Views.Document exposing (addTags, deleteDocument, didDeleteDocument, init, removeTags, update, view)
 
 import Bootstrap.Button
+import Bootstrap.Modal
 import Browser.Navigation as Nav
 import Dict
 import Factories
@@ -51,7 +52,9 @@ view state documentId =
     in
     case document of
         Just x ->
-            [ internalView state x ]
+            [ deleteConfirmation state x
+            , internalView state x
+            ]
 
         Nothing ->
             [ Html.div [] [ Html.text "Document not found!" ] ]
@@ -97,8 +100,51 @@ removeTags documentId tags =
         )
 
 
+deleteDocument : String -> Cmd Models.Msg
+deleteDocument documentId =
+    Http.request
+        { method = "DELETE"
+        , headers = []
+        , url =
+            "/api/documents/{{ documentId }}"
+                |> String.Format.namedValue "documentId" documentId
+        , body = Http.emptyBody
+        , expect = Http.expectWhatever Models.DidDeleteDocument
+        , timeout = Nothing
+        , tracker = Nothing
+        }
+
+
+didDeleteDocument : Models.State -> Result Http.Error () -> ( Models.State, Cmd Models.Msg )
+didDeleteDocument state _ =
+    ( { state | modalVisibility = Bootstrap.Modal.hidden }, Nav.pushUrl state.key "/documents" )
+
+
 
 -- Private members
+
+
+deleteConfirmation : Models.State -> Models.DocumentResponse -> Html Models.Msg
+deleteConfirmation { modalVisibility } { id } =
+    Bootstrap.Modal.config Models.CloseModal
+        |> Bootstrap.Modal.small
+        |> Bootstrap.Modal.withAnimation (\x -> Models.AnimatedModal x)
+        |> Bootstrap.Modal.hideOnBackdropClick True
+        |> Bootstrap.Modal.h5 [] [ Html.text "Confirmation" ]
+        |> Bootstrap.Modal.body [] [ Html.text "You are about to delete the document. Are you sure?" ]
+        |> Bootstrap.Modal.footer []
+            [ Bootstrap.Button.button
+                [ Bootstrap.Button.primary
+                , Bootstrap.Button.onClick <| Models.AnimatedModal Bootstrap.Modal.hiddenAnimated
+                ]
+                [ Html.text "Cancel" ]
+            , Bootstrap.Button.button
+                [ Bootstrap.Button.danger
+                , Bootstrap.Button.onClick <| Models.DeleteDocument id
+                ]
+                [ Html.text "Delete" ]
+            ]
+        |> Bootstrap.Modal.view modalVisibility
 
 
 internalView : Models.State -> Models.DocumentResponse -> Html Models.Msg
@@ -112,18 +158,9 @@ internalView state { id, original_file_name, tags, datetimes, ocr } =
     in
     Html.div [ Html.Attributes.class "document" ]
         [ Html.div [ Html.Attributes.class "row" ]
-            [ Html.div [ Html.Attributes.class "col-md d-flex" ]
-                [ Html.div [ Html.Attributes.class "ml-auto" ]
-                    [ Bootstrap.Button.button
-                        [ Bootstrap.Button.attrs [ Html.Attributes.class "" ]
-                        , Bootstrap.Button.primary
-                        ]
-                        [ Html.text "Download" ]
-                    ]
-                ]
-            ]
+            []
         , Html.div [ Html.Attributes.class "row" ]
-            [ Html.div [ Html.Attributes.class "col" ]
+            [ Html.div [ Html.Attributes.class "col-7" ]
                 [ Html.img
                     [ Html.Attributes.alt original_file_name
                     , Html.Attributes.src
@@ -135,10 +172,21 @@ internalView state { id, original_file_name, tags, datetimes, ocr } =
                     ]
                     []
                 ]
-            ]
-        , Html.div [ Html.Attributes.class "row" ]
-            [ Html.div [ Html.Attributes.class "col" ]
-                [ Html.div [ Html.Attributes.class "form-group" ]
+            , Html.div [ Html.Attributes.class "col" ]
+                [ Html.div [ Html.Attributes.class "col-md d-flex document-buttons" ]
+                    [ Html.div [ Html.Attributes.class "ml-auto" ]
+                        [ Bootstrap.Button.button
+                            [ Bootstrap.Button.danger
+                            , Bootstrap.Button.onClick Models.ShowModal
+                            ]
+                            [ Html.text "Delete" ]
+                        , Bootstrap.Button.button
+                            [ Bootstrap.Button.primary
+                            ]
+                            [ Html.text "Download" ]
+                        ]
+                    ]
+                , Html.div [ Html.Attributes.class "form-group document-details" ]
                     [ Html.dl []
                         [ Html.dt [] [ Html.text "Document ID" ]
                         , Html.dd [] [ Html.text id ]
@@ -148,10 +196,9 @@ internalView state { id, original_file_name, tags, datetimes, ocr } =
                         , Html.dd [] [ Html.text (Views.Shared.posix2String timeZone original_file_datetime) ]
                         ]
                     ]
+                , Views.Shared.tagsinputs tags
                 ]
             ]
-        , Html.div [ Html.Attributes.class "row" ]
-            [ Html.div [ Html.Attributes.class "col" ] [ Views.Shared.tagsinputs tags ] ]
         , Html.div [ Html.Attributes.class "row" ]
             [ Html.div [ Html.Attributes.class "col" ]
                 [ Html.div [ Html.Attributes.class "input-group ocr" ]
@@ -160,6 +207,7 @@ internalView state { id, original_file_name, tags, datetimes, ocr } =
                     , Html.textarea
                         [ Html.Attributes.class "form-control"
                         , Html.Attributes.attribute "aria-label" "ocr"
+                        , Html.Attributes.disabled True
                         ]
                         [ Html.text <| Maybe.withDefault "" ocr ]
                     ]
@@ -170,4 +218,4 @@ internalView state { id, original_file_name, tags, datetimes, ocr } =
 
 internalUpdate : Models.State -> String -> ( Models.State, Cmd Models.Msg )
 internalUpdate state documentId =
-    ( state, Ports.Gates.tags { jQueryPath = "#tags", registerEvents = True, documentId = Just documentId } )
+    ( state, Ports.Gates.tags { jQueryPath = "#tags", documentId = Just documentId } )

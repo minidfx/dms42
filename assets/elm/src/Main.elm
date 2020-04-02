@@ -1,5 +1,6 @@
 module Main exposing (init, main, subscriptions, update, view)
 
+import Bootstrap.Modal
 import Browser
 import Browser.Navigation as Nav
 import Factories
@@ -72,7 +73,7 @@ init flags url key =
                 Models.Documents offset ->
                     Views.Documents.init flags key initialState offset
 
-                Models.Document id ->
+                Models.Document id page ->
                     Views.Document.init flags key initialState id
 
                 Models.Settings ->
@@ -135,7 +136,7 @@ update msg model =
                 Models.Documents offset ->
                     Views.Documents.update newModel offset
 
-                Models.Document id ->
+                Models.Document id page ->
                     Views.Document.update newModel id
 
                 Models.Settings ->
@@ -158,11 +159,26 @@ update msg model =
         Models.RemoveTags { documentId, tags } ->
             ( model, Views.Document.removeTags documentId tags )
 
-        Models.DidRemoveTags result ->
+        Models.DidRemoveTags _ ->
             ( model, Cmd.none )
 
-        Models.DidAddTags result ->
+        Models.DidAddTags _ ->
             ( model, Cmd.none )
+
+        Models.CloseModal ->
+            ( { model | modalVisibility = Bootstrap.Modal.hidden }, Cmd.none )
+
+        Models.ShowModal ->
+            ( { model | modalVisibility = Bootstrap.Modal.shown }, Cmd.none )
+
+        Models.AnimatedModal visibility ->
+            ( { model | modalVisibility = visibility }, Cmd.none )
+
+        Models.DeleteDocument documentId ->
+            ( model, Views.Document.deleteDocument documentId )
+
+        Models.DidDeleteDocument result ->
+            Views.Document.didDeleteDocument model result
 
 
 
@@ -170,11 +186,12 @@ update msg model =
 
 
 subscriptions : Models.State -> Sub Models.Msg
-subscriptions _ =
+subscriptions { modalVisibility } =
     Sub.batch
         [ Ports.Gates.uploadCompleted (always Models.UploadCompleted)
         , Ports.Gates.addTags Models.AddTags
         , Ports.Gates.removeTags Models.RemoveTags
+        , Bootstrap.Modal.subscriptions modalVisibility Models.AnimatedModal
         ]
 
 
@@ -234,7 +251,7 @@ mainView state =
                 Models.Home ->
                     Views.Home.view state
 
-                Models.Document id ->
+                Models.Document id page ->
                     Views.Document.view state id
 
         mainContent =

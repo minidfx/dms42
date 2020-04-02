@@ -63,3 +63,11 @@ p.card-text {
 div.ocr textarea {
   height: 40em;
 }
+
+div.document-buttons button {
+  margin-left: 0.4em;
+}
+
+div.document-details {
+  margin-top: 2em;
+}

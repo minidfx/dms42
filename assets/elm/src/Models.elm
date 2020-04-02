@@ -73,6 +73,7 @@ type alias State =
     , error : Maybe String
     , userTimeZone : Maybe Time.Zone
     , isLoading : Bool
+    , modalVisibility : Bootstrap.Modal.Visibility
     }
 
 
@@ -88,4 +89,9 @@ type Msg
     | RemoveTags Ports.Models.TagsRemoved
     | DidRemoveTags (Result Http.Error ())
     | DidAddTags (Result Http.Error ())
+    | CloseModal
+    | ShowModal
+    | AnimatedModal Bootstrap.Modal.Visibility
+    | DeleteDocument String
+    | DidDeleteDocument (Result Http.Error ())
     | None

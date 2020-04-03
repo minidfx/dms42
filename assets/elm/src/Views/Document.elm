@@ -166,22 +166,7 @@ internalView state document offset =
     in
     Html.div [ Html.Attributes.class "document" ]
         [ Html.div [ Html.Attributes.class "row" ]
-            []
-        , Html.div [ Html.Attributes.class "row" ]
-            [ Html.div [ Html.Attributes.class "col-7" ]
-                [ pagination document offset
-                , Html.img
-                    [ Html.Attributes.alt original_file_name
-                    , Html.Attributes.src
-                        ("/documents/{{ id }}/images/{{ image_id }}"
-                            |> String.Format.namedValue "id" id
-                            |> (String.Format.namedValue "image_id" <| String.fromInt offset)
-                        )
-                    , Html.Attributes.class "img-fluid img-thumbnail"
-                    ]
-                    []
-                , pagination document offset
-                ]
+            [ Html.div [ Html.Attributes.class "col-7" ] (documentView document offset)
             , Html.div [ Html.Attributes.class "col" ]
                 [ Html.div [ Html.Attributes.class "col-md d-flex document-buttons" ]
                     [ Html.div [ Html.Attributes.class "ml-auto" ]
@@ -230,6 +215,45 @@ internalView state document offset =
                 ]
             ]
         ]
+
+
+documentView : Models.DocumentResponse -> Int -> List (Html Models.Msg)
+documentView document offset =
+    let
+        { original_file_name, id, thumbnails } =
+            document
+
+        { countImages } =
+            thumbnails
+    in
+    case countImages > 1 of
+        True ->
+            [ pagination document offset
+            , Html.img
+                [ Html.Attributes.alt original_file_name
+                , Html.Attributes.src
+                    ("/documents/{{ id }}/images/{{ image_id }}"
+                        |> String.Format.namedValue "id" id
+                        |> (String.Format.namedValue "image_id" <| String.fromInt offset)
+                    )
+                , Html.Attributes.class "img-fluid img-thumbnail"
+                ]
+                []
+            , pagination document offset
+            ]
+
+        False ->
+            [ Html.img
+                [ Html.Attributes.alt original_file_name
+                , Html.Attributes.src
+                    ("/documents/{{ id }}/images/{{ image_id }}"
+                        |> String.Format.namedValue "id" id
+                        |> (String.Format.namedValue "image_id" <| String.fromInt offset)
+                    )
+                , Html.Attributes.class "img-fluid img-thumbnail"
+                ]
+                []
+            ]
 
 
 paginationItems : Models.DocumentResponse -> Int -> Bootstrap.Pagination.ListConfig Int Models.Msg

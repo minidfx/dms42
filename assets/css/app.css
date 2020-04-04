@@ -9,11 +9,6 @@
 @import 'dropzone.css';
 @import 'typeaheads.css';
 
-div.home-search
-{
-  height: 200px;
-}
-
 div.bd-dms42
 {
   padding: 8em 3em 3em 3em;

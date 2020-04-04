@@ -1,4 +1,4 @@
-module Views.Documents exposing (getDocuments, handleDocuments, init, update, view)
+module Views.Documents exposing (cards, documentDecoder, getDocuments, handleDocuments, init, update, view)
 
 import Bootstrap.General.HAlign
 import Bootstrap.Pagination
@@ -95,14 +95,18 @@ view state offset =
     ]
 
 
-cards : Models.State -> List Models.DocumentResponse -> List (Html Models.Msg) -> List (Html Models.Msg)
-cards state documents acc =
-    case documents of
-        [] ->
-            acc
+cards : Models.State -> List Models.DocumentResponse -> List (Html Models.Msg)
+cards state documents =
+    List.map (\x -> Views.Shared.card state x) documents
 
-        head :: tail ->
-            cards state tail (Views.Shared.card state head :: acc)
+
+
+--case documents of
+--    [] ->
+--        acc
+--
+--    head :: tail ->
+--        cards state tail (Views.Shared.card state head :: acc)
 
 
 handleDocuments : Models.State -> Result Http.Error Models.DocumentsResponse -> ( Models.State, Cmd Models.Msg )
@@ -133,16 +137,53 @@ handleDocuments state result =
             )
 
 
+getDocuments : Models.DocumentsRequest -> Cmd Models.Msg
+getDocuments { offset, length } =
+    Http.get
+        { url =
+            "/api/documents?offset={{ offset }}&length={{ length }}"
+                |> (String.Format.namedValue "offset" <| String.fromInt offset)
+                |> (String.Format.namedValue "length" <| String.fromInt length)
+        , expect = Http.expectJson Models.GotDocuments documentsDecoder
+        }
+
+
+documentDecoder : Json.Decode.Decoder Models.DocumentResponse
+documentDecoder =
+    Json.Decode.map8 Models.DocumentResponse
+        (Json.Decode.maybe (Json.Decode.field "comments" Json.Decode.string))
+        (Json.Decode.field "document_id" Json.Decode.string)
+        (Json.Decode.field "document_type_id" Json.Decode.string)
+        (Json.Decode.field "tags" (Json.Decode.list Json.Decode.string))
+        (Json.Decode.field "original_file_name" Json.Decode.string)
+        (Json.Decode.field "datetimes" documentDateTimesDecoder)
+        (Json.Decode.field "thumbnails" documentThumbnails)
+        (Json.Decode.maybe (Json.Decode.field "ocr" Json.Decode.string))
+
+
 
 -- Private members
 
 
 internalDocumentsView : Models.State -> List Models.DocumentResponse -> Maybe Int -> List (Html Models.Msg)
 internalDocumentsView state documents offset =
-    [ pagination state offset
-    , Html.div [ Html.Attributes.class "cards d-flex justify-content-start flex-wrap" ] (cards state documents [])
-    , pagination state offset
-    ]
+    if List.isEmpty documents |> not then
+        [ pagination state offset
+        , Html.div [ Html.Attributes.class "cards d-flex justify-content-start flex-wrap" ] (cards state documents)
+        , pagination state offset
+        ]
+
+    else
+        [ Html.div [ Html.Attributes.class "d-flex" ]
+            [ Html.div [ Html.Attributes.class "ml-auto mr-auto media position-relative empty" ]
+                [ Html.i
+                    [ Html.Attributes.class "fas fa-otter"
+                    , Html.Attributes.title "No documents"
+                    ]
+                    []
+                ]
+            ]
+        ]
 
 
 internalUpdate : Models.State -> Maybe Int -> ( Models.State, Cmd Models.Msg )
@@ -174,7 +215,7 @@ paginationItems state offset =
         { total, length } =
             documentsState
     in
-    { selectedMsg = \_ -> Models.None
+    { selectedMsg = \_ -> Models.NoOp
     , prevItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Previous" ]
     , nextItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Next" ]
     , activeIdx = (//) ((+) localOffset 1) length
@@ -208,32 +249,8 @@ documentThumbnails =
         (Json.Decode.maybe (Json.Decode.field "current-image" Json.Decode.int))
 
 
-documentDecoder : Json.Decode.Decoder Models.DocumentResponse
-documentDecoder =
-    Json.Decode.map8 Models.DocumentResponse
-        (Json.Decode.maybe (Json.Decode.field "comments" Json.Decode.string))
-        (Json.Decode.field "document_id" Json.Decode.string)
-        (Json.Decode.field "document_type_id" Json.Decode.string)
-        (Json.Decode.field "tags" (Json.Decode.list Json.Decode.string))
-        (Json.Decode.field "original_file_name" Json.Decode.string)
-        (Json.Decode.field "datetimes" documentDateTimesDecoder)
-        (Json.Decode.field "thumbnails" documentThumbnails)
-        (Json.Decode.maybe (Json.Decode.field "ocr" Json.Decode.string))
-
-
 documentsDecoder : Json.Decode.Decoder Models.DocumentsResponse
 documentsDecoder =
     Json.Decode.map2 Models.DocumentsResponse
         (Json.Decode.field "documents" (Json.Decode.list documentDecoder))
         (Json.Decode.field "total" Json.Decode.int)
-
-
-getDocuments : Models.DocumentsRequest -> Cmd Models.Msg
-getDocuments { offset, length } =
-    Http.get
-        { url =
-            "/api/documents?offset={{ offset }}&length={{ length }}"
-                |> (String.Format.namedValue "offset" <| String.fromInt offset)
-                |> (String.Format.namedValue "length" <| String.fromInt length)
-        , expect = Http.expectJson Models.GotDocuments documentsDecoder
-        }

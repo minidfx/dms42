@@ -3,6 +3,7 @@ module Main exposing (init, main, subscriptions, update, view)
 import Bootstrap.Modal
 import Browser
 import Browser.Navigation as Nav
+import Debounce
 import Factories
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -91,27 +92,34 @@ init flags url key =
 -- UPDATE
 
 
+debounceConfig : (Debounce.Msg -> Models.Msg) -> Debounce.Config Models.Msg
+debounceConfig debounceMsg =
+    { strategy = Debounce.later 500
+    , transform = debounceMsg
+    }
+
+
 update : Models.Msg -> Models.State -> ( Models.State, Cmd Models.Msg )
-update msg model =
+update msg state =
     case msg of
         Models.GotDocuments documentsResult ->
-            Views.Documents.handleDocuments model documentsResult
+            Views.Documents.handleDocuments state documentsResult
 
         Models.LinkClicked urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
-                    ( model, Nav.pushUrl model.key (Url.toString url) )
+                    ( state, Nav.pushUrl state.key (Url.toString url) )
 
                 Browser.External href ->
-                    ( model, Nav.load href )
+                    ( state, Nav.load href )
 
         Models.StartUpload ->
-            ( { model | uploading = True }
+            ( { state | uploading = True }
             , Cmd.batch [ Views.AddDocuments.startUpload ]
             )
 
         Models.UploadCompleted ->
-            ( { model | uploading = False }
+            ( { state | uploading = False }
             , Cmd.none
             )
 
@@ -121,7 +129,7 @@ update msg model =
                     Url.Parser.parse routes url |> Maybe.withDefault Models.Home
 
                 newModel =
-                    { model | url = url, route = route, error = Nothing }
+                    { state | url = url, route = route, error = Nothing }
             in
             case route of
                 Models.AddDocuments ->
@@ -140,39 +148,77 @@ update msg model =
                     ( newModel, Cmd.none )
 
         Models.GetUserTimeZone zone ->
-            ( { model | userTimeZone = Just zone }
+            ( { state | userTimeZone = Just zone }
             , Cmd.none
             )
 
         Models.AddTags { documentId, tags } ->
-            ( model, Views.Document.addTags documentId tags )
+            ( state, Views.Document.addTags documentId tags )
 
         Models.RemoveTags { documentId, tags } ->
-            ( model, Views.Document.removeTags documentId tags )
+            ( state, Views.Document.removeTags documentId tags )
 
         Models.DidRemoveTags _ ->
-            ( model, Cmd.none )
+            ( state, Cmd.none )
 
         Models.DidAddTags _ ->
-            ( model, Cmd.none )
+            ( state, Cmd.none )
 
         Models.CloseModal ->
-            ( { model | modalVisibility = Bootstrap.Modal.hidden }, Cmd.none )
+            ( { state | modalVisibility = Bootstrap.Modal.hidden }, Cmd.none )
 
         Models.ShowModal ->
-            ( { model | modalVisibility = Bootstrap.Modal.shown }, Cmd.none )
+            ( { state | modalVisibility = Bootstrap.Modal.shown }, Cmd.none )
 
         Models.AnimatedModal visibility ->
-            ( { model | modalVisibility = visibility }, Cmd.none )
+            ( { state | modalVisibility = visibility }, Cmd.none )
 
         Models.DeleteDocument documentId ->
-            ( model, Views.Document.deleteDocument documentId )
+            ( state, Views.Document.deleteDocument documentId )
 
         Models.DidDeleteDocument result ->
-            Views.Document.didDeleteDocument model result
+            Views.Document.didDeleteDocument state result
 
-        Models.None ->
-            ( model, Cmd.none )
+        Models.UserTypeSearch query ->
+            let
+                searchState =
+                    Maybe.withDefault Factories.searchStateFactory <| state.searchState
+
+                ( newDebouncer, cmd ) =
+                    Debounce.push
+                        (debounceConfig Models.ThrottleSearchDocuments)
+                        query
+                        searchState.debouncer
+            in
+            ( { state | searchState = Just { searchState | query = Just query, debouncer = newDebouncer } }
+            , cmd
+            )
+
+        Models.ThrottleSearchDocuments msg_ ->
+            let
+                searchState =
+                    Maybe.withDefault Factories.searchStateFactory <| state.searchState
+
+                ( newDebouncer, cmd ) =
+                    Debounce.update
+                        (debounceConfig Models.ThrottleSearchDocuments)
+                        (Debounce.takeLast (\x -> Task.perform Models.Search (Task.succeed x)))
+                        msg_
+                        searchState.debouncer
+            in
+            ( { state | searchState = Just { searchState | debouncer = newDebouncer } }, cmd )
+
+        Models.Search string ->
+            Views.Home.searchDocuments state string
+
+        Models.GotSearchResult result ->
+            Views.Home.handleSearchResult state result
+
+        Models.GotDocument result ->
+            Views.Document.handleDocument state result
+
+        Models.NoOp ->
+            ( state, Cmd.none )
 
 
 

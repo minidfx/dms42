@@ -56,6 +56,7 @@ defmodule Dms42.DocumentsFinder do
       or_where: ilike(d.original_file_name_normalized, ^"%#{term}%"),
       or_where: ilike(o.ocr_normalized, ^"%#{term}%"),
       or_where: t.name == ^term,
+      order_by: d.inserted_at,
       limit: @max_result,
       select: d
     )
@@ -74,6 +75,7 @@ defmodule Dms42.DocumentsFinder do
         or_where: ilike(d.original_file_name_normalized, ^"%#{query}%"),
         or_where: ilike(o.ocr_normalized, ^"%#{query}%"),
         or_where: t.name == ^query,
+        order_by: d.inserted_at,
         limit: @max_result,
         select: d
       )

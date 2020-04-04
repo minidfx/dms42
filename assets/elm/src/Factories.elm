@@ -2,6 +2,7 @@ module Factories exposing (..)
 
 import Bootstrap.Modal
 import Browser.Navigation as Nav
+import Debounce
 import Models
 import Url
 
@@ -18,7 +19,13 @@ stateFactory key url route =
     , userTimeZone = Nothing
     , isLoading = False
     , modalVisibility = Bootstrap.Modal.hidden
+    , searchState = Nothing
     }
+
+
+searchStateFactory : Models.SearchState
+searchStateFactory =
+    Models.SearchState Nothing Nothing Debounce.init
 
 
 documentsStateFactory : Models.DocumentsState

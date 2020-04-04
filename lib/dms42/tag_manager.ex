@@ -96,12 +96,12 @@ defmodule Dms42.TagManager do
       when is_binary(document_id) do
     transaction
     |> Ecto.Multi.delete_all(
-         "tag_#{t_name}",
-         from(DocumentTag, where: [document_id: ^document_id, tag_id: ^tid])
-       )
+      "tag_#{t_name}",
+      from(DocumentTag, where: [document_id: ^document_id, tag_id: ^tid])
+    )
     |> clean_tag(tag)
   end
-  
+
   @doc """
     Removes the tag passing the given id from the document using a transaction.
   """
@@ -148,7 +148,7 @@ defmodule Dms42.TagManager do
     result =
       from(dt in DocumentTag, where: dt.tag_id == ^tag_id, select: count(dt.id))
       |> Dms42.Repo.all()
-      
+
     case result do
       [1] -> transaction |> Ecto.Multi.delete("clean_tag_#{tag_id}", tag)
       _ -> transaction

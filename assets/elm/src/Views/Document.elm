@@ -1,4 +1,4 @@
-module Views.Document exposing (addTags, deleteDocument, didDeleteDocument, init, removeTags, update, view)
+module Views.Document exposing (addTags, deleteDocument, didDeleteDocument, handleDocument, init, removeTags, update, view)
 
 import Bootstrap.Button
 import Bootstrap.General.HAlign
@@ -24,15 +24,8 @@ import Views.Shared
 
 
 init : () -> Nav.Key -> Models.State -> String -> ( Models.State, Cmd Models.Msg )
-init flags keys state documentId =
-    let
-        ( viewDocumentsState, viewDocumentsCommands ) =
-            Views.Documents.init flags keys state Nothing
-
-        ( viewState, viewCommands ) =
-            internalUpdate viewDocumentsState documentId
-    in
-    ( viewState, Cmd.batch [ viewDocumentsCommands, viewCommands ] )
+init _ _ state documentId =
+    internalUpdate state documentId
 
 
 update : Models.State -> String -> ( Models.State, Cmd Models.Msg )
@@ -125,8 +118,40 @@ didDeleteDocument state _ =
     ( { state | modalVisibility = Bootstrap.Modal.hidden }, Nav.pushUrl state.key "/documents" )
 
 
+handleDocument : Models.State -> Result Http.Error Models.DocumentResponse -> ( Models.State, Cmd Models.Msg )
+handleDocument state result =
+    let
+        documentsState =
+            state.documentsState
+                |> Maybe.withDefault Factories.documentsStateFactory
+
+        newDocumentsState =
+            case result of
+                Ok x ->
+                    let
+                        { id } =
+                            x
+                    in
+                    { documentsState | documents = Just <| Dict.insert id x <| Maybe.withDefault Dict.empty documentsState.documents }
+
+                Err _ ->
+                    documentsState
+    in
+    ( { state | documentsState = Just newDocumentsState }, Cmd.none )
+
+
 
 -- Private members
+
+
+getDocument : String -> Cmd Models.Msg
+getDocument documentId =
+    Http.get
+        { url =
+            "/api/documents/{{ }}"
+                |> String.Format.value documentId
+        , expect = Http.expectJson Models.GotDocument Views.Documents.documentDecoder
+        }
 
 
 deleteConfirmation : Models.State -> Models.DocumentResponse -> Html Models.Msg
@@ -262,7 +287,7 @@ paginationItems { thumbnails, id } offset =
         { countImages } =
             thumbnails
     in
-    { selectedMsg = \_ -> Models.None
+    { selectedMsg = \_ -> Models.NoOp
     , prevItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Previous" ]
     , nextItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Next" ]
     , activeIdx = offset
@@ -283,9 +308,31 @@ pagination document offset =
 
 internalUpdate : Models.State -> String -> ( Models.State, Cmd Models.Msg )
 internalUpdate state documentId =
+    let
+        documents =
+            state.documentsState
+                |> Maybe.withDefault Factories.documentsStateFactory
+                |> Helpers.fluentSelect (\x -> x.documents)
+                |> Maybe.withDefault Dict.empty
+
+        document =
+            Dict.get documentId <| documents
+
+        commands =
+            case document of
+                Just _ ->
+                    Cmd.batch
+                        [ Ports.Gates.tags { jQueryPath = "#tags", documentId = Just documentId }
+                        , Ports.Gates.clearCacheTags ()
+                        ]
+
+                Nothing ->
+                    Cmd.batch
+                        [ getDocument documentId
+                        , Ports.Gates.tags { jQueryPath = "#tags", documentId = Just documentId }
+                        , Ports.Gates.clearCacheTags ()
+                        ]
+    in
     ( state
-    , Cmd.batch
-        [ Ports.Gates.tags { jQueryPath = "#tags", documentId = Just documentId }
-        , Ports.Gates.clearCacheTags ()
-        ]
+    , commands
     )

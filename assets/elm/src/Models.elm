@@ -3,6 +3,7 @@ module Models exposing (..)
 import Bootstrap.Modal
 import Browser
 import Browser.Navigation as Nav
+import Debounce exposing (Debounce)
 import Dict exposing (Dict)
 import Http
 import Ports.Models
@@ -60,6 +61,13 @@ type alias DocumentsState =
     }
 
 
+type alias SearchState =
+    { documents : Maybe (List DocumentResponse)
+    , query : Maybe String
+    , debouncer : Debounce String
+    }
+
+
 type Route
     = Documents (Maybe Int)
     | Document String (Maybe Int)
@@ -79,6 +87,7 @@ type alias State =
     , userTimeZone : Maybe Time.Zone
     , isLoading : Bool
     , modalVisibility : Bootstrap.Modal.Visibility
+    , searchState : Maybe SearchState
     }
 
 
@@ -88,6 +97,7 @@ type Msg
     | StartUpload
     | UploadCompleted
     | GotDocuments (Result Http.Error DocumentsResponse)
+    | GotDocument (Result Http.Error DocumentResponse)
     | GetUserTimeZone Time.Zone
     | AddTags Ports.Models.TagsAdded
     | RemoveTags Ports.Models.TagsRemoved
@@ -98,4 +108,8 @@ type Msg
     | AnimatedModal Bootstrap.Modal.Visibility
     | DeleteDocument String
     | DidDeleteDocument (Result Http.Error ())
-    | None
+    | UserTypeSearch String
+    | ThrottleSearchDocuments Debounce.Msg
+    | Search String
+    | GotSearchResult (Result Http.Error (List DocumentResponse))
+    | NoOp

@@ -52,17 +52,20 @@ view state offset =
         content =
             case showLoading of
                 True ->
-                    Html.div [ Html.Attributes.class "ml-auto mr-auto" ]
-                        [ Bootstrap.Spinner.spinner
-                            [ Bootstrap.Spinner.large
-                            , Bootstrap.Spinner.color Bootstrap.Text.primary
-                            , Bootstrap.Spinner.attrs [ Html.Attributes.class "m-5" ]
+                    [ Html.div [ Html.Attributes.class "d-flex" ]
+                        [ Html.div [ Html.Attributes.class "ml-auto mr-auto" ]
+                            [ Bootstrap.Spinner.spinner
+                                [ Bootstrap.Spinner.large
+                                , Bootstrap.Spinner.color Bootstrap.Text.primary
+                                , Bootstrap.Spinner.attrs [ Html.Attributes.class "m-5" ]
+                                ]
+                                [ Bootstrap.Spinner.srMessage "Loading ..." ]
                             ]
-                            [ Bootstrap.Spinner.srMessage "Loading ..." ]
                         ]
+                    ]
 
                 False ->
-                    internalDocumentsView state <| Dict.values documents
+                    internalDocumentsView state (Dict.values documents) offset
     in
     [ Html.div [ Html.Attributes.class "row" ]
         [ Html.div [ Html.Attributes.class "col-md-6" ]
@@ -87,11 +90,7 @@ view state offset =
         ]
     , Html.hr [ Html.Attributes.style "margin-top" "0.3em" ] []
     , Html.div [ Html.Attributes.class "row documents" ]
-        [ Html.div [ Html.Attributes.class "col" ]
-            [ pagination state offset
-            , content
-            , pagination state offset
-            ]
+        [ Html.div [ Html.Attributes.class "col" ] content
         ]
     ]
 
@@ -138,9 +137,12 @@ handleDocuments state result =
 -- Private members
 
 
-internalDocumentsView : Models.State -> List Models.DocumentResponse -> Html Models.Msg
-internalDocumentsView state documents =
-    Html.div [ Html.Attributes.class "cards d-flex justify-content-start flex-wrap" ] (cards state documents [])
+internalDocumentsView : Models.State -> List Models.DocumentResponse -> Maybe Int -> List (Html Models.Msg)
+internalDocumentsView state documents offset =
+    [ pagination state offset
+    , Html.div [ Html.Attributes.class "cards d-flex justify-content-start flex-wrap" ] (cards state documents [])
+    , pagination state offset
+    ]
 
 
 internalUpdate : Models.State -> Maybe Int -> ( Models.State, Cmd Models.Msg )

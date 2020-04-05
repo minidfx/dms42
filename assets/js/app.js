@@ -13,15 +13,20 @@ import Elm from '../elm/src/Main.elm'
 Dropzone.autoDiscover = false
 
 const app = Elm.Elm.Main.init({node: document.getElementsByName("body")})
+const maxRetry = 10
 
 // INFO: Because the message is sometimes received before than the element exists, we have to wait for the DOM to be updated and retry.
-const waitForNode = (jQueryPath, callback) => {
+const waitForNode = (jQueryPath, callback, retry) => {
+    if (retry > maxRetry) {
+        throw new Error(`Was not able to find the node after ${maxRetry}.`)
+    }
+
     let htmlTag = $(jQueryPath)
     if (htmlTag.length < 1) {
-        window.setTimeout(() => waitForNode(jQueryPath, callback), 10)
+        window.setTimeout(() => waitForNode(jQueryPath, callback, retry + 1), 10)
         return
     }
-    
+
     callback(htmlTag)
 }
 
@@ -62,11 +67,12 @@ app.ports.dropZone.subscribe(request => {
                             },
                             3000)
                     })
-        })
+        },
+        0)
 })
 app.ports.tags.subscribe(request => {
     const {jQueryPath, documentId} = request
-    
+
     waitForNode(jQueryPath,
         x => {
             const tags = new Bloodhound({
@@ -95,7 +101,8 @@ app.ports.tags.subscribe(request => {
                         app.ports.addTags.send({documentId: documentId, tags: [t.item]})
                     })
             }
-        })
+        },
+        0)
 })
 app.ports.clearCacheTags.subscribe(() => {
     window.localStorage.removeItem('__/api/tags__data')

@@ -4,7 +4,6 @@ import Bootstrap.Card
 import Bootstrap.Card.Block
 import Bootstrap.General.HAlign
 import Bootstrap.Pagination
-import Browser
 import Helpers
 import Html exposing (Html)
 import Html.Attributes
@@ -13,8 +12,6 @@ import Html.Keyed
 import Models
 import String.Format
 import Time
-import Url
-import Url.Builder
 
 
 
@@ -32,8 +29,11 @@ posix2String zone timestamp =
 
 
 card : Models.State -> Models.DocumentResponse -> Html Models.Msg
-card { key, url, userTimeZone } { datetimes, id, tags } =
+card state { datetimes, id, tags } =
     let
+        { key, url, userTimeZone } =
+            state
+
         timeZone =
             userTimeZone |> Maybe.withDefault Time.utc
 
@@ -43,7 +43,7 @@ card { key, url, userTimeZone } { datetimes, id, tags } =
     Bootstrap.Card.config [ Bootstrap.Card.light, Bootstrap.Card.attrs [ Html.Attributes.style "max-width" "155px" ] ]
         |> Bootstrap.Card.imgTop
             [ Html.Attributes.src <| ("/documents/thumbnail/{{ }}" |> String.Format.value id)
-            , Html.Events.onClick <| Models.LinkClicked <| Browser.Internal <| Maybe.withDefault url <| Url.fromString <| Url.Builder.crossOrigin (Helpers.basePath url) [ "documents", id ] []
+            , Html.Events.onClick <| Models.LinkClicked <| Helpers.navTo state [ "documents", id ] []
             ]
             []
         |> Bootstrap.Card.block []

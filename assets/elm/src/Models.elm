@@ -73,7 +73,7 @@ type Route
     | Document String (Maybe Int)
     | AddDocuments
     | Settings
-    | Home
+    | Home (Maybe String)
 
 
 type alias State =
@@ -110,6 +110,5 @@ type Msg
     | DidDeleteDocument (Result Http.Error ())
     | UserTypeSearch String
     | ThrottleSearchDocuments Debounce.Msg
-    | Search String
     | GotSearchResult (Result Http.Error (List DocumentResponse))
     | Nop

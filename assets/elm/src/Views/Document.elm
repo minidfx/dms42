@@ -291,31 +291,10 @@ pagination { thumbnails, id } offset =
 
 internalUpdate : Models.State -> String -> ( Models.State, Cmd Models.Msg )
 internalUpdate state documentId =
-    let
-        documents =
-            state.documentsState
-                |> Maybe.withDefault Factories.documentsStateFactory
-                |> Helpers.fluentSelect (\x -> x.documents)
-                |> Maybe.withDefault Dict.empty
-
-        document =
-            Dict.get documentId <| documents
-
-        commands =
-            case document of
-                Just _ ->
-                    Cmd.batch
-                        [ Ports.Gates.clearCacheTags ()
-                        , Ports.Gates.tags { jQueryPath = "#tags", documentId = Just documentId }
-                        ]
-
-                Nothing ->
-                    Cmd.batch
-                        [ getDocument documentId
-                        , Ports.Gates.clearCacheTags ()
-                        , Ports.Gates.tags { jQueryPath = "#tags", documentId = Just documentId }
-                        ]
-    in
     ( state
-    , commands
+    , Cmd.batch
+        [ getDocument documentId
+        , Ports.Gates.clearCacheTags ()
+        , Ports.Gates.tags { jQueryPath = "#tags", documentId = Just documentId }
+        ]
     )

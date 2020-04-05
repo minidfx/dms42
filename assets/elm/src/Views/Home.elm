@@ -1,4 +1,4 @@
-module Views.Home exposing (handleSearchResult, searchDocuments, view)
+module Views.Home exposing (handleSearchResult, init, searchDocuments, update, view)
 
 import Factories
 import Html exposing (Html)
@@ -21,9 +21,6 @@ view state =
         searchState =
             Maybe.withDefault Factories.searchStateFactory <| state.searchState
 
-        query =
-            Maybe.withDefault "" <| searchState.query
-
         documents =
             Maybe.withDefault [] searchState.documents
     in
@@ -35,7 +32,7 @@ view state =
                     [ Html.Attributes.type_ "text"
                     , Html.Attributes.class "form-control"
                     , Html.Events.onInput <| \x -> Models.UserTypeSearch x
-                    , Html.Attributes.value query
+                    , Html.Attributes.value <| Maybe.withDefault "" <| searchState.query
                     ]
                     []
                 , Html.div [ Html.Attributes.class "input-group-append" ]
@@ -52,21 +49,26 @@ view state =
     ]
 
 
-searchDocuments : Models.State -> String -> ( Models.State, Cmd Models.Msg )
+searchDocuments : Models.State -> Maybe String -> ( Models.State, Cmd Models.Msg )
 searchDocuments state query =
     let
         queryClean =
-            if String.length query <= 2 then
-                ""
+            case query of
+                Just x ->
+                    if String.length x <= 2 then
+                        Nothing
 
-            else
-                query
+                    else
+                        query
+
+                Nothing ->
+                    Nothing
     in
     case queryClean of
-        "" ->
+        Nothing ->
             ( state, Cmd.none )
 
-        x ->
+        Just x ->
             ( state
             , Http.get
                 { url = "/api/documents?query={{ }}" |> String.Format.value x
@@ -90,3 +92,29 @@ handleSearchResult state result =
                     []
     in
     ( { state | searchState = Just { searchState | documents = Just documents } }, Cmd.none )
+
+
+init : Models.State -> Maybe String -> ( Models.State, Cmd Models.Msg )
+init state query =
+    internalUpdate state query
+
+
+update : Models.State -> Maybe String -> ( Models.State, Cmd Models.Msg )
+update state query =
+    internalUpdate state query
+
+
+
+-- Private members
+
+
+internalUpdate : Models.State -> Maybe String -> ( Models.State, Cmd Models.Msg )
+internalUpdate state query =
+    let
+        searchState =
+            Maybe.withDefault Factories.searchStateFactory <| state.searchState
+
+        newState =
+            { state | searchState = Just { searchState | query = query } }
+    in
+    searchDocuments newState query

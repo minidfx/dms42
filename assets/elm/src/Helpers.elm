@@ -1,8 +1,11 @@
-module Helpers exposing (basePath, fluentSelect, fluentUpdate, httpErrorToString, protocol2String)
+module Helpers exposing (basePath, fluentSelect, fluentUpdate, httpErrorToString, navTo, protocol2String)
 
+import Browser
 import Http
+import Models
 import String.Format
 import Url exposing (Url)
+import Url.Builder
 
 
 
@@ -61,3 +64,8 @@ basePath { protocol, host, port_ } =
             "{{ protocol }}://{{ host }}:{{ port }}"
                 |> (String.Format.namedValue "protocol" <| protocol2String <| protocol)
                 |> String.Format.namedValue "host" host
+
+
+navTo : Models.State -> List String -> List Url.Builder.QueryParameter -> Browser.UrlRequest
+navTo { url } path arguments =
+    Browser.Internal <| Maybe.withDefault url <| Url.fromString <| Url.Builder.crossOrigin (basePath url) path arguments

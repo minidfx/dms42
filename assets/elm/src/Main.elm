@@ -5,14 +5,16 @@ import Browser
 import Browser.Navigation as Nav
 import Debounce
 import Factories
+import Helpers
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Models exposing (DocumentsResponse)
+import Models
 import Ports.Gates
 import Ports.Models
 import Task
 import Time
 import Url exposing (Url)
+import Url.Builder
 import Url.Parser exposing (..)
 import Url.Parser.Query
 import Views.AddDocuments
@@ -49,7 +51,7 @@ routes =
         , Url.Parser.map Models.AddDocuments (Url.Parser.s "documents" </> Url.Parser.s "add")
         , Url.Parser.map Models.Document (Url.Parser.s "documents" </> Url.Parser.string <?> Url.Parser.Query.int "offset")
         , Url.Parser.map Models.Settings (Url.Parser.s "settings")
-        , Url.Parser.map Models.Home (Url.Parser.s "/")
+        , Url.Parser.map Models.Home (Url.Parser.top <?> Url.Parser.Query.string "query")
         ]
 
 
@@ -60,7 +62,7 @@ init flags url key =
             Task.perform Models.GetUserTimeZone Time.here
 
         route =
-            Url.Parser.parse routes url |> Maybe.withDefault Models.Home
+            Url.Parser.parse routes url |> Maybe.withDefault (Models.Home Nothing)
 
         initialState =
             Factories.stateFactory key url route
@@ -79,8 +81,8 @@ init flags url key =
                 Models.Settings ->
                     ( initialState, Cmd.none )
 
-                Models.Home ->
-                    ( initialState, Cmd.none )
+                Models.Home query ->
+                    Views.Home.init initialState query
 
         newCommands =
             Cmd.batch [ defaultActions, commands ]
@@ -126,26 +128,26 @@ update msg state =
         Models.UrlChanged url ->
             let
                 route =
-                    Url.Parser.parse routes url |> Maybe.withDefault Models.Home
+                    Url.Parser.parse routes url |> Maybe.withDefault (Models.Home Nothing)
 
-                newModel =
+                newState =
                     { state | url = url, route = route, error = Nothing }
             in
             case route of
                 Models.AddDocuments ->
-                    Views.AddDocuments.update newModel
+                    Views.AddDocuments.update newState
 
                 Models.Documents offset ->
-                    Views.Documents.update newModel offset
+                    Views.Documents.update newState offset
 
                 Models.Document id _ ->
-                    Views.Document.update newModel id
+                    Views.Document.update newState id
 
                 Models.Settings ->
-                    ( newModel, Cmd.none )
+                    ( newState, Cmd.none )
 
-                Models.Home ->
-                    ( newModel, Cmd.none )
+                Models.Home query ->
+                    Views.Home.update newState query
 
         Models.GetUserTimeZone zone ->
             ( { state | userTimeZone = Just zone }
@@ -202,14 +204,11 @@ update msg state =
                 ( newDebouncer, cmd ) =
                     Debounce.update
                         (debounceConfig Models.ThrottleSearchDocuments)
-                        (Debounce.takeLast (\x -> Task.perform Models.Search (Task.succeed x)))
+                        (Debounce.takeLast (\x -> Task.perform Models.LinkClicked (Task.succeed <| Helpers.navTo state [] [ Url.Builder.string "query" x ])))
                         msg_
                         searchState.debouncer
             in
             ( { state | searchState = Just { searchState | debouncer = newDebouncer } }, cmd )
-
-        Models.Search string ->
-            Views.Home.searchDocuments state string
 
         Models.GotSearchResult result ->
             Views.Home.handleSearchResult state result
@@ -274,11 +273,8 @@ navbar =
 mainView : Models.State -> List (Html Models.Msg)
 mainView state =
     let
-        { route } =
-            state
-
         content =
-            case route of
+            case state.route of
                 Models.Documents offset ->
                     Views.Documents.view state offset
 
@@ -288,7 +284,7 @@ mainView state =
                 Models.AddDocuments ->
                     Views.AddDocuments.view state
 
-                Models.Home ->
+                Models.Home _ ->
                     Views.Home.view state
 
                 Models.Document id offset ->

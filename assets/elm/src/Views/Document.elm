@@ -305,15 +305,15 @@ internalUpdate state documentId =
             case document of
                 Just _ ->
                     Cmd.batch
-                        [ Ports.Gates.tags { jQueryPath = "#tags", documentId = Just documentId }
-                        , Ports.Gates.clearCacheTags ()
+                        [ Ports.Gates.clearCacheTags ()
+                        , Ports.Gates.tags { jQueryPath = "#tags", documentId = Just documentId }
                         ]
 
                 Nothing ->
                     Cmd.batch
                         [ getDocument documentId
-                        , Ports.Gates.tags { jQueryPath = "#tags", documentId = Just documentId }
                         , Ports.Gates.clearCacheTags ()
+                        , Ports.Gates.tags { jQueryPath = "#tags", documentId = Just documentId }
                         ]
     in
     ( state

@@ -9,6 +9,7 @@ import Helpers
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
+import Html.Keyed
 import Models
 import String.Format
 import Time
@@ -64,14 +65,19 @@ flattenTags tags =
 
 tagsinputs : List String -> Html Models.Msg
 tagsinputs tags =
-    Html.input
-        [ Html.Attributes.type_ "text"
-        , Html.Attributes.class "form-control typeahead"
-        , Html.Attributes.id "tags"
-        , Html.Attributes.attribute "data-role" "tagsinput"
-        , Html.Attributes.value <| String.join "," <| tags
-        ]
+    Html.Keyed.node "tags"
         []
+        [ ( "tags_input"
+          , Html.input
+                [ Html.Attributes.type_ "text"
+                , Html.Attributes.class "form-control typeahead"
+                , Html.Attributes.id "tags"
+                , Html.Attributes.attribute "data-role" "tagsinput"
+                , Html.Attributes.value <| String.join "," <| tags
+                ]
+                []
+          )
+        ]
 
 
 pagination : Int -> Int -> Maybe Int -> (Int -> String) -> Html Models.Msg

@@ -217,7 +217,7 @@ update msg state =
         Models.GotDocument result ->
             Views.Document.handleDocument state result
 
-        Models.NoOp ->
+        Models.Nop ->
             ( state, Cmd.none )
 
 

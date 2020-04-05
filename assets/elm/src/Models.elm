@@ -112,4 +112,4 @@ type Msg
     | ThrottleSearchDocuments Debounce.Msg
     | Search String
     | GotSearchResult (Result Http.Error (List DocumentResponse))
-    | NoOp
+    | Nop

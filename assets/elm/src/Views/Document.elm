@@ -1,9 +1,7 @@
 module Views.Document exposing (addTags, deleteDocument, didDeleteDocument, handleDocument, init, removeTags, update, view)
 
 import Bootstrap.Button
-import Bootstrap.General.HAlign
 import Bootstrap.Modal
-import Bootstrap.Pagination
 import Browser.Navigation as Nav
 import Dict
 import Factories
@@ -36,9 +34,6 @@ update state documentId =
 view : Models.State -> String -> Maybe Int -> List (Html Models.Msg)
 view state documentId offset =
     let
-        localOffset =
-            Maybe.withDefault 0 <| offset
-
         documents =
             state.documentsState
                 |> Maybe.withDefault Factories.documentsStateFactory
@@ -51,7 +46,7 @@ view state documentId offset =
     case document of
         Just x ->
             [ deleteConfirmation state x
-            , internalView state x localOffset
+            , internalView state x offset
             ]
 
         Nothing ->
@@ -177,7 +172,7 @@ deleteConfirmation { modalVisibility } { id } =
         |> Bootstrap.Modal.view modalVisibility
 
 
-internalView : Models.State -> Models.DocumentResponse -> Int -> Html Models.Msg
+internalView : Models.State -> Models.DocumentResponse -> Maybe Int -> Html Models.Msg
 internalView state document offset =
     let
         { id, original_file_name, tags, datetimes, ocr, thumbnails } =
@@ -242,7 +237,7 @@ internalView state document offset =
         ]
 
 
-documentView : Models.DocumentResponse -> Int -> List (Html Models.Msg)
+documentView : Models.DocumentResponse -> Maybe Int -> List (Html Models.Msg)
 documentView document offset =
     let
         { original_file_name, id, thumbnails } =
@@ -259,7 +254,7 @@ documentView document offset =
                 , Html.Attributes.src
                     ("/documents/{{ id }}/images/{{ image_id }}"
                         |> String.Format.namedValue "id" id
-                        |> (String.Format.namedValue "image_id" <| String.fromInt offset)
+                        |> (String.Format.namedValue "image_id" <| String.fromInt <| Maybe.withDefault 0 offset)
                     )
                 , Html.Attributes.class "img-fluid img-thumbnail"
                 ]
@@ -273,7 +268,7 @@ documentView document offset =
                 , Html.Attributes.src
                     ("/documents/{{ id }}/images/{{ image_id }}"
                         |> String.Format.namedValue "id" id
-                        |> (String.Format.namedValue "image_id" <| String.fromInt offset)
+                        |> (String.Format.namedValue "image_id" <| String.fromInt <| Maybe.withDefault 0 offset)
                     )
                 , Html.Attributes.class "img-fluid img-thumbnail"
                 ]
@@ -281,29 +276,17 @@ documentView document offset =
             ]
 
 
-paginationItems : Models.DocumentResponse -> Int -> Bootstrap.Pagination.ListConfig Int Models.Msg
-paginationItems { thumbnails, id } offset =
+pagination : Models.DocumentResponse -> Maybe Int -> Html Models.Msg
+pagination { thumbnails, id } offset =
     let
         { countImages } =
             thumbnails
     in
-    { selectedMsg = \_ -> Models.NoOp
-    , prevItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Previous" ]
-    , nextItem = Just <| Bootstrap.Pagination.ListItem [] [ Html.text "Next" ]
-    , activeIdx = offset
-    , data = List.range 1 countImages
-    , itemFn = \x _ -> Bootstrap.Pagination.ListItem [] [ Html.text <| String.fromInt <| (+) x 1 ]
-    , urlFn = \x _ -> "/documents/{{ documentId }}?offset={{ offset }}" |> String.Format.namedValue "documentId" id |> (String.Format.namedValue "offset" <| String.fromInt x)
-    }
-
-
-pagination : Models.DocumentResponse -> Int -> Html Models.Msg
-pagination document offset =
-    Bootstrap.Pagination.defaultConfig
-        |> Bootstrap.Pagination.align Bootstrap.General.HAlign.centerXs
-        |> Bootstrap.Pagination.ariaLabel "document-pagination"
-        |> Bootstrap.Pagination.itemsList (paginationItems document offset)
-        |> Bootstrap.Pagination.view
+    Views.Shared.pagination
+        countImages
+        1
+        offset
+        (\x -> "/documents/{{ documentId }}?offset={{ offset }}" |> String.Format.namedValue "documentId" id |> (String.Format.namedValue "offset" <| String.fromInt x))
 
 
 internalUpdate : Models.State -> String -> ( Models.State, Cmd Models.Msg )

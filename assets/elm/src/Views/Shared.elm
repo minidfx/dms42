@@ -1,7 +1,9 @@
-module Views.Shared exposing (badge, card, flattenTags, posix2String, tagsinputs)
+module Views.Shared exposing (badge, card, flattenTags, pagination, posix2String, tagsinputs)
 
 import Bootstrap.Card
 import Bootstrap.Card.Block
+import Bootstrap.General.HAlign
+import Bootstrap.Pagination
 import Browser
 import Helpers
 import Html exposing (Html)
@@ -72,8 +74,58 @@ tagsinputs tags =
         []
 
 
+pagination : Int -> Int -> Maybe Int -> (Int -> String) -> Html Models.Msg
+pagination total length offset urlFn =
+    let
+        localOffset =
+            Maybe.withDefault 0 offset
+
+        countItems =
+            List.range 0 ((//) (total - 1) length) |> List.map (\x -> String.fromInt x)
+
+        items =
+            countItems
+
+        activeIdx =
+            (//) localOffset length
+
+        itemsList =
+            { selectedMsg = \_ -> Models.Nop
+            , prevItem = Nothing
+            , nextItem = Nothing
+            , activeIdx = activeIdx
+            , data = items
+            , itemFn = itemFn
+            , urlFn = \x y -> baseUrlFn x y urlFn
+            }
+    in
+    Bootstrap.Pagination.defaultConfig
+        |> Bootstrap.Pagination.align Bootstrap.General.HAlign.centerXs
+        |> Bootstrap.Pagination.ariaLabel "documents-pagination"
+        |> Bootstrap.Pagination.itemsList itemsList
+        |> Bootstrap.Pagination.view
+
+
 
 -- Private members
+
+
+baseUrlFn : Int -> String -> (Int -> String) -> String
+baseUrlFn idx text baseCallback =
+    if String.fromInt idx == text then
+        baseCallback idx
+
+    else
+        "/"
+
+
+itemFn : Int -> String -> Bootstrap.Pagination.ListItem msg
+itemFn idx text =
+    if String.fromInt idx == text then
+        Bootstrap.Pagination.ListItem [] [ Html.text <| String.fromInt <| (+) idx 1 ]
+
+    else
+        Bootstrap.Pagination.ListItem [] [ Html.text text ]
 
 
 month2String : Time.Month -> String

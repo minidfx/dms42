@@ -115,6 +115,11 @@ internalUpdate state query =
             Maybe.withDefault Factories.searchStateFactory <| state.searchState
 
         newState =
-            { state | searchState = Just { searchState | query = query } }
+            case query of
+                Just x ->
+                    { state | searchState = Just { searchState | query = Just x } }
+
+                Nothing ->
+                    state
     in
     searchDocuments newState query

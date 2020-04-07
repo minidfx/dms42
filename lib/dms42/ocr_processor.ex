@@ -1,10 +1,12 @@
 defmodule Dms42.OcrProcessor do
   use GenServer
-
+  
+  require Logger
+  
   alias Dms42.Models.DocumentOcr
   alias Dms42.DocumentsFinder
-
-  require Logger
+  alias Dms42.Models.Document
+  alias Dms42.DocumentPath
 
   @doc false
   def start_link() do
@@ -13,52 +15,47 @@ defmodule Dms42.OcrProcessor do
 
   @doc false
   def init(args) do
-    {:ok, opq} = OPQ.init(name: :ocr_queue, workers: 1)
-    {:ok, Map.put_new(args, :queue, opq)}
+    {:ok, args}
   end
 
   @doc false
-  def terminate(reason, state) do
+  def terminate(reason, _) do
     IO.inspect(reason)
+  end
 
-    case Map.get(state, :queue) do
-      nil -> Logger.warn("Was not able to stop the queue.")
-      x -> OPQ.stop(x)
+  def process(document) do
+    %Document{:mime_type => mime_type} = document
+    case mime_type do
+      "application/pdf" -> ocr_on_pdf(document)
+      _ -> ocr_on_image(document)
     end
   end
 
-  @doc """
-    Process the OCR on a document PDF save the result.
-  """
-  def handle_cast({:process, document_id, absolute_file_path, "application/pdf"}, state) do
-    %{:queue => queue} = state
-    OPQ.enqueue(queue, fn -> ocr_on_pdf(document_id, absolute_file_path) end)
-    {:noreply, state}
+  defp send_to_tesseract(document) do
+    file_path = DocumentPath.document_path!(document)
+    send_to_tesseract(document, file_path)
   end
 
-  @doc """
-    Process the OCR on the image and save the result.
-  """
-  def handle_cast({:process, document_id, absolute_file_path, _mime_type}, state) do
-    %{:queue => queue} = state
-    OPQ.enqueue(queue, fn -> ocr_on_image(document_id, absolute_file_path) end)
-    {:noreply, state}
-  end
-
-  defp send_to_tesseract(file_path, document_id) do
+  defp send_to_tesseract(document, path) do
     try do
-      case Dms42.External.tesseract!(file_path, lang: [:fra]) |> String.trim() do
-        "" -> Logger.warn("The result OCR was empty, insert or update was skipped.")
-        x -> save_ocr(x, document_id)
+      Logger.debug("Starting the OCR on the image document  #{path} ...")
+
+      case Dms42.External.tesseract!(path, lang: [:fra]) |> String.trim() do
+        "" ->
+          Logger.warn("The result OCR was empty, insert or update was skipped.")
+          {:ok, document}
+
+        x ->
+          save_ocr(x, document)
       end
     rescue
       x ->
-        IO.inspect(x)
-        Logger.warn("Error while processing the OCR for the file: #{file_path}")
+        {:error, x}
     end
   end
 
-  defp save_ocr(ocr, document_id) do
+  defp save_ocr(ocr, document) do
+    %Document{:document_id => document_id} = document
     Logger.debug("Saving the OCR result ...")
 
     Dms42.Repo.insert_or_update!(
@@ -68,41 +65,37 @@ defmodule Dms42.OcrProcessor do
       )
     )
 
-    Logger.debug("OCR saved for the document #{document_id}")
+    {:ok, uuid} = Ecto.UUID.load(document_id)
+    Logger.debug("OCR saved for the document #{uuid}")
+    {:ok, document}
   end
 
-  defp ocr_on_image(document_id, absolute_file_path) do
-    Logger.debug("Starting the OCR on the image document  #{absolute_file_path} ...")
-    send_to_tesseract(absolute_file_path, document_id)
+  defp ocr_on_image(document) do
+    send_to_tesseract(document)
   end
 
-  defp ocr_on_pdf(document_id, absolute_file_path) do
-    Logger.debug("Starting the OCR on the PDF document  #{absolute_file_path} ...")
+  defp ocr_on_pdf(document) do
+    file_path = DocumentPath.document_path!(document)
 
-    case Dms42.External.extract(absolute_file_path) do
+    case Dms42.External.extract(file_path) do
       {:ok, ocr} ->
-        Logger.debug("OCR extracted successfully from the PDF #{absolute_file_path}")
-        save_ocr(ocr, document_id)
+        Logger.debug("OCR extracted successfully from the PDF #{file_path}")
+        save_ocr(ocr, document)
 
       {:error, error} ->
-        try do
-          Logger.warn(error)
+        Logger.warn(error)
 
-          Temp.track!()
-          file_path = Temp.path!()
+        Temp.track!()
+        temp_file_path = Temp.path!()
 
-          ExMagick.init!()
-          |> ExMagick.attr!(:density, "300")
-          |> ExMagick.image_load!(absolute_file_path)
-          |> ExMagick.attr!(:adjoin, true)
-          |> ExMagick.attr!(:magick, "PNG")
-          |> ExMagick.image_dump(file_path)
+        ExMagick.init!()
+        |> ExMagick.attr!(:density, "300")
+        |> ExMagick.image_load!(file_path)
+        |> ExMagick.attr!(:adjoin, true)
+        |> ExMagick.attr!(:magick, "PNG")
+        |> ExMagick.image_dump(temp_file_path)
 
-          send_to_tesseract(file_path, document_id)
-        rescue
-          x ->
-            Logger.error(x)
-        end
+        send_to_tesseract(document, temp_file_path)
     end
   end
 end

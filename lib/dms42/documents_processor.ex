@@ -11,78 +11,56 @@ defmodule Dms42.DocumentsProcessor do
   alias Dms42.DocumentsFinder
   alias Dms42.DocumentsManager
 
-  def start_link() do
-    GenServer.start_link(__MODULE__, %{}, name: :documents_processor)
-  end
-
-  def init(args) do
-    {:ok, args}
-  end
-
-  def terminate(reason, _) do
-    IO.inspect(reason)
-  end
-
-  def handle_call(
-        {:process, file_name, mime_type, original_file_datetime, document_type, tags, bytes},
-        _,
-        state
+  def process(
+        original_file_name,
+        mime_type,
+        original_file_datetime,
+        document_type,
+        tags,
+        bytes
       ) do
-    case internal_handle_new_document(
-           file_name,
-           mime_type,
-           original_file_datetime,
-           document_type,
-           tags,
-           bytes
-         ) do
-      {:ok, _} ->
-        {:reply, :ok, state}
+    result =
+      Pipe.pipe_matching(
+        {:ok, _},
+        {:ok,
+         %NewDocumentProcessingContext{
+           document: %Document{
+             inserted_at: DateTime.utc_now(),
+             original_file_name: original_file_name,
+             original_file_name_normalized: original_file_name |> DocumentsFinder.normalize(),
+             document_id: Ecto.UUID.bingenerate(),
+             original_file_datetime: original_file_datetime,
+             mime_type: mime_type
+           },
+           type: document_type,
+           transaction: Ecto.Multi.new()
+         }}
+        |> valid_file_type
+        |> valid_file_path
+        |> valid_document_type
+        |> is_document_exists(bytes)
+        |> save_file(bytes)
+        |> clean_image
+        |> insert_to_database
+        |> insert_tags(tags)
+        |> commit
+        |> thumbnails
+        |> ocr
+      )
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
+    case result do
+      {:ok, _} -> Logger.info("Document processed successfully.")
+      {:error, reason} -> Logger.error(reason)
     end
   end
 
-  defp internal_handle_new_document(
-         file_name,
-         mime_type,
-         original_file_datetime,
-         document_type,
-         tags,
-         bytes
-       ) do
-    Pipe.pipe_matching(
-      {:ok, _},
-      {:ok,
-       %NewDocumentProcessingContext{
-         document: %Document{
-           inserted_at: DateTime.utc_now(),
-           original_file_name: file_name,
-           original_file_name_normalized: file_name |> DocumentsFinder.normalize(),
-           document_id: Ecto.UUID.bingenerate(),
-           original_file_datetime: original_file_datetime,
-           mime_type: mime_type
-         },
-         type: document_type,
-         transaction: Ecto.Multi.new()
-       }}
-      |> valid_file_type
-      |> valid_file_path
-      |> valid_document_type
-      |> is_document_exists(bytes)
-      |> save_file(bytes)
-      |> insert_to_database
-      |> insert_tags(tags)
-      |> commit
-      |> post_process
-    )
+  defp ocr({:ok, document}) do
+    {:ok, _} = Dms42.OcrProcessor.process(document)
+    {:ok, document}
   end
 
-  defp post_process({:ok, document}) do
-    file_path = DocumentPath.document_path!(document)
-    Logger.info("Document #{file_path} successfully added.")
-    {:ok, file_path}
+  defp thumbnails({:ok, document}) do
+    Dms42.ThumbnailProcessor.process(document)
   end
 
   defp commit(
@@ -99,15 +77,13 @@ defmodule Dms42.DocumentsProcessor do
       {:ok, _} ->
         %Document{:document_id => document_id, :mime_type => mime_type} = document
         absolute_documents_path = DocumentPath.document_path!(document)
-        GenServer.cast(:ocr, {:process, document_id, absolute_documents_path, mime_type})
-        GenServer.cast(:thumbnail, {:process, document, mime_type})
         {:ok, document}
     end
   end
 
-  def valid_document_type(
-        {:ok, %NewDocumentProcessingContext{:type => document_type_string_id} = context}
-      ) do
+  defp valid_document_type(
+         {:ok, %NewDocumentProcessingContext{:type => document_type_string_id} = context}
+       ) do
     {:ok, uuid} = Ecto.UUID.dump(document_type_string_id)
 
     case Dms42.Repo.get_by(DocumentType, type_id: uuid) do
@@ -157,10 +133,6 @@ defmodule Dms42.DocumentsProcessor do
              Document.changeset(%Document{}, document |> Map.from_struct())
            )
      }}
-  end
-
-  def update(%Document{}) do
-    {:error, "Not implemented"}
   end
 
   defp is_document_exists(
@@ -226,6 +198,21 @@ defmodule Dms42.DocumentsProcessor do
 
       {:error, reason} ->
         {:error, "Cannot write the file #{file_path}: " <> Atom.to_string(reason)}
+    end
+  end
+
+  defp clean_image(
+         {:ok,
+          %NewDocumentProcessingContext{
+            :document => %{:mime_type => mime_type} = document
+          } = context}
+       ) do
+    file_path = DocumentPath.document_path!(document)
+
+    case Dms42.External.clean_image(file_path, mime_type) do
+      {:ok, _} -> {:ok, context}
+      {:none, _} -> {:ok, context}
+      x -> x
     end
   end
 

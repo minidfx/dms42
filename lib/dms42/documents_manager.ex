@@ -15,11 +15,7 @@ defmodule Dms42.DocumentsManager do
     Add the document processing the OCR and saving it.
   """
   def add(file_name, mime_type, original_file_datetime, document_type, tags, bytes) do
-    GenServer.call(
-      :documents_processor,
-      {:process, file_name, mime_type, original_file_datetime, document_type, tags, bytes},
-      60_000 * 15
-    )
+    Dms42.QueueState.enqueue_document(file_name, mime_type, original_file_datetime, document_type, tags, bytes)
   end
 
   def generate_thumbnails() do
@@ -161,16 +157,16 @@ defmodule Dms42.DocumentsManager do
         document_ids,
         {transaction, []},
         fn x, acc ->
-          {localTransaction, documents} = acc
+          {local_transaction, documents} = acc
           document = Document |> Dms42.Repo.get_by!(document_id: x)
 
-          localTransaction =
-            localTransaction
+          local_transaction =
+            local_transaction
             |> TagManager.clean_document_tags(x)
             |> Ecto.Multi.delete_all("delete_ocr", from(DocumentOcr, where: [document_id: ^x]))
             |> Ecto.Multi.delete("delete_document", document)
 
-          {localTransaction, [document | documents]}
+          {local_transaction, [document | documents]}
         end
       )
 
@@ -185,6 +181,8 @@ defmodule Dms42.DocumentsManager do
         File.rm!(temp_file_path)
       end
     )
+
+    :ok
   end
 
   defp null_to_string(string) when is_nil(string), do: ""

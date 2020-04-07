@@ -4,46 +4,33 @@ defmodule Dms42.ThumbnailProcessor do
   require Logger
 
   alias Dms42.DocumentPath
+  alias Dms42.Models.Document
 
   def start_link() do
     GenServer.start_link(
       __MODULE__,
-      %{
-        thumbnails_path: Application.get_env(:dms42, :thumbnails_path) |> Path.absname(),
-        documents_path: Application.get_env(:dms42, :documents_path) |> Path.absname()
-      },
+      %{},
       name: :thumbnail
     )
   end
 
   def init(args) do
-    {:ok, opq} = OPQ.init(name: :thumbnails_queue, workers: 1)
-    {:ok, Map.put_new(args, :queue, opq)}
+    {:ok, args}
   end
 
-  def terminate(reason, state) do
+  def terminate(reason, _) do
     IO.inspect(reason)
+  end
 
-    case Map.get(state, :queue) do
-      nil -> Logger.warn("Was not able to stop the queue.")
-      x -> OPQ.stop(x)
+  def process(document) do
+    %Document{:mime_type => mime_type} = document
+    dp = Dms42.QueueState.get_documents_path()
+    tp = Dms42.QueueState.get_thumbnails_path()
+
+    case mime_type do
+      "application/pdf" -> create_thumbnails_from_pdf(document, tp, dp)
+      _ -> create_thumbnails_from_image(document, tp, dp)
     end
-  end
-
-  def handle_cast(
-        {:process, document, "application/pdf"},
-        %{:thumbnails_path => tp, :documents_path => dp, :queue => queue} = state
-      ) do
-    OPQ.enqueue(queue, fn -> create_thumbnails_from_pdf(document, tp, dp) end)
-    {:noreply, state}
-  end
-
-  def handle_cast(
-        {:process, document, _},
-        %{:thumbnails_path => tp, :documents_path => dp, :queue => queue} = state
-      ) do
-    OPQ.enqueue(queue, fn -> create_thumbnails_from_image(document, tp, dp) end)
-    {:noreply, state}
   end
 
   defp create_thumbnails_from_pdf(document, thumbnails_path, documents_path) do
@@ -73,18 +60,19 @@ defmodule Dms42.ThumbnailProcessor do
       |> ExMagick.image_dump!(big_thumbnail_file_path)
 
       Logger.debug("Thumbnails saved for the document #{file_path}.")
+      {:ok, document}
     rescue
-      x -> IO.inspect(x)
+      x -> {:error, x}
     end
   end
 
   defp create_thumbnails_from_image(document, thumbnails_path, documents_path) do
     try do
       file_path = DocumentPath.document_path!(document)
-
       Logger.debug("Processing the thumbnail for the document #{file_path} ...")
 
       thumbnail_folder_path = String.replace_prefix(file_path, documents_path, thumbnails_path)
+
       :ok = thumbnail_folder_path |> File.mkdir_p()
       small_thumbnail_file_path = Path.join([thumbnail_folder_path, "small.png"])
 
@@ -97,8 +85,9 @@ defmodule Dms42.ThumbnailProcessor do
       |> ExMagick.image_dump!(small_thumbnail_file_path)
 
       Logger.debug("Thumbnails saved for the document #{file_path}.")
+      {:ok, document}
     rescue
-      x -> IO.inspect(x)
+      x -> {:error, x}
     end
   end
 end

@@ -230,7 +230,7 @@ internalView state document offset =
                             [ Bootstrap.Button.outlinePrimary
                             , Bootstrap.Button.attrs
                                 [ Html.Attributes.href <| ("/api/documents/{{ }}/download" |> String.Format.value id)
-                                , Html.Attributes.target "blank"
+                                , Html.Attributes.download ""
                                 ]
                             ]
                             [ Html.text "Download" ]

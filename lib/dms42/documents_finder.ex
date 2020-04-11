@@ -9,52 +9,60 @@ defmodule Dms42.DocumentsFinder do
 
   @max_result 20
 
+  @spec find(String.t()) :: list(Dms42.Models.Document.t())
   def find(""), do: []
 
+  @spec find(String.t()) :: list(Dms42.Models.Document.t())
   def find(query) when is_bitstring(query) do
-    exact_match = query |> normalize |> find_exact_match |> transform_to_map
-
-    term_match =
-      query
-      |> String.split(" ")
-      |> find_by_terms
-      |> transform_to_map
-
-    result = Map.merge(term_match, exact_match)
-
-    result
-    |> Map.values()
+    query
+    |> normalize
+    |> find_by_tags
+    |> find_by_comments
+    |> find_by_ocr_and_filename
     |> Enum.sort_by(fn %SearchResult{:ranking => x} -> x end)
     |> Enum.map(fn %SearchResult{:document => x} -> x end)
   end
 
+  @spec normalize(String.t()) :: String.t()
   def normalize(""), do: ""
 
+  @spec normalize(String.t()) :: String.t()
   def normalize(term),
     do:
       term
       |> String.normalize(:nfd)
       |> String.replace(~r/[^A-Za-z0-9\s]/u, "")
 
-  defp find_by_terms(terms) when is_list(terms),
-    do:
-      terms
-      |> Enum.map(fn x -> x |> normalize |> find_by_term end)
+  ##### Private members
+
+  @spec find_by_tags(String.t()) :: {String.t(), list(Dms42.Models.Document.t())}
+  defp find_by_tags(query) do
+    exact_result =
+      query
+      |> String.split(" ")
+      |> Enum.map(fn x -> x |> normalize |> find_by_exact_tag end)
+      |> Enum.map(&Dms42.Repo.all/1)
+      |> Enum.flat_map(fn x -> x end)
+      |> Enum.map(fn x -> to_search_result(x, 1) end)
+
+    partial_result =
+      query
+      |> String.split(" ")
+      |> Enum.map(fn x -> x |> normalize |> find_by_partial_tag end)
       |> Enum.map(&Dms42.Repo.all/1)
       |> Enum.flat_map(fn x -> x end)
       |> Enum.map(fn x -> to_search_result(x, 2) end)
 
-  defp find_by_term(term) do
+    {query, exact_result ++ partial_result}
+  end
+
+  @spec find_by_exact_tag(String.t()) :: Ecto.Queryable.t()
+  defp find_by_exact_tag(term) do
     from(d in Document,
-      left_join: o in DocumentOcr,
-      on: d.document_id == o.document_id,
       left_join: dt in DocumentTag,
       on: d.document_id == dt.document_id,
       left_join: t in Tag,
       on: t.tag_id == dt.tag_id,
-      where: ilike(d.comments, ^"%#{term}%"),
-      or_where: ilike(d.original_file_name_normalized, ^"%#{term}%"),
-      or_where: ilike(o.ocr_normalized, ^"%#{term}%"),
       or_where: t.name == ^term,
       order_by: d.inserted_at,
       limit: @max_result,
@@ -62,38 +70,57 @@ defmodule Dms42.DocumentsFinder do
     )
   end
 
-  defp find_exact_match(query) do
-    query =
+  @spec find_by_partial_tag(String.t()) :: Ecto.Queryable.t()
+  defp find_by_partial_tag(term) do
+    from(d in Document,
+      left_join: dt in DocumentTag,
+      on: d.document_id == dt.document_id,
+      left_join: t in Tag,
+      on: t.tag_id == dt.tag_id,
+      or_where: ilike(t.name, ^"%#{term}%"),
+      order_by: d.inserted_at,
+      limit: @max_result,
+      select: d
+    )
+  end
+
+  @spec find_by_comments({String.t(), list(Dms42.Models.Document.t())}) ::
+          {String.t(), list(Dms42.Models.SearchResult.t())}
+  defp find_by_comments({query, acc}) do
+    result =
       from(d in Document,
-        left_join: o in DocumentOcr,
-        on: d.document_id == o.document_id,
-        left_join: dt in DocumentTag,
-        on: d.document_id == dt.document_id,
-        left_join: t in Tag,
-        on: t.tag_id == dt.tag_id,
         where: ilike(d.comments, ^"%#{query}%"),
-        or_where: ilike(d.original_file_name_normalized, ^"%#{query}%"),
-        or_where: ilike(o.ocr_normalized, ^"%#{query}%"),
-        or_where: t.name == ^query,
         order_by: d.inserted_at,
         limit: @max_result,
         select: d
       )
+      |> Dms42.Repo.all()
+      |> Enum.map(fn x -> to_search_result(x, 3) end)
 
-    Dms42.Repo.all(query) |> Enum.map(fn x -> to_search_result(x, 1) end)
+    {query, result ++ acc}
   end
 
+  @spec find_by_ocr_and_filename({String.t(), list(Dms42.Models.Document.t())}) ::
+          list(Dms42.Models.SearchResult.t())
+  defp find_by_ocr_and_filename({query, acc}) do
+    result =
+      from(d in Document,
+        left_join: o in DocumentOcr,
+        on: d.document_id == o.document_id,
+        or_where: ilike(d.original_file_name_normalized, ^"%#{query}%"),
+        or_where: ilike(o.ocr_normalized, ^"%#{query}%"),
+        order_by: d.inserted_at,
+        limit: @max_result,
+        select: d
+      )
+      |> Dms42.Repo.all()
+      |> Enum.map(fn x -> to_search_result(x, 4) end)
+
+    result ++ acc
+  end
+
+  @spec to_search_result(Dms42.Models.Document.t(), integer) :: Dms42.Models.SearchResult.t()
   defp to_search_result(%Document{:document_id => did} = document, ranking) do
     %SearchResult{document_id: did, document: document, ranking: ranking}
-  end
-
-  defp transform_to_map(searchResults) do
-    Enum.map(
-      searchResults,
-      fn %SearchResult{:document_id => did} = x ->
-        {did, x}
-      end
-    )
-    |> Map.new()
   end
 end

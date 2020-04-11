@@ -42,7 +42,7 @@ defmodule Dms42.QueueState do
     {:ok, queue} =
       OPQ.init(
         name: :queue_documents,
-        workers: 2,
+        workers: :erlang.system_info(:logical_processors_available),
         timeout: 60_000 * 15
       )
 

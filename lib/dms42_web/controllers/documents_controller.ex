@@ -46,7 +46,7 @@ defmodule Dms42Web.DocumentsController do
 
   @doc false
   def download(conn, %{"document_id" => document_id}) do
-    case valid_document_query(conn, document_id) do
+    case get_document(conn, document_id) do
       {:error, conn} ->
         conn |> send_resp(404, "")
 
@@ -63,7 +63,7 @@ defmodule Dms42Web.DocumentsController do
 
   @doc false
   def thumbnail(conn, %{"document_id" => document_id}) do
-    case valid_document_query(conn, document_id) do
+    case get_document(conn, document_id) do
       {:error, conn} ->
         conn
 
@@ -101,7 +101,7 @@ defmodule Dms42Web.DocumentsController do
 
   @doc false
   def document_image(conn, %{"document_id" => document_id, "image_id" => image_id}) do
-    case valid_document_query(conn, document_id) do
+    case get_document(conn, document_id) do
       {:error, conn} ->
         conn
 
@@ -129,7 +129,7 @@ defmodule Dms42Web.DocumentsController do
 
   @doc false
   def document_image(conn, %{"document_id" => document_id}) do
-    case valid_document_query(conn, document_id) do
+    case get_document(conn, document_id) do
       {:error, conn} ->
         conn
 
@@ -150,7 +150,7 @@ defmodule Dms42Web.DocumentsController do
 
   @doc false
   def document(conn, %{"document_id" => document_id}) do
-    case valid_document_query(conn, document_id) do
+    case get_document(conn, document_id) do
       {:error, conn} ->
         conn
 
@@ -224,7 +224,7 @@ defmodule Dms42Web.DocumentsController do
     conn |> send_resp(200, %{document_id: document_id} |> Poison.encode!())
   end
 
-  defp valid_document_query(conn, document_id) do
+  defp get_document(conn, document_id) do
     case Ecto.UUID.dump(document_id) do
       :error ->
         {:error,

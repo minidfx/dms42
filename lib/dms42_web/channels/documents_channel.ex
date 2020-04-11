@@ -2,8 +2,6 @@ defmodule Dms42Web.DocumentsChannel do
   use Dms42Web, :channel
 
   require Logger
-
-  alias Dms42.Models.DocumentType
   alias Dms42.DocumentsManager
   alias Dms42.DocumentsFinder
   alias Dms42.DocumentPath

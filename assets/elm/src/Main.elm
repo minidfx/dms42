@@ -144,7 +144,7 @@ update msg state =
                     Views.Document.update newState id
 
                 Models.Settings ->
-                    ( newState, Cmd.none )
+                    Views.Settings.update newState
 
                 Models.Home query ->
                     Views.Home.update newState query
@@ -230,6 +230,9 @@ update msg state =
 
         Models.RunUpdateAll document ->
             ( state, Cmd.batch [ Views.Document.runOcr document, Views.Document.runUpdateThumbnails document ] )
+
+        Models.GotQueueInfo result ->
+            Views.Settings.handleQueueInfo state result
 
         Models.Nop ->
             ( state, Cmd.none )

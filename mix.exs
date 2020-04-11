@@ -20,7 +20,7 @@ defmodule Dms42.Mixfile do
   def application do
     [
       mod: {Dms42.Application, []},
-      extra_applications: [:logger, :runtime_tools, :crypto, :timex]
+      extra_applications: [:logger, :runtime_tools, :crypto, :timex, :que]
     ]
   end
 
@@ -48,7 +48,7 @@ defmodule Dms42.Mixfile do
       {:ex_mock, "~> 0.1.0", only: :test},
       {:dialyxir, "~> 1.0.0-rc.7", only: [:dev], runtime: false},
       {:pipe, "~> 0.0.2"},
-      {:opq, "~> 3.1"}
+      {:que, "~> 0.10.1"}
     ]
   end
 

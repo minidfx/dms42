@@ -68,6 +68,13 @@ type alias SearchState =
     }
 
 
+type alias QueueInfoResponse =
+    { processing : Int
+    , pending : Int
+    , cpus : Int
+    }
+
+
 type Route
     = Documents (Maybe Int)
     | Document String (Maybe Int)
@@ -88,6 +95,7 @@ type alias State =
     , isLoading : Bool
     , modalVisibility : Bootstrap.Modal.Visibility
     , searchState : Maybe SearchState
+    , queueInfo : Maybe QueueInfoResponse
     }
 
 
@@ -116,4 +124,5 @@ type Msg
     | RunUpdateAll DocumentResponse
     | DidRunOcr (Result Http.Error ())
     | DidRunUpdateThumbnails (Result Http.Error ())
+    | GotQueueInfo (Result Http.Error QueueInfoResponse)
     | Nop

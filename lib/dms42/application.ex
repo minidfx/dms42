@@ -16,7 +16,7 @@ defmodule Dms42.Application do
       worker(Dms42.OcrProcessor, []),
       worker(Dms42.ThumbnailProcessor, []),
       worker(Dms42.DocumentPath, []),
-      worker(Dms42.QueueState, [])
+      worker(Dms42.States, [])
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

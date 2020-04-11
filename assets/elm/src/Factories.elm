@@ -20,7 +20,13 @@ stateFactory key url route =
     , isLoading = False
     , modalVisibility = Bootstrap.Modal.hidden
     , searchState = Nothing
+    , queueInfo = Nothing
     }
+
+
+queueInfoFactory : Models.QueueInfoResponse
+queueInfoFactory =
+    Models.QueueInfoResponse 0 0 0
 
 
 searchStateFactory : Models.SearchState

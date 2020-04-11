@@ -9,7 +9,8 @@ use Mix.Config
 config :dms42,
   ecto_repos: [Dms42.Repo],
   documents_path: "documents",
-  thumbnails_path: "thumbnails"
+  thumbnails_path: "thumbnails",
+  queue_documents_concurrency: 4
 
 # Configures the endpoint
 config :dms42, Dms42Web.Endpoint,

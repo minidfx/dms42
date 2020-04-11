@@ -35,6 +35,7 @@ defmodule Dms42Web.Router do
     get("/document-types", DocumentsController, :document_types)
 
     post("/settings/thumbnails", SettingsController, :process_all_thumbnails)
+    post("/settings/ocr", SettingsController, :process_all_ocrs)
     get("/settings/queue", SettingsController, :get_queue_info)
   end
 

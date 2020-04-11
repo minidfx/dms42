@@ -15,7 +15,7 @@ defmodule Dms42.DocumentsManager do
     Add the document processing the OCR and saving it.
   """
   def add(file_name, mime_type, original_file_datetime, document_type, tags, bytes) do
-    Dms42.QueueState.enqueue_document(
+    Dms42.QueueDocuments.enqueue_document(
       file_name,
       mime_type,
       original_file_datetime,
@@ -25,12 +25,22 @@ defmodule Dms42.DocumentsManager do
     )
   end
 
+  @spec generate_thumbnails() :: :ok
   def generate_thumbnails() do
     Document
     |> Dms42.Repo.all()
-    |> Enum.each(fn %Document{:mime_type => mime_type} = x ->
-      GenServer.cast(:thumbnail, {:process, x, mime_type})
-    end)
+    |> Enum.each(&Dms42.QueueDocuments.enqueue_thumbnail/1)
+
+    :ok
+  end
+
+  @spec generate_ocrs() :: :ok
+  def generate_ocrs() do
+    Document
+    |> Dms42.Repo.all()
+    |> Enum.each(&Dms42.QueueDocuments.enqueue_ocr/1)
+
+    :ok
   end
 
   @doc """

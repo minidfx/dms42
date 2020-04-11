@@ -136,7 +136,6 @@ defmodule Dms42.OcrProcessor do
     file_path = DocumentPath.document_path!(document)
     temp_folder_path = Temp.mkdir!()
     temp_files_pattern = Dms42.DocumentPath.big_thumbnail_paths_pattern!(temp_folder_path)
-    temp_file_path = Temp.path!()
 
     Dms42.External.transform_document(file_path, temp_files_pattern,
       scale: 800,

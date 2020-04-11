@@ -85,7 +85,7 @@ defmodule Dms42Web.DocumentsController do
         conn
 
       {:ok, conn, document} ->
-        Dms42.OcrProcessor.cast_process(document)
+        Dms42.QueueDocuments.enqueue_ocr(document)
         conn |> send_resp(200, "")
     end
   end
@@ -96,7 +96,7 @@ defmodule Dms42Web.DocumentsController do
         conn
 
       {:ok, conn, document} ->
-        Dms42.ThumbnailProcessor.cast_process(document)
+        Dms42.QueueDocuments.enqueue_thumbnail(document)
         conn |> send_resp(200, "")
     end
   end

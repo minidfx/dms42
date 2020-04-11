@@ -1,4 +1,15 @@
-module Views.Document exposing (addTags, deleteDocument, didDeleteDocument, handleDocument, init, removeTags, update, view)
+module Views.Document exposing
+    ( addTags
+    , deleteDocument
+    , didDeleteDocument
+    , handleDocument
+    , init
+    , removeTags
+    , runOcr
+    , runUpdateThumbnails
+    , update
+    , view
+    )
 
 import Bootstrap.Button
 import Bootstrap.Modal
@@ -8,6 +19,7 @@ import Factories
 import Helpers
 import Html exposing (Html)
 import Html.Attributes
+import Html.Events
 import Http
 import Models
 import Ports.Gates
@@ -135,6 +147,24 @@ handleDocument state result =
     ( { state | documentsState = Just newDocumentsState }, Cmd.none )
 
 
+runOcr : Models.DocumentResponse -> Cmd Models.Msg
+runOcr { id } =
+    Http.post
+        { url = "/api/documents/{{ }}/ocr" |> String.Format.value id
+        , expect = Http.expectWhatever Models.DidRunOcr
+        , body = Http.emptyBody
+        }
+
+
+runUpdateThumbnails : Models.DocumentResponse -> Cmd Models.Msg
+runUpdateThumbnails { id } =
+    Http.post
+        { url = "/api/documents/{{ }}/thumbnails" |> String.Format.value id
+        , expect = Http.expectWhatever Models.DidRunUpdateThumbnails
+        , body = Http.emptyBody
+        }
+
+
 
 -- Private members
 
@@ -203,6 +233,40 @@ internalView state document offset =
                                 ]
                             ]
                             [ Html.text "Download" ]
+                        , Html.div
+                            [ Html.Attributes.class "btn-group"
+                            , Html.Attributes.attribute "role" "group"
+                            ]
+                            [ Html.button
+                                [ Html.Attributes.class "btn btn-secondary dropdown-toggle"
+                                , Html.Attributes.type_ "button"
+                                , Html.Attributes.attribute "data-toggle" "dropdown"
+                                , Html.Attributes.attribute "aria-haspopup" "True"
+                                , Html.Attributes.attribute "aria-expanded" "False"
+                                , Html.Attributes.id "optionsBtn"
+                                ]
+                                [ Html.text "Options" ]
+                            , Html.div
+                                [ Html.Attributes.class "dropdown-menu"
+                                , Html.Attributes.attribute "aria-labelledby" "optionsBtn"
+                                ]
+                                [ Html.button
+                                    [ Html.Attributes.class "dropdown-item"
+                                    , Html.Events.onClick <| Models.RunOcr document
+                                    ]
+                                    [ Html.text "Update OCR" ]
+                                , Html.button
+                                    [ Html.Attributes.class "dropdown-item"
+                                    , Html.Events.onClick <| Models.RunUpdateThumbnails document
+                                    ]
+                                    [ Html.text "Update thumbnails" ]
+                                , Html.button
+                                    [ Html.Attributes.class "dropdown-item"
+                                    , Html.Events.onClick <| Models.RunUpdateAll document
+                                    ]
+                                    [ Html.text "Update all" ]
+                                ]
+                            ]
                         ]
                     ]
                 , Html.div [ Html.Attributes.class "form-group document-details" ]
@@ -217,7 +281,7 @@ internalView state document offset =
                         , Html.dd [] [ Html.text original_file_name ]
                         ]
                     ]
-                , Views.Shared.tagsinputs tags
+                , Views.Shared.tagsinputs tags False
                 ]
             ]
         , Html.div [ Html.Attributes.class "row" ]

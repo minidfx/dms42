@@ -38,7 +38,7 @@ update state =
 view : Models.State -> List (Html Models.Msg)
 view state =
     let
-        { uploading } =
+        { isUploading } =
             state
     in
     [ Html.div [ Html.Attributes.class "row", Html.Attributes.style "margin-bottom" "20px" ]
@@ -54,7 +54,7 @@ view state =
     , Html.div [ Html.Attributes.class "row", Html.Attributes.style "margin-bottom" "20px" ]
         [ Html.div [ Html.Attributes.class "col" ]
             [ Html.h4 [] [ Html.text "Tags" ]
-            , Views.Shared.tagsinputs []
+            , Views.Shared.tagsinputs [] isUploading
             ]
         ]
     , Html.div [ Html.Attributes.class "row" ]
@@ -65,7 +65,7 @@ view state =
                     , Html.Attributes.class "btn btn-primary"
                     , Html.Attributes.title "Send the document to the server"
                     , Html.Events.onClick Models.StartUpload
-                    , Html.Attributes.disabled uploading
+                    , Html.Attributes.disabled isUploading
                     ]
                     [ Html.i [ Html.Attributes.class "fa fa-cloud-upload-alt" ]
                         []

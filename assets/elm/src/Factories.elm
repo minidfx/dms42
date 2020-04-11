@@ -14,7 +14,7 @@ stateFactory key url route =
     , route = route
     , documentsState = Nothing
     , tagsResponse = Nothing
-    , uploading = False
+    , isUploading = False
     , error = Nothing
     , userTimeZone = Nothing
     , isLoading = False
@@ -32,5 +32,5 @@ documentsStateFactory : Models.DocumentsState
 documentsStateFactory =
     { documents = Nothing
     , total = 0
-    , length = 20
+    , length = 40
     }

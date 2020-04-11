@@ -29,7 +29,7 @@ posix2String zone timestamp =
 
 
 card : Models.State -> Models.DocumentResponse -> Html Models.Msg
-card state { datetimes, id, tags } =
+card state { datetimes, id, tags, thumbnails } =
     let
         { key, url, userTimeZone } =
             state
@@ -39,18 +39,27 @@ card state { datetimes, id, tags } =
 
         { inserted_datetime, updated_datetime } =
             datetimes
+
+        { countImages } =
+            thumbnails
     in
-    Bootstrap.Card.config [ Bootstrap.Card.light, Bootstrap.Card.attrs [ Html.Attributes.style "max-width" "155px" ] ]
-        |> Bootstrap.Card.imgTop
-            [ Html.Attributes.src <| ("/documents/thumbnail/{{ }}" |> String.Format.value id)
-            , Html.Events.onClick <| Models.LinkClicked <| Helpers.navTo state [ "documents", id ] []
+    Html.div [ Html.Attributes.class "dms42-card" ]
+        [ Html.div
+            [ Html.Attributes.class "dms42-card-img d-flex align-items-center" ]
+            [ Html.img
+                [ Html.Attributes.src <| ("/documents/thumbnail/{{ }}" |> String.Format.value id)
+                , Html.Events.onClick <| Models.LinkClicked <| Helpers.navTo state [ "documents", id ] []
+                ]
+                []
+            , Html.div [ Html.Attributes.class "dms42-card-count px-1 py-0 border rounded-left text-light bg-dark" ] [ Html.text <| String.fromInt countImages ]
             ]
-            []
-        |> Bootstrap.Card.block []
-            [ Bootstrap.Card.Block.text [] [ Html.text <| posix2String timeZone inserted_datetime ]
-            , Bootstrap.Card.Block.text [] [ flattenTags tags ]
+        , Html.div [ Html.Attributes.class "dms42-card-body" ]
+            [ Html.div [ Html.Attributes.class "dms42-card-datetime d-flex justify-content-center" ]
+                [ Html.text <| posix2String timeZone inserted_datetime ]
+            , Html.div [ Html.Attributes.class "dms42-card-tags d-flex justify-content-center" ]
+                [ flattenTags tags ]
             ]
-        |> Bootstrap.Card.view
+        ]
 
 
 badge : String -> Html Models.Msg
@@ -63,8 +72,8 @@ flattenTags tags =
     Html.div [ Html.Attributes.class "badges d-flex flex-wrap" ] (List.map (\x -> badge x) tags)
 
 
-tagsinputs : List String -> Html Models.Msg
-tagsinputs tags =
+tagsinputs : List String -> Bool -> Html Models.Msg
+tagsinputs tags isDisabled =
     Html.Keyed.node "tags"
         []
         [ ( "tags_input"
@@ -74,6 +83,7 @@ tagsinputs tags =
                 , Html.Attributes.id "tags"
                 , Html.Attributes.attribute "data-role" "tagsinput"
                 , Html.Attributes.value <| String.join "," <| tags
+                , Html.Attributes.disabled isDisabled
                 ]
                 []
           )

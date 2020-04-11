@@ -66,9 +66,9 @@ view state offset =
                     internalDocumentsView state (Dict.values documents) offset
     in
     [ Html.div [ Html.Attributes.class "row" ]
-        [ Html.div [ Html.Attributes.class "col-md-6" ]
+        [ Html.div [ Html.Attributes.class "col-md-6 d-flex align-items-center" ]
             [ Html.span
-                [ Html.Attributes.class "documents align-middle" ]
+                [ Html.Attributes.class "documents" ]
                 [ Html.text <| String.fromInt <| total
                 , Html.i
                     [ Html.Attributes.class "fa fa-file highlight"
@@ -76,6 +76,20 @@ view state offset =
                     ]
                     []
                 ]
+            , Bootstrap.Spinner.spinner
+                [ Bootstrap.Spinner.small
+                , Bootstrap.Spinner.color Bootstrap.Text.primary
+                , Bootstrap.Spinner.attrs
+                    [ Html.Attributes.class "ml-2"
+                    , Html.Attributes.style "visibility" <|
+                        if state.isLoading && total > 0 then
+                            "visible"
+
+                        else
+                            "hidden"
+                    ]
+                ]
+                [ Bootstrap.Spinner.srMessage "Loading ..." ]
             ]
         , Html.div [ Html.Attributes.class "col-md-6 d-flex" ]
             [ Html.a

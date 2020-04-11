@@ -23,6 +23,8 @@ defmodule Dms42Web.Router do
     get("/documents/:document_id", DocumentsController, :document)
     get("/documents/:document_id/download", DocumentsController, :download)
     delete("/documents/:document_id", DocumentsController, :delete_document)
+    post("/documents/:document_id/ocr", DocumentsController, :process_ocr)
+    post("/documents/:document_id/thumbnails", DocumentsController, :process_thumbnails)
 
     post("/documents/:document_id/tags/:tag", DocumentsController, :create_tag)
     delete("/documents/:document_id/tags/:tag", DocumentsController, :delete_tag)

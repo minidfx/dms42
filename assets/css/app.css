@@ -39,20 +39,42 @@ div.badges .badge {
   margin: 0.1em;
 }
 
-div.cards .card {
+div.cards .dms42-card {
   margin: 0 0.15em 0.3em 0.15em;
+  border: 1px solid rgba(0,0,0,.125);
+  border-radius: .25rem;
+  position: relative;
 }
 
-div.cards .card .card-img-top {
+div.cards .dms42-card .dms42-card-img {
+  width: 155px;
+  height: 220px;
+  background-color: rgba(0,0,0,.03);
+}
+
+div.cards .dms42-card .dms42-card-datetime {
+  font-size: 0.8em;
+}
+
+div.cards .dms42-card .dms42-card-datetime {
+  font-size: 0.9em;
+}
+
+div.cards .dms42-card img {
   cursor: pointer;
 }
 
-div.card-body {
-  padding: 0.6em !important;
+div.cards .dms42-card .dms42-card-count {
+  position: absolute;
+  top: 5px;
+  right: -1px;
+  font-size: 0.8em;
 }
 
-p.card-text {
-  font-size: 0.8em;
+div.cards .dms42-card-img {
+  max-width: 155px;
+  max-height: 220px;
+  overflow-y: hidden;
 }
 
 div.ocr textarea {

@@ -77,6 +77,28 @@ defmodule Dms42Web.DocumentsController do
     end
   end
 
+  def process_ocr(conn, %{"document_id" => document_id}) do
+    case get_document(conn, document_id) do
+      {:error, conn} ->
+        conn
+
+      {:ok, conn, document} ->
+        Dms42.OcrProcessor.cast_process(document)
+        conn |> send_resp(200, "")
+    end
+  end
+
+  def process_thumbnails(conn, %{"document_id" => document_id}) do
+    case get_document(conn, document_id) do
+      {:error, conn} ->
+        conn
+
+      {:ok, conn, document} ->
+        Dms42.ThumbnailProcessor.cast_process(document)
+        conn |> send_resp(200, "")
+    end
+  end
+
   @doc false
   def document_image(conn, %{"document_id" => document_id, "image_id" => image_id}) do
     case valid_document_query(conn, document_id) do

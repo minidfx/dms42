@@ -82,7 +82,7 @@ type alias State =
     , route : Route
     , documentsState : Maybe DocumentsState
     , tagsResponse : Maybe (List String)
-    , uploading : Bool
+    , isUploading : Bool
     , error : Maybe String
     , userTimeZone : Maybe Time.Zone
     , isLoading : Bool
@@ -111,4 +111,9 @@ type Msg
     | UserTypeSearch String
     | ThrottleSearchDocuments Debounce.Msg
     | GotSearchResult (Result Http.Error (List DocumentResponse))
+    | RunOcr DocumentResponse
+    | RunUpdateThumbnails DocumentResponse
+    | RunUpdateAll DocumentResponse
+    | DidRunOcr (Result Http.Error ())
+    | DidRunUpdateThumbnails (Result Http.Error ())
     | Nop

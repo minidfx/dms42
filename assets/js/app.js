@@ -4,6 +4,8 @@ import $ from 'jquery'
 import Dropzone from 'dropzone'
 import 'typeahead.js'
 import 'bootstrap4-tagsinput-douglasanpa/tagsinput.js'
+import 'bootstrap/js/dist'
+import 'bootstrap/dist/js/bootstrap.min.js'
 import Bloodhound from 'typeahead.js/dist/bloodhound.min.js'
 import '@fortawesome/fontawesome-free'
 
@@ -44,7 +46,7 @@ app.ports.dropZone.subscribe(request => {
                     }
                 },
                 autoProcessQueue: false,
-                parallelUploads: 30,
+                parallelUploads: 50,
                 ignoreHiddenFiles: true,
                 acceptedFiles: "image/*,application/pdf"
             })[0].dropzone
@@ -55,12 +57,14 @@ app.ports.dropZone.subscribe(request => {
                 })
                 .on('complete',
                     x => {
-                        if (x.status !== 'success') {
+                        if (localDropZone.getAcceptedFiles().length < 1) {
                             return
                         }
 
                         window.setTimeout(() => {
-                                localDropZone.removeFile(x)
+                                if(x.status === "success") {
+                                    localDropZone.removeFile(x)
+                                }
 
                                 // HACK: Not the best way because for each file the queue is processed.
                                 localDropZone.processQueue()
@@ -114,8 +118,8 @@ app.ports.upload.subscribe(request => {
 
     if (newFiles.length < 1) {
         app.ports.uploadCompleted.send(null)
+        $(jQueryTagsPath).tagsinput('removeAll');
     }
 
     localDropZone.processQueue()
-    $(jQueryTagsPath).tagsinput('removeAll');
 })

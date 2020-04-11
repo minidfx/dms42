@@ -116,12 +116,12 @@ update msg state =
                     ( state, Nav.load href )
 
         Models.StartUpload ->
-            ( { state | uploading = True }
+            ( { state | isUploading = True }
             , Cmd.batch [ Views.AddDocuments.startUpload ]
             )
 
         Models.UploadCompleted ->
-            ( { state | uploading = False }
+            ( { state | isUploading = False }
             , Cmd.none
             )
 
@@ -215,6 +215,21 @@ update msg state =
 
         Models.GotDocument result ->
             Views.Document.handleDocument state result
+
+        Models.RunOcr document ->
+            ( state, Views.Document.runOcr document )
+
+        Models.RunUpdateThumbnails document ->
+            ( state, Views.Document.runUpdateThumbnails document )
+
+        Models.DidRunOcr _ ->
+            ( state, Cmd.none )
+
+        Models.DidRunUpdateThumbnails _ ->
+            ( state, Cmd.none )
+
+        Models.RunUpdateAll document ->
+            ( state, Cmd.batch [ Views.Document.runOcr document, Views.Document.runUpdateThumbnails document ] )
 
         Models.Nop ->
             ( state, Cmd.none )

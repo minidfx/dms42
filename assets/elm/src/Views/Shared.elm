@@ -56,8 +56,7 @@ card state { datetimes, id, tags, thumbnails } =
         , Html.div [ Html.Attributes.class "dms42-card-body" ]
             [ Html.div [ Html.Attributes.class "dms42-card-datetime d-flex justify-content-center" ]
                 [ Html.text <| posix2String timeZone inserted_datetime ]
-            , Html.div [ Html.Attributes.class "dms42-card-tags d-flex justify-content-center" ]
-                [ flattenTags tags ]
+            , flattenTags tags
             ]
         ]
 
@@ -69,7 +68,7 @@ badge tag =
 
 flattenTags : List String -> Html Models.Msg
 flattenTags tags =
-    Html.div [ Html.Attributes.class "badges d-flex flex-wrap" ] (List.map (\x -> badge x) tags)
+    Html.div [ Html.Attributes.class "dms42-card-tags d-flex flex-wrap justify-content-center my-1" ] (List.map (\x -> badge x) tags)
 
 
 tagsinputs : List String -> Bool -> Html Models.Msg

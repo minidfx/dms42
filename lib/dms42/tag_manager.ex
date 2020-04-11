@@ -45,6 +45,7 @@ defmodule Dms42.TagManager do
   @doc """
     Add or update tags on a document.
   """
+  @spec add_or_update!(binary(), String.t()) :: :ok
   def add_or_update!(document_id, tag_name) when is_binary(document_id) do
     Ecto.Multi.new()
     |> add_or_update(document_id, tag_name)
@@ -54,6 +55,7 @@ defmodule Dms42.TagManager do
   @doc """
     Add or update tags on a document using a transaction.
   """
+  @spec add_or_update(Ecto.Multi.t(), binary(), String.t()) :: Ecto.Multi.t()
   def add_or_update(transaction, document_id, tag_name) when is_binary(document_id) do
     tag_name_normalized = tag_name |> DocumentsFinder.normalize()
 

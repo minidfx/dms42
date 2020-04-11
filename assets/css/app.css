@@ -34,11 +34,6 @@ div.error {
   margin-top: -5em;
 }
 
-div.badges .badge {
-  padding: 0.48em;
-  margin: 0.1em;
-}
-
 div.cards .dms42-card {
   margin: 0 0.15em 0.3em 0.15em;
   border: 1px solid rgba(0,0,0,.125);
@@ -60,8 +55,17 @@ div.cards .dms42-card .dms42-card-datetime {
   font-size: 0.9em;
 }
 
+div.cards .dms42-card .dms42-card-body {
+  max-width: 155px;
+}
+
 div.cards .dms42-card img {
   cursor: pointer;
+}
+
+div.cards .dms42-card .dms42-card-tags .badge {
+  padding: 0.48em;
+  margin: 0.1em;
 }
 
 div.cards .dms42-card .dms42-card-count {

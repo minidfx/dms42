@@ -19,7 +19,10 @@ defmodule Dms42.DocumentsFinder do
     |> find_by_tags
     |> find_by_comments
     |> find_by_ocr_and_filename
-    |> Enum.sort_by(fn %SearchResult{:ranking => x} -> x end)
+    |> Enum.uniq_by(fn %SearchResult{:document => %{:document_id => id}} -> id end)
+    |> Enum.sort_by(fn %SearchResult{:document => %{:inserted_at => dt}, :ranking => x} ->
+      {x, dt}
+    end)
     |> Enum.map(fn %SearchResult{:document => x} -> x end)
   end
 
@@ -31,7 +34,8 @@ defmodule Dms42.DocumentsFinder do
     do:
       term
       |> String.normalize(:nfd)
-      |> String.replace(~r/[^A-Za-z0-9\s]/u, "")
+      |> String.replace(~r/[^A-Za-z0-9_\s]/u, "")
+      |> String.trim()
 
   ##### Private members
 

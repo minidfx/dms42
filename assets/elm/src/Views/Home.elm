@@ -1,5 +1,6 @@
 module Views.Home exposing (handleSearchResult, init, searchDocuments, update, view)
 
+import Browser.Dom
 import Factories
 import Html exposing (Html)
 import Html.Attributes
@@ -8,6 +9,7 @@ import Http
 import Json.Decode
 import Models
 import String.Format
+import Task
 import Views.Documents
 
 
@@ -33,6 +35,7 @@ view state =
                     , Html.Attributes.class "form-control"
                     , Html.Events.onInput <| \x -> Models.UserTypeSearch x
                     , Html.Attributes.value <| Maybe.withDefault "" <| searchState.query
+                    , Html.Attributes.id "query"
                     ]
                     []
                 , Html.div [ Html.Attributes.class "input-group-append" ]
@@ -121,5 +124,8 @@ internalUpdate state query =
 
                 Nothing ->
                     state
+
+        ( searchStateUpdated, searchStateCmds ) =
+            searchDocuments newState query
     in
-    searchDocuments newState query
+    ( searchStateUpdated, Cmd.batch [ searchStateCmds, Task.attempt (\_ -> Models.Nop) (Browser.Dom.focus "query") ] )

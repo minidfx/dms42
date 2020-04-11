@@ -44,7 +44,6 @@ defmodule Dms42.Mixfile do
       {:google_api_vision, "~> 0.0.1"},
       {:swoosh, "~> 0.12.1"},
       {:timex, "~> 3.1"},
-      {:exmagick, "~> 0.0.1"},
       {:temp, "~> 0.4"},
       {:ex_mock, "~> 0.1.0", only: :test},
       {:dialyxir, "~> 1.0.0-rc.7", only: [:dev], runtime: false},

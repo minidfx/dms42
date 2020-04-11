@@ -1,361 +1,91 @@
 defmodule Dms42.DocumentPath do
+  use Agent
+
   alias Dms42.Models.Document
 
-  def start_link(), do: GenServer.start_link(__MODULE__, %{}, name: :document_path)
-
-  def init(args) do
-    relative_document_path = Application.get_env(:dms42, :documents_path)
-    relative_thumbnail_path = Application.get_env(:dms42, :thumbnails_path)
-
-    {:ok,
-     args
-     |> Map.put(:absolute_document_path, relative_document_path |> Path.absname())
-     |> Map.put(:absolute_thumbnail_path, relative_thumbnail_path |> Path.absname())
-     |> Map.put(:relative_document_path, relative_document_path)
-     |> Map.put(:relative_thumbnail_path, relative_thumbnail_path)}
-  end
-
-  def terminate(reason, _), do: IO.inspect(reason)
-
-  def handle_call(
-        :relative_document_path,
-        _from,
-        %{:relative_document_path => path} = state
-      ) do
-    {:reply, {:ok, path}, state}
-  end
-
-  def handle_call(
-        :relative_thumbnail_path,
-        _from,
-        %{:relative_thumbnail_path => path} = state
-      ) do
-    {:reply, {:ok, path}, state}
-  end
-
-  def handle_call(
-        {:relative_document_path, document_id},
-        _from,
-        %{:relative_document_path => path} = state
-      )
-      when is_bitstring(document_id) do
-    %{:year => year, :month => month, :day => day} = DateTime.utc_now()
-
-    document_path =
-      Path.join([
-        path,
-        year |> Integer.to_string(),
-        month |> Integer.to_string(),
-        day |> Integer.to_string(),
-        document_id
-      ])
-
-    {:reply, {:ok, document_path}, state}
-  end
-
-  def handle_call(
-        {:relative_thumbnail_path, document_id},
-        _from,
-        %{:relative_thumbnail_path => path} = state
-      )
-      when is_bitstring(document_id) do
-    %{:year => year, :month => month, :day => day} = DateTime.utc_now()
-
-    document_path =
-      Path.join([
-        path,
-        year |> Integer.to_string(),
-        month |> Integer.to_string(),
-        day |> Integer.to_string(),
-        document_id
-      ])
-
-    {:reply, {:ok, document_path}, state}
-  end
-
-  def handle_call(
-        {:document_path, %Document{:inserted_at => nil}},
-        _from,
-        state
-      ) do
-    {:reply, {:error, "The document doesn't contains a valid inserted datetime."}, state}
-  end
-
-  def handle_call(
-        {:document_path, %Document{:document_id => document_id, :inserted_at => datetime}},
-        _from,
-        %{:absolute_document_path => absolute_document_path} = state
-      ) do
-    %{:year => year, :month => month, :day => day} = datetime
-    {:ok, uuid} = Ecto.UUID.load(document_id)
-
-    document_path =
-      Path.join([
-        absolute_document_path,
-        year |> Integer.to_string(),
-        month |> Integer.to_string(),
-        day |> Integer.to_string(),
-        uuid
-      ])
-
-    {:reply, {:ok, document_path}, state}
-  end
-
-  def handle_call(
-        {:document_path, document_id},
-        _from,
-        %{:absolute_document_path => path} = state
-      )
-      when is_bitstring(document_id) do
-    %{:year => year, :month => month, :day => day} = DateTime.utc_now()
-
-    document_path =
-      Path.join([
-        path,
-        year |> Integer.to_string(),
-        month |> Integer.to_string(),
-        day |> Integer.to_string(),
-        document_id
-      ])
-
-    {:reply, {:ok, document_path}, state}
-  end
-
-  def handle_call(
-        {:small_thumbnail_path, document_id},
-        _from,
-        %{:absolute_thumbnail_path => path} = state
-      )
-      when is_bitstring(document_id) do
-    %{:year => year, :month => month, :day => day} = DateTime.utc_now()
-
-    small_thumbnail_path =
-      Path.join([
-        path,
-        year |> Integer.to_string(),
-        month |> Integer.to_string(),
-        day |> Integer.to_string(),
-        document_id,
-        "small.png"
-      ])
-
-    {:reply, {:ok, small_thumbnail_path}, state}
-  end
-
-  def handle_call(
-        {:small_thumbnail_path, %Document{:document_id => document_id, :inserted_at => datetime}},
-        _from,
-        %{:absolute_thumbnail_path => path} = state
-      ) do
-    %{:year => year, :month => month, :day => day} = datetime
-    {:ok, uuid} = Ecto.UUID.load(document_id)
-
-    small_thumbnail_path =
-      Path.join([
-        path,
-        year |> Integer.to_string(),
-        month |> Integer.to_string(),
-        day |> Integer.to_string(),
-        uuid,
-        "small.png"
-      ])
-
-    {:reply, {:ok, small_thumbnail_path}, state}
-  end
-
-  def handle_call(
-        {:big_thumbnail_paths,
-         %Document{
-           :document_id => document_id,
-           :inserted_at => datetime,
-           :mime_type => "application/pdf"
-         }},
-        _from,
-        %{:absolute_thumbnail_path => path} = state
-      ) do
-    case datetime do
-      nil ->
-        {:reply, {:error, "The document doesn't contain valid datetime."}, state}
-
-      x ->
-        {:ok, uuid} = Ecto.UUID.load(document_id)
-        %{:year => year, :month => month, :day => day} = x
-
-        files =
-          Path.join([
-            path,
-            year |> Integer.to_string(),
-            month |> Integer.to_string(),
-            day |> Integer.to_string(),
-            uuid
-          ])
-          |> list_big_thumbnails
-
-        {:reply, {:ok, files}, state}
-    end
-  end
-
-  def handle_call(
-        {:big_thumbnail_paths, %Document{:document_id => document_id, :inserted_at => datetime}},
-        _from,
-        %{:absolute_document_path => path} = state
-      ) do
-    case datetime do
-      nil ->
-        {:reply, {:error, "The document doesn't contain valid datetime."}, state}
-
-      x ->
-        {:ok, uuid} = Ecto.UUID.load(document_id)
-        %{:year => year, :month => month, :day => day} = x
-
-        document_file_path =
-          Path.join([
-            path,
-            year |> Integer.to_string(),
-            month |> Integer.to_string(),
-            day |> Integer.to_string(),
-            uuid
-          ])
-
-        {:reply, {:ok, [document_file_path]}, state}
-    end
-  end
-
-  def handle_call(
-        {:big_thumbnail_paths, document_id},
-        _from,
-        %{:absolute_thumbnail_path => path} = state
-      )
-      when is_bitstring(document_id) do
-    %{:year => year, :month => month, :day => day} = DateTime.utc_now()
-
-    files =
-      Path.join([
-        path,
-        year |> Integer.to_string(),
-        month |> Integer.to_string(),
-        day |> Integer.to_string(),
-        document_id
-      ])
-      |> list_big_thumbnails
-
-    {:reply, {:ok, files}, state}
-  end
-
-  def handle_call(
-        :absolute_thumbnail_path,
-        _from,
-        %{:absolute_thumbnail_path => path} = state
-      ),
-      do: {:reply, {:ok, path}, state}
-
-  def handle_call(
-        :absolute_document_path,
-        _from,
-        %{:absolute_document_path => path} = state
-      ),
-      do: {:reply, {:ok, path}, state}
+  @doc false
+  def start_link(), do: Agent.start_link(fn -> initial_state() end, name: __MODULE__)
 
   @doc """
-    Returns the path of the document.
+    Ensures that the thumbnails folder of the document exists.
   """
-  def document_path!(document) when is_map(document) do
-    case GenServer.call(:document_path, {:document_path, document}) do
-      {:error, reason} -> raise(reason)
-      {:ok, x} -> x
+  @spec ensure_thumbnails_folder_exists!(Dms42.Models.Document) :: :ok
+  def ensure_thumbnails_folder_exists!(document) when is_map(document) do
+    folder_path = to_path!(:absolute_thumbnail_path, document)
+
+    case folder_path |> File.exists?() do
+      true -> :ok
+      false -> File.mkdir_p!(folder_path)
+    end
+  end
+
+  @doc """
+    Ensures that the document folder exists.
+  """
+  @spec ensure_document_folder_exists!(Dms42.Models.Document) :: :ok
+  def ensure_document_folder_exists!(document) when is_map(document) do
+    folder_path = Path.join([get!(:absolute_document_path), middle_path!(document)])
+
+    case folder_path |> File.exists?() do
+      true -> :ok
+      false -> File.mkdir_p!(folder_path)
     end
   end
 
   @doc """
     Returns the path of the document.
   """
-  def document_path!(document_id) when is_bitstring(document_id) do
-    case GenServer.call(:document_path, {:document_path, document_id}) do
-      {:error, reason} -> raise(reason)
-      {:ok, x} -> x
-    end
-  end
+  @spec document_path!(Dms42.Models.Document) :: String.t()
+  def document_path!(document) when is_map(document),
+    do: to_path!(:absolute_document_path, document)
 
   @doc """
     Returns the small thumbnail path of the document.
   """
-  def small_thumbnail_path!(%Document{} = document) do
-    case GenServer.call(:document_path, {:small_thumbnail_path, document}) do
-      {:error, reason} -> raise(reason)
-      {:ok, x} -> x
-    end
-  end
-
-  @doc """
-    Returns the small thumbnail path of the document.
-  """
-  def small_thumbnail_path!(document_id) when is_bitstring(document_id) do
-    case GenServer.call(:document_path, {:small_thumbnail_path, document_id}) do
-      {:error, reason} -> raise(reason)
-      {:ok, x} -> x
-    end
-  end
+  @spec small_thumbnail_path!(Dms42.Models.Document) :: String.t()
+  def small_thumbnail_path!(document) when is_map(document),
+    do: Path.join([to_path!(:absolute_thumbnail_path, document), "small.png"])
 
   @doc """
     Returns the big thumbnail paths of the document.
   """
-  def big_thumbnail_paths!(document) when is_map(document) do
-    case GenServer.call(:document_path, {:big_thumbnail_paths, document}) do
-      {:error, reason} -> raise(reason)
-      {:ok, x} -> x
-    end
-  end
+  @spec big_thumbnail_paths!(Dms42.Models.Document) :: list(String.t())
+  def big_thumbnail_paths!(document) when is_map(document),
+    do: to_path!(:absolute_thumbnail_path, document) |> list_big_thumbnails
 
   @doc """
-    Returns the big thumbnail paths of the document.
+    Returns the big thumbnail paths pattern for the futures page of the documents passing the document. 
   """
-  def big_thumbnail_paths!(document_id) when is_bitstring(document_id) do
-    case GenServer.call(:document_path, {:big_thumbnail_paths, document_id}) do
-      {:error, reason} -> raise(reason)
-      {:ok, x} -> x
-    end
-  end
+  @spec big_thumbnail_paths_pattern!(Dms42.Models.Document) :: String.t()
+  def big_thumbnail_paths_pattern!(document) when is_map(document),
+    do: Path.join([to_path!(:absolute_thumbnail_path, document), "big-%0d.png"])
+
+  @doc """
+    Returns the big thumbnail paths pattern for the futures page of the documents passing base path.
+  """
+  @spec big_thumbnail_paths_pattern!(String.t()) :: String.t()
+  def big_thumbnail_paths_pattern!(base_path) when is_bitstring(base_path),
+    do: Path.join([base_path, "big-%0d.png"])
 
   @doc """
     Returns the absolute path of the folder containing documents.
   """
-  def document_folder_path!() do
-    case GenServer.call(:document_path, :absolute_document_path) do
-      {:error, reason} -> raise(reason)
-      {:ok, x} -> x
-    end
-  end
+  @spec document_folder_path!() :: String.t()
+  def document_folder_path!(), do: get!(:absolute_document_path)
 
   @doc """
     Returns the absolute path of the folder containing thumbnails.
   """
-  def thumbnail_folder_path!() do
-    case GenServer.call(:document_path, :absolute_thumbnail_path) do
-      {:error, reason} -> raise(reason)
-      {:ok, x} -> x
-    end
-  end
+  @spec thumbnail_folder_path!() :: String.t()
+  def thumbnail_folder_path!(), do: get!(:absolute_thumbnail_path)
 
   @doc """
-    Returns the relative path of the folder containing thumbnails.
+    Returns the absolute path of the document folder containing thumbnails.
   """
-  def thumbnail_folder_relative_path!() do
-    case GenServer.call(:document_path, :relative_thumbnail_path) do
-      {:error, reason} -> raise(reason)
-      {:ok, x} -> x
-    end
-  end
+  @spec thumbnail_folder_path!(Dms42.Models.Document) :: String.t()
+  def thumbnail_folder_path!(document), do: to_path!(:absolute_thumbnail_path, document)
 
-  @doc """
-    Returns the relative path of the folder containing documents.
-  """
-  def document_folder_relative_path!() do
-    case GenServer.call(:document_path, :relative_document_path) do
-      {:error, reason} -> raise(reason)
-      {:ok, x} -> x
-    end
-  end
-
+  @spec list_big_thumbnails(String.t()) :: list(String.t())
   def list_big_thumbnails(path) do
     case File.exists?(path) do
       false ->
@@ -372,5 +102,59 @@ defmodule Dms42.DocumentPath do
         |> Enum.sort_by(fn {x, _} -> x end)
         |> Enum.map(fn {_, x} -> x end)
     end
+  end
+
+  ##### Private members
+
+  @spec initial_state() :: map()
+  defp initial_state() do
+    relative_document_path = Application.get_env(:dms42, :documents_path)
+    relative_thumbnail_path = Application.get_env(:dms42, :thumbnails_path)
+
+    %{
+      relative_document_path: relative_document_path,
+      relative_thumbnail_path: relative_thumbnail_path,
+      absolute_document_path: relative_document_path |> Path.absname(),
+      absolute_thumbnail_path: relative_thumbnail_path |> Path.absname()
+    }
+  end
+
+  @spec get!(atom()) :: String.t()
+  defp get!(key) when is_atom(key) do
+    case Agent.get(__MODULE__, fn x -> Map.get(x, key, :not_found) end) do
+      :not_found -> raise "The key was not found: #{Atom.to_string(key)}"
+      x -> x
+    end
+  end
+
+  @spec uuid!(Dms42.Models.Document) :: String.t()
+  defp uuid!(document) when is_map(document) do
+    %Document{:document_id => document_id} = document
+
+    case Ecto.UUID.load(document_id) do
+      {:ok, x} -> x
+      :error -> raise "Was not able to convert the document id to a string"
+    end
+  end
+
+  @spec middle_path!(Dms42.Models.Document) :: String.t()
+  defp middle_path!(document) when is_map(document) do
+    %Document{:inserted_at => datetime} = document
+    %{:year => year, :month => month, :day => day} = datetime
+
+    Path.join([
+      Integer.to_string(year),
+      Integer.to_string(month),
+      Integer.to_string(day)
+    ])
+  end
+
+  @spec to_path!(atom(), Dms42.Models.Document) :: String.t()
+  defp to_path!(prefix_key, document) do
+    Path.join([
+      get!(prefix_key),
+      middle_path!(document),
+      uuid!(document)
+    ])
   end
 end

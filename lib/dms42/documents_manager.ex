@@ -15,7 +15,14 @@ defmodule Dms42.DocumentsManager do
     Add the document processing the OCR and saving it.
   """
   def add(file_name, mime_type, original_file_datetime, document_type, tags, bytes) do
-    Dms42.QueueState.enqueue_document(file_name, mime_type, original_file_datetime, document_type, tags, bytes)
+    Dms42.QueueState.enqueue_document(
+      file_name,
+      mime_type,
+      original_file_datetime,
+      document_type,
+      tags,
+      bytes
+    )
   end
 
   def generate_thumbnails() do
@@ -175,10 +182,7 @@ defmodule Dms42.DocumentsManager do
     Enum.each(
       documents,
       fn x ->
-        document_path = DocumentPath.document_path!(x)
-        temp_file_path = Temp.path!()
-        File.rename(document_path, temp_file_path)
-        File.rm!(temp_file_path)
+        DocumentPath.document_path!(x) |> File.rm!()
       end
     )
 

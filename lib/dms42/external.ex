@@ -3,22 +3,24 @@ defmodule Dms42.External do
 
   use Pipe
 
-  def tesseract!(img_path, lang: lang) when not is_list(lang) do
-    case send_to_tesseract(img_path, [lang]) do
-      {:error, reason} -> raise reason
-      {:ok, ocr} -> ocr
-    end
-  end
-
-  def tesseract!(img_path, lang: langs) do
+  @spec tesseract!(String.t(), list(atom())) :: String.t()
+  def tesseract!(img_path, langs) when is_list(langs) do
     case send_to_tesseract(img_path, langs) do
       {:error, reason} -> raise reason
       {:ok, ocr} -> ocr
     end
   end
 
+  @spec tesseract!(String.t(), atom()) :: String.t()
+  def tesseract!(img_path, lang) do
+    case send_to_tesseract(img_path, [lang]) do
+      {:error, reason} -> raise reason
+      {:ok, ocr} -> ocr
+    end
+  end
+
+  @spec extract(String.t()) :: {:ok, String.t()} | {:error, String.t()}
   def extract(pdf_path) do
-    Temp.track!()
     tmp_path = Temp.path!("dms42")
 
     case System.cmd("pdftotext", ["-eol", "unix", "-nopgbrk", "-q", pdf_path, tmp_path]) do
@@ -28,16 +30,17 @@ defmodule Dms42.External do
           |> String.trim()
 
         case ocr do
-          nil -> {:error, "No result"}
-          "" -> {:error, "Empty result"}
+          nil -> {:error, "Was not able to read the OCR text from the pdf."}
+          "" -> {:error, "Was able to read the OCR text from the PDF but the result was empty."}
           x -> {:ok, x}
         end
 
-      {_, error} ->
-        {:error, error}
+      {_, x} ->
+        {:error, "An error occurred while extracting the PDF from the PDF #{pdf_path}: #{x}"}
     end
   end
 
+  @spec clean_image(String.t(), String.t()) :: {:none, any}
   def clean_image(path, mime_type) do
     Pipe.pipe_matching(
       {:ok, _},
@@ -48,7 +51,9 @@ defmodule Dms42.External do
     )
   end
 
-  def send_to_tesseract(path, langs) do
+  @spec send_to_tesseract(String.t(), list(atom())) ::
+          {:ok, String.t()} | {:warning, String.t()} | {:error, String.t()}
+  def send_to_tesseract(path, langs) when is_list(langs) do
     Logger.info("Will processing tesseract on the file #{path} ...")
     args = [path, "stdout", "-l", Enum.join(langs, "+")]
 
@@ -58,6 +63,63 @@ defmodule Dms42.External do
     end
   end
 
+  @spec transform_document(String.t(), String.t(), keyword()) ::
+          {:ok, String.t()} | {:error, String.t()}
+  def transform_document(file_path, output_path, options \\ []) do
+    args = ["12x6+0.5+0", "-unsharp", "white", "-background"]
+
+    args =
+      case {Keyword.get(options, :max_width), Keyword.get(options, :max_height),
+            Keyword.get(options, :is_thumbnail, false)} do
+        {nil, nil, false} -> args
+        {nil, _, _} -> raise "You have to specify the height if the width is specified"
+        {_, nil, _} -> raise "You have to specify the width if the height is specified"
+        {x, y, true} -> ["#{x}x#{y}>", "-thumbnail"] ++ args
+        {x, y, false} -> ["#{x}x#{y}>", "-resize"] ++ args
+      end
+
+    args =
+      case Keyword.get(options, :scale) do
+        nil -> args
+        x -> ["#{x}%", "-scale"] ++ args
+      end
+
+    args =
+      case Keyword.get(options, :density) do
+        nil -> args
+        x -> ["#{x}", "-density"] ++ args
+      end
+
+    args =
+      case Keyword.get(options, :quality) do
+        nil -> args
+        x -> ["#{x}", "-quality"] ++ args
+      end
+
+    args =
+      case Keyword.get(options, :only_first_page) do
+        nil -> [file_path | args]
+        _ -> ["#{file_path}[0]" | args]
+      end
+
+    args = [output_path | args] |> Enum.reverse()
+
+    cmd_result =
+      System.cmd(
+        "convert",
+        args
+      )
+
+    case cmd_result do
+      {_, 0} -> {:ok, output_path}
+      {_, 1} -> {:warning, output_path}
+      {_, x} -> {:error, "Was not able to transform the PDF(#{file_path}) to PNG: #{x}"}
+    end
+  end
+
+  ##### Private members
+
+  @spec filter_file({:ok, {String.t(), String.t()}}) :: {:ok, String.t()} | {:none, String.t()}
   defp filter_file({:ok, {img_path, mime_type}}) do
     case mime_type |> String.downcase() do
       "image/jpeg" -> {:ok, img_path}
@@ -66,6 +128,7 @@ defmodule Dms42.External do
     end
   end
 
+  @spec fix_errors({:ok, String.t()}) :: {:ok, {String.t(), String.t()}} | {:error, String.t()}
   defp fix_errors({:ok, img_path}) do
     fixed_file = Temp.path!()
 
@@ -81,6 +144,8 @@ defmodule Dms42.External do
     end
   end
 
+  @spec replace_broken_file({:ok, {String.t(), String.t()}}) ::
+          {:ok, String.t()} | {:error, String.t()}
   defp replace_broken_file({:ok, {fixed_file, broken_file}}) do
     Logger.info("Replacing the broken file #{broken_file} by the file #{fixed_file} ...")
 

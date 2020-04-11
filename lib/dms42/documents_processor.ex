@@ -60,7 +60,8 @@ defmodule Dms42.DocumentsProcessor do
   end
 
   defp thumbnails({:ok, document}) do
-    Dms42.ThumbnailProcessor.process(document)
+    {:ok, _} = Dms42.ThumbnailProcessor.process(document)
+    {:ok, document}
   end
 
   defp commit(
@@ -75,8 +76,6 @@ defmodule Dms42.DocumentsProcessor do
         {:error, "Cannot save the transaction."}
 
       {:ok, _} ->
-        %Document{:document_id => document_id, :mime_type => mime_type} = document
-        absolute_documents_path = DocumentPath.document_path!(document)
         {:ok, document}
     end
   end

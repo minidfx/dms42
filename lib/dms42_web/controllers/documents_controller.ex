@@ -68,7 +68,9 @@ defmodule Dms42Web.DocumentsController do
         conn
 
       {:ok, conn, document} ->
-        absolute_file_path = DocumentPath.small_thumbnail_path!(document)
+        absolute_file_path =
+          DocumentPath.small_thumbnail_path!(document)
+          |> small_thumbnail_fallback_whether_no_exists()
 
         conn
         |> put_resp_content_type("image/png")
@@ -107,7 +109,9 @@ defmodule Dms42Web.DocumentsController do
 
       {:ok, conn, document} ->
         path =
-          DocumentPath.big_thumbnail_paths!(document) |> Enum.at(image_id |> String.to_integer())
+          DocumentPath.big_thumbnail_paths!(document)
+          |> Enum.at(image_id |> String.to_integer())
+          |> big_thumbnail_fallback_whether_no_exists()
 
         case path do
           nil ->
@@ -134,7 +138,11 @@ defmodule Dms42Web.DocumentsController do
         conn
 
       {:ok, conn, document} ->
-        [absolute_file_path] = DocumentPath.big_thumbnail_paths!(document) |> Enum.take(1)
+        absolute_file_path =
+          DocumentPath.big_thumbnail_paths!(document)
+          |> Enum.take(1)
+          |> Enum.at(0)
+          |> big_thumbnail_fallback_whether_no_exists()
 
         case File.exists?(absolute_file_path) do
           false ->
@@ -223,6 +231,24 @@ defmodule Dms42Web.DocumentsController do
     DocumentsManager.remove!(binary_document_id)
     conn |> send_resp(200, %{document_id: document_id} |> Poison.encode!())
   end
+
+  ##### Private members
+
+  @spec thumbnail_fallback_whether_no_exists(String.t(), String.t()) :: String.t()
+  defp thumbnail_fallback_whether_no_exists(path, fallback_path) do
+    case File.exists?(path) do
+      true -> path
+      false -> Path.absname(fallback_path)
+    end
+  end
+
+  @spec big_thumbnail_fallback_whether_no_exists(String.t()) :: String.t()
+  defp big_thumbnail_fallback_whether_no_exists(path),
+    do: thumbnail_fallback_whether_no_exists(path, "priv/static/images/big_thumbnail_404.png")
+
+  @spec small_thumbnail_fallback_whether_no_exists(String.t()) :: String.t()
+  defp small_thumbnail_fallback_whether_no_exists(path),
+    do: thumbnail_fallback_whether_no_exists(path, "priv/static/images/small_thumbnail_404.png")
 
   defp get_document(conn, document_id) do
     case Ecto.UUID.dump(document_id) do

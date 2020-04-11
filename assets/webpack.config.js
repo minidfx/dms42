@@ -22,6 +22,18 @@ module.exports = (env, options) => ({
   module: {
     rules: [
       {
+        test: /\.(png|svg|jpg|gif)$/,
+        exclude: /node_modules/,
+        use: [{
+          loader: 'file-loader',
+          options: {
+            outputPath: '..',
+            name: '[path][name].[ext]'
+          }
+        }
+        ]
+      },
+      {
         test: /jquery.+\.js$/,
         use: [{
           loader: 'expose-loader',

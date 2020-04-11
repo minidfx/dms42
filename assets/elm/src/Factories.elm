@@ -4,6 +4,7 @@ import Bootstrap.Modal
 import Browser.Navigation as Nav
 import Debounce
 import Models
+import ScrollTo
 import Url
 
 
@@ -20,6 +21,7 @@ stateFactory key url route =
     , isLoading = False
     , modalVisibility = Bootstrap.Modal.hidden
     , searchState = Nothing
+    , scrollTo = ScrollTo.init
     , queueInfo = Nothing
     }
 

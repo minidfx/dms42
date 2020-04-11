@@ -23,6 +23,7 @@ import Html.Events
 import Http
 import Models
 import Ports.Gates
+import ScrollTo
 import String.Format
 import Time
 import Views.Documents
@@ -360,5 +361,6 @@ internalUpdate state documentId =
         [ getDocument documentId
         , Ports.Gates.clearCacheTags ()
         , Ports.Gates.tags { jQueryPath = "#tags", documentId = Just documentId }
+        , Cmd.map Models.ScrollToMsg <| ScrollTo.scrollToTop
         ]
     )

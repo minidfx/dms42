@@ -8,9 +8,10 @@ import Factories
 import Helpers
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Models
+import Models exposing (Msg(..))
 import Ports.Gates
 import Ports.Models
+import ScrollTo
 import Task
 import Time
 import Url exposing (Url)
@@ -79,7 +80,7 @@ init flags url key =
                     Views.Document.init flags key initialState id
 
                 Models.Settings ->
-                    ( initialState, Cmd.none )
+                    Views.Settings.update initialState
 
                 Models.Home query ->
                     Views.Home.init initialState query
@@ -231,6 +232,22 @@ update msg state =
         Models.RunUpdateAll document ->
             ( state, Cmd.batch [ Views.Document.runOcr document, Views.Document.runUpdateThumbnails document ] )
 
+        Models.ScrollToTop ->
+            ( state
+            , Cmd.map Models.ScrollToMsg <| ScrollTo.scrollToTop
+            )
+
+        Models.ScrollToMsg scrollToMsg ->
+            let
+                ( scrollToModel, scrollToCmds ) =
+                    ScrollTo.update
+                        scrollToMsg
+                        state.scrollTo
+            in
+            ( { state | scrollTo = scrollToModel }
+            , Cmd.map Models.ScrollToMsg scrollToCmds
+            )
+
         Models.GotQueueInfo result ->
             Views.Settings.handleQueueInfo state result
 
@@ -243,12 +260,13 @@ update msg state =
 
 
 subscriptions : Models.State -> Sub Models.Msg
-subscriptions { modalVisibility } =
+subscriptions { modalVisibility, scrollTo } =
     Sub.batch
         [ Ports.Gates.uploadCompleted (always Models.UploadCompleted)
         , Ports.Gates.addTags Models.AddTags
         , Ports.Gates.removeTags Models.RemoveTags
         , Bootstrap.Modal.subscriptions modalVisibility Models.AnimatedModal
+        , Sub.map ScrollToMsg <| ScrollTo.subscriptions scrollTo
         ]
 
 

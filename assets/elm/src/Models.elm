@@ -7,6 +7,7 @@ import Debounce exposing (Debounce)
 import Dict exposing (Dict)
 import Http
 import Ports.Models
+import ScrollTo
 import Time exposing (Posix)
 import Url
 
@@ -95,6 +96,7 @@ type alias State =
     , isLoading : Bool
     , modalVisibility : Bootstrap.Modal.Visibility
     , searchState : Maybe SearchState
+    , scrollTo : ScrollTo.State
     , queueInfo : Maybe QueueInfoResponse
     }
 
@@ -125,4 +127,6 @@ type Msg
     | DidRunOcr (Result Http.Error ())
     | DidRunUpdateThumbnails (Result Http.Error ())
     | GotQueueInfo (Result Http.Error QueueInfoResponse)
+    | ScrollToTop
+    | ScrollToMsg ScrollTo.Msg
     | Nop

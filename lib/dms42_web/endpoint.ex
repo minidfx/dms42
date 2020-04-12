@@ -28,7 +28,7 @@ defmodule Dms42Web.Endpoint do
 
   plug(Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
-    length: 20_000_000,
+    length: 50_000_000,
     pass: ["*/*"],
     json_decoder: Poison,
     read_timeout: 120_000_000

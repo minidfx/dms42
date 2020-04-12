@@ -1,41 +1,10 @@
 defmodule Dms42.ThumbnailProcessor do
-  use GenServer
   use Pipe
 
   require Logger
 
   alias Dms42.DocumentPath
   alias Dms42.Models.Document
-
-  @doc false
-  def start_link() do
-    GenServer.start_link(
-      __MODULE__,
-      %{},
-      name: :thumbnail
-    )
-  end
-
-  @doc false
-  def init(args) do
-    {:ok, args}
-  end
-
-  @doc false
-  def terminate(reason, _) do
-    IO.inspect(reason)
-  end
-
-  @doc false
-  def handle_cast({:process, document}, state) do
-    process(document)
-    {:noreply, state}
-  end
-
-  @spec process(Dms42.Models.Document) :: :ok
-  def cast_process(document) do
-    GenServer.cast(:thumbnail, {:process, document})
-  end
 
   @spec process(Dms42.Models.Document) :: {:ok, Dms42.Models.Document} | {:error, any()}
   def process(document) do
@@ -75,8 +44,7 @@ defmodule Dms42.ThumbnailProcessor do
 
       Dms42.External.transform_document(file_path, big_thumbnail_file_path,
         scale: 800,
-        density: 200,
-        quality: 100
+        density: 200
       )
 
       Logger.debug("Thumbnails saved for the document #{file_path}.")

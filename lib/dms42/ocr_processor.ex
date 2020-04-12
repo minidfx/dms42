@@ -1,41 +1,10 @@
 defmodule Dms42.OcrProcessor do
-  use GenServer
-
   require Logger
 
   alias Dms42.Models.DocumentOcr
   alias Dms42.DocumentsFinder
   alias Dms42.Models.Document
   alias Dms42.DocumentPath
-
-  @doc false
-  def start_link() do
-    GenServer.start_link(__MODULE__, %{}, name: :ocr)
-  end
-
-  @doc false
-  def init(args) do
-    {:ok, args}
-  end
-
-  @doc false
-  def terminate(reason, _) do
-    IO.inspect(reason)
-  end
-
-  @doc false
-  def handle_cast({:process, document}, state) do
-    process(document)
-    {:noreply, state}
-  end
-
-  @doc """
-    Fire and forget the OCR process.
-  """
-  @spec cast_process(Dms42.Models.Document.t()) :: :ok
-  def cast_process(document) do
-    GenServer.cast(:ocr, {:process, document})
-  end
 
   @doc """
     Run and wait for the OCR process.

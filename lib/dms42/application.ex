@@ -13,8 +13,6 @@ defmodule Dms42.Application do
       # Start the endpoint when the application starts
       supervisor(Dms42Web.Endpoint, []),
       # Start your own worker by calling: Dms42.Worker.start_link(arg1, arg2, arg3)
-      worker(Dms42.OcrProcessor, []),
-      worker(Dms42.ThumbnailProcessor, []),
       worker(Dms42.DocumentPath, []),
       worker(Dms42.States, [])
     ]

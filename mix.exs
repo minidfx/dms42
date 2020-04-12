@@ -4,8 +4,8 @@ defmodule Dms42.Mixfile do
   def project do
     [
       app: :dms42,
-      version: "0.0.1",
-      elixir: "~> 1.9.4",
+      version: "0.0.5",
+      elixir: "~> 1.10.2",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
@@ -41,7 +41,6 @@ defmodule Dms42.Mixfile do
       {:phoenix_live_reload, "~> 1.0", only: :dev},
       {:gettext, "~> 0.11"},
       {:cowboy, "~> 1.0"},
-      {:google_api_vision, "~> 0.0.1"},
       {:swoosh, "~> 0.12.1"},
       {:timex, "~> 3.1"},
       {:temp, "~> 0.4"},

@@ -1,4 +1,4 @@
-FROM elixir:1.9.4
+FROM elixir:1.10.2
 
 LABEL Burgy Benjamin aka MiniDfx
 
@@ -11,16 +11,9 @@ RUN mkdir /app && \
     curl -sL https://deb.nodesource.com/setup_12.x | bash - && \
     apt-get update && \
     apt-get install -y nodejs\
-                       gcc\
-                       make\
-                       libtool-bin\
-                       libgraphicsmagick1-dev\
                        tesseract-ocr\
                        tesseract-ocr-eng\
                        tesseract-ocr-fra\
-                       ghostscript\
-                       ghostscript-x\
-                       libgs-dev\
                        xpdf\
                        graphicsmagick\
                        inotify-tools && \

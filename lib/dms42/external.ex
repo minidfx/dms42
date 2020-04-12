@@ -46,6 +46,7 @@ defmodule Dms42.External do
       {:ok, _},
       {:ok, {path, mime_type}}
       |> filter_file
+      |> is_corrupted
       |> fix_errors
       |> replace_broken_file
     )
@@ -54,10 +55,10 @@ defmodule Dms42.External do
   @spec send_to_tesseract(String.t(), list(atom())) ::
           {:ok, String.t()} | {:warning, String.t()} | {:error, String.t()}
   def send_to_tesseract(path, langs) when is_list(langs) do
-    Logger.info("Will processing tesseract on the file #{path} ...")
+    Logger.debug("Processing tesseract on the file #{path} ...")
     args = [path, "stdout", "-l", Enum.join(langs, "+")]
 
-    case System.cmd("tesseract", args, stderr_to_stdout: false) do
+    case System.cmd("tesseract", args, stderr_to_stdout: false, parallelism: true) do
       {txt, 0} -> {:ok, txt |> String.trim()}
       {_, x} -> {:error, "Tesseract has failed with the code #{x}."}
     end
@@ -107,7 +108,9 @@ defmodule Dms42.External do
     cmd_result =
       System.cmd(
         "convert",
-        args
+        args,
+        parallelism: true,
+        stderr_to_stdout: false
       )
 
     case cmd_result do
@@ -129,25 +132,41 @@ defmodule Dms42.External do
   end
 
   @spec fix_errors({:ok, String.t()}) :: {:ok, {String.t(), String.t()}} | {:error, String.t()}
-  defp fix_errors({:ok, img_path}) do
+  defp fix_errors({:ok, path}) do
     fixed_file = Temp.path!()
 
-    Logger.info("Trying to repair the image file #{img_path} ...")
+    Logger.debug("The file #{path} is corrupted, trying to repair the image file ...")
 
     {_, code} =
-      System.cmd("jpegtran", ["-perfect", "-copy", "all", "-outfile", fixed_file, img_path])
+      System.cmd("convert", [path, fixed_file], parallelism: true, stderr_to_stdout: true)
 
     case code do
-      0 -> {:ok, {fixed_file, img_path}}
-      2 -> {:ok, {fixed_file, img_path}}
+      0 -> {:ok, {fixed_file, path}}
       x -> {:error, "Clean was not successful: #{x}"}
     end
   end
 
-  @spec replace_broken_file({:ok, {String.t(), String.t()}}) ::
+  @spec is_corrupted({:ok, String.t()}) :: {:ok, String.t(), boolean} | {:error, String.t()}
+  defp is_corrupted({:ok, path}) do
+    {output, code} =
+      System.cmd("identify", ["-verbose", path], parallelism: true, stderr_to_stdout: true)
+
+    case code do
+      0 ->
+        case String.contains?(output, "Corrupt") do
+          true -> {:ok, path}
+          false -> {:none, path}
+        end
+
+      _ ->
+        {:error, "Was not able to determine whether the image is corrupted."}
+    end
+  end
+
+  @spec replace_broken_file({:ok, String.t(), String.t()}) ::
           {:ok, String.t()} | {:error, String.t()}
   defp replace_broken_file({:ok, {fixed_file, broken_file}}) do
-    Logger.info("Replacing the broken file #{broken_file} by the file #{fixed_file} ...")
+    Logger.debug("Replacing the broken file #{broken_file} by the file #{fixed_file} ...")
 
     case File.copy(fixed_file, broken_file) do
       {:ok, _} -> {:ok, broken_file}

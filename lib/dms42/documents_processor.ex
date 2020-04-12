@@ -209,9 +209,16 @@ defmodule Dms42.DocumentsProcessor do
     file_path = DocumentPath.document_path!(document)
 
     case Dms42.External.clean_image(file_path, mime_type) do
-      {:ok, _} -> {:ok, context}
-      {:none, _} -> {:ok, context}
-      x -> x
+      {:ok, _} ->
+        Logger.info("The corrupted file was cleaned: #{file_path}")
+        {:ok, context}
+
+      {:none, _} ->
+        Logger.info("The file was not corrupted, the original file was kept: #{file_path}")
+        {:ok, context}
+
+      x ->
+        x
     end
   end
 

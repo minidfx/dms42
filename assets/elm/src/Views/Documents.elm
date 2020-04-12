@@ -64,33 +64,44 @@ view state offset =
 
                 False ->
                     internalDocumentsView state (Dict.values documents) offset
+
+        topLeftStatus =
+            case state.isLoading && total > 0 of
+                True ->
+                    [ Html.span
+                        [ Html.Attributes.class "documents" ]
+                        [ Html.text <| String.fromInt <| total
+                        , Html.i
+                            [ Html.Attributes.class "fa fa-file highlight"
+                            , Html.Attributes.title "Documents"
+                            ]
+                            []
+                        ]
+                    , Bootstrap.Spinner.spinner
+                        [ Bootstrap.Spinner.small
+                        , Bootstrap.Spinner.color Bootstrap.Text.primary
+                        , Bootstrap.Spinner.attrs
+                            [ Html.Attributes.class "ml-2"
+                            ]
+                        ]
+                        [ Bootstrap.Spinner.srMessage "Loading ..." ]
+                    ]
+
+                False ->
+                    [ Html.span
+                        [ Html.Attributes.class "documents" ]
+                        [ Html.text <| String.fromInt <| total
+                        , Html.i
+                            [ Html.Attributes.class "fa fa-file highlight"
+                            , Html.Attributes.title "Documents"
+                            ]
+                            []
+                        ]
+                    ]
     in
     [ Html.div [ Html.Attributes.class "row" ]
         [ Html.div [ Html.Attributes.class "col-md-6 d-flex align-items-center" ]
-            [ Html.span
-                [ Html.Attributes.class "documents" ]
-                [ Html.text <| String.fromInt <| total
-                , Html.i
-                    [ Html.Attributes.class "fa fa-file highlight"
-                    , Html.Attributes.title "Documents"
-                    ]
-                    []
-                ]
-            , Bootstrap.Spinner.spinner
-                [ Bootstrap.Spinner.small
-                , Bootstrap.Spinner.color Bootstrap.Text.primary
-                , Bootstrap.Spinner.attrs
-                    [ Html.Attributes.class "ml-2"
-                    , Html.Attributes.style "visibility" <|
-                        if state.isLoading && total > 0 then
-                            "visible"
-
-                        else
-                            "hidden"
-                    ]
-                ]
-                [ Bootstrap.Spinner.srMessage "Loading ..." ]
-            ]
+            topLeftStatus
         , Html.div [ Html.Attributes.class "col-md-6 d-flex" ]
             [ Html.a
                 [ Html.Attributes.class "btn btn-primary ml-auto"

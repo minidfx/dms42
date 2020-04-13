@@ -12,7 +12,8 @@ defmodule Dms42Web.Endpoint do
     at: "/",
     from: :dms42,
     gzip: true,
-    only_matching: ~w(css images js favicon apple-icon android-icon ms-icon robots.txt manifest.json browserconfig.xml)
+    only_matching:
+      ~w(css images js favicon apple-icon android-icon ms-icon robots.txt manifest.json browserconfig.xml)
   )
 
   # Code reloading can be explicitly enabled under the

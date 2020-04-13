@@ -11,7 +11,7 @@ defmodule Dms42Web.Endpoint do
     Plug.Static,
     at: "/",
     from: :dms42,
-    gzip: false,
+    gzip: true,
     only_matching: ~w(css images js favicon apple-icon android-icon ms-icon robots.txt manifest.json browserconfig.xml)
   )
 

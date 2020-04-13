@@ -47,6 +47,13 @@ defmodule Dms42.DocumentPath do
     do: Path.join([to_path!(:absolute_thumbnail_path, document), "small.png"])
 
   @doc """
+    Returns the first big thumbnail path of the document.
+  """
+  @spec big_first_thumbnail_path!(Dms42.Models.Document) :: String.t()
+  def big_first_thumbnail_path!(document) when is_map(document),
+    do: Path.join([to_path!(:absolute_thumbnail_path, document), "big-0.png"])
+
+  @doc """
     Returns the big thumbnail paths of the document.
   """
   @spec big_thumbnail_paths!(Dms42.Models.Document) :: list(String.t())

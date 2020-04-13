@@ -234,6 +234,9 @@ defmodule Dms42Web.DocumentsController do
 
   ##### Private members
 
+  @spec thumbnail_fallback_whether_no_exists(nil, String.t()) :: String.t()
+  defp thumbnail_fallback_whether_no_exists(nil, fallback_path), do: Path.absname(fallback_path)
+
   @spec thumbnail_fallback_whether_no_exists(String.t(), String.t()) :: String.t()
   defp thumbnail_fallback_whether_no_exists(path, fallback_path) do
     case File.exists?(path) do

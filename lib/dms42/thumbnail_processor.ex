@@ -22,7 +22,8 @@ defmodule Dms42.ThumbnailProcessor do
     try do
       file_path = DocumentPath.document_path!(document)
       small_thumbnail_temp_path = Temp.path!()
-      big_thumbnails_temp_path = Dms42.DocumentPath.big_thumbnail_paths_pattern!(Temp.mkdir!())
+      big_thumbnails_temp_path = Temp.mkdir!()
+      big_thumbnails_temp_path_pattern = Dms42.DocumentPath.big_thumbnail_paths_pattern!(big_thumbnails_temp_path)
 
       Logger.debug("Processing the thumbnail from a PDF for the document #{file_path} ...")
 
@@ -44,12 +45,12 @@ defmodule Dms42.ThumbnailProcessor do
         is_thumbnail: true
       )
 
-      Dms42.External.transform_document(file_path, big_thumbnails_temp_path,
+      Dms42.External.transform_document(file_path, big_thumbnails_temp_path_pattern,
         scale: 800,
         density: 200
       )
 
-      Logger.debug("Moving the thumbnails generated ...")
+      Logger.debug("Moving the thumbnails generated: #{big_thumbnails_temp_path} -> #{thumbnail_folder_path}")
 
       File.cp!(small_thumbnail_temp_path, small_thumbnail_file_path, fn _, _ -> true end)
       File.cp_r!(big_thumbnails_temp_path, thumbnail_folder_path, fn _, _ -> true end)

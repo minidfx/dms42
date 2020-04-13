@@ -345,3 +345,4 @@ _ReSharper.Caches/
 assets/vendor/
 /documents/
 /thumbnails/
+package-lock.json

@@ -10,7 +10,8 @@ config :dms42,
   ecto_repos: [Dms42.Repo],
   documents_path: "documents",
   thumbnails_path: "thumbnails",
-  queue_documents_concurrency: String.to_integer(System.get_env("QUEUE_DOCUMENTS_CONCURRENCY") || "4")
+  queue_documents_concurrency:
+    String.to_integer(System.get_env("QUEUE_DOCUMENTS_CONCURRENCY") || "4")
 
 # Configures the endpoint
 config :dms42, Dms42Web.Endpoint,

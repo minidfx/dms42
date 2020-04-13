@@ -282,7 +282,7 @@ navbar =
             [ Html.Attributes.class "navbar-toggler"
             , Html.Attributes.type_ "button"
             , Html.Attributes.attribute "data-toggle" "collapse"
-            , Html.Attributes.attribute "data-target" "#navbarNav"
+            , Html.Attributes.attribute "data-target" "#navBarNav"
             , Html.Attributes.attribute "aria-controls" "navBarNav"
             , Html.Attributes.attribute "aria-expanded" "false"
             , Html.Attributes.attribute "aria-label" "Toggle navigation"
@@ -291,7 +291,7 @@ navbar =
             ]
         , Html.div
             [ Html.Attributes.class "collapse navbar-collapse"
-            , Html.Attributes.id "navbarNav"
+            , Html.Attributes.id "navBarNav"
             ]
             [ Html.ul [ Html.Attributes.class "navbar-nav mr-auto" ]
                 [ Html.li [ Html.Attributes.class "nav-item", Html.Attributes.classList [] ]

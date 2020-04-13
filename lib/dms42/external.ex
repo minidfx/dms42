@@ -105,6 +105,8 @@ defmodule Dms42.External do
 
     args = [output_path | args] |> Enum.reverse()
 
+    Logger.debug("Argument passed to convert: #{IO.inspect(args)}")
+
     cmd_result =
       System.cmd(
         "convert",

@@ -9,11 +9,6 @@
 @import 'dropzone.css';
 @import 'typeaheads.css';
 
-div.bd-dms42
-{
-  padding: 8em 3em 3em 3em;
-}
-
 div.document > .row {
   margin-bottom: 2em;
 }

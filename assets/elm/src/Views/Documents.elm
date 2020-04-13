@@ -100,9 +100,9 @@ view state offset =
                     ]
     in
     [ Html.div [ Html.Attributes.class "row" ]
-        [ Html.div [ Html.Attributes.class "col-md-6 d-flex align-items-center" ]
+        [ Html.div [ Html.Attributes.class "col-6 d-flex align-items-center" ]
             topLeftStatus
-        , Html.div [ Html.Attributes.class "col-md-6 d-flex" ]
+        , Html.div [ Html.Attributes.class "col-6 d-flex" ]
             [ Html.a
                 [ Html.Attributes.class "btn btn-primary ml-auto"
                 , Html.Attributes.href "/documents/add"

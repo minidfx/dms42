@@ -276,9 +276,23 @@ subscriptions { modalVisibility, scrollTo } =
 
 navbar : Html Models.Msg
 navbar =
-    Html.nav [ Html.Attributes.class "navbar navbar-expand-md navbar-dark fixed-top bg-dark" ]
+    Html.nav [ Html.Attributes.class "navbar navbar-expand-md navbar-dark sticky-top bg-dark" ]
         [ Html.a [ Html.Attributes.class "navbar-brand", Html.Attributes.href "/" ] [ Html.text "DMS42" ]
-        , Html.div [ Html.Attributes.class "collapse navbar-collapse" ]
+        , Html.button
+            [ Html.Attributes.class "navbar-toggler"
+            , Html.Attributes.type_ "button"
+            , Html.Attributes.attribute "data-toggle" "collapse"
+            , Html.Attributes.attribute "data-target" "#navbarNav"
+            , Html.Attributes.attribute "aria-controls" "navBarNav"
+            , Html.Attributes.attribute "aria-expanded" "false"
+            , Html.Attributes.attribute "aria-label" "Toggle navigation"
+            ]
+            [ Html.span [ Html.Attributes.class "navbar-toggler-icon" ] []
+            ]
+        , Html.div
+            [ Html.Attributes.class "collapse navbar-collapse"
+            , Html.Attributes.id "navbarNav"
+            ]
             [ Html.ul [ Html.Attributes.class "navbar-nav mr-auto" ]
                 [ Html.li [ Html.Attributes.class "nav-item", Html.Attributes.classList [] ]
                     [ Html.a
@@ -343,7 +357,7 @@ mainView state =
         [ Html.Attributes.class "container-fluid"
         , Html.Attributes.attribute "role" "main"
         ]
-        [ Html.div [ Html.Attributes.class "bd-dms42" ] mainContent ]
+        [ Html.div [ Html.Attributes.class "pt-5" ] mainContent ]
     ]
 
 

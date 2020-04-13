@@ -217,10 +217,10 @@ internalView state document offset =
     in
     Html.div [ Html.Attributes.class "document" ]
         [ Html.div [ Html.Attributes.class "row" ]
-            [ Html.div [ Html.Attributes.class "col-7" ] (documentView document offset)
-            , Html.div [ Html.Attributes.class "col" ]
-                [ Html.div [ Html.Attributes.class "col-md d-flex document-buttons" ]
-                    [ Html.div [ Html.Attributes.class "ml-auto" ]
+            [ Html.div [ Html.Attributes.class "col-md-7" ] (documentView document offset)
+            , Html.div [ Html.Attributes.class "col-md-5" ]
+                [ Html.div [ Html.Attributes.class "d-flex document-buttons" ]
+                    [ Html.div [ Html.Attributes.class "d-none d-md-block ml-auto" ]
                         [ Bootstrap.Button.button
                             [ Bootstrap.Button.danger
                             , Bootstrap.Button.onClick Models.ShowModal

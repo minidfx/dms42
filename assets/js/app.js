@@ -9,8 +9,6 @@ import 'bootstrap/dist/js/bootstrap.min.js'
 import Bloodhound from 'typeahead.js/dist/bloodhound.min.js'
 import '@fortawesome/fontawesome-free'
 
-import '../images'
-
 import Elm from '../elm/src/Main.elm'
 
 // Disable auto discover for all elements:

@@ -36,7 +36,8 @@ WORKDIR /app
 
 ENV MIX_ENV prod
 ENV PORT 4001
-ENV SECRET_KEY_BASE yxYFal4cla1dvXmA5A86JqRNSjpl87tdy3dR+bT4eGxpWwLGqCPMhtuza9ZXxNWB
+ENV HEX_HTTP_CONCURRENCY 1
+ENV HEX_HTTP_TIMEOUT 120
 
 RUN mix local.hex --force && \
     mix local.rebar --force && \

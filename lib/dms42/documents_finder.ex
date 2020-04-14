@@ -19,10 +19,8 @@ defmodule Dms42.DocumentsFinder do
     |> find_by_tags
     |> find_by_comments
     |> find_by_ocr_and_filename
-    |> Enum.uniq_by(fn %SearchResult{:document => %{:document_id => id}} -> id end)
-    |> Enum.sort_by(fn %SearchResult{:document => %{:inserted_at => dt}, :ranking => x} ->
-      {x, dt}
-    end)
+    |> Enum.uniq_by(fn %SearchResult{:document_id => x} -> x end)
+    |> Enum.sort_by(fn %SearchResult{:ranking => x} -> x end)
     |> Enum.map(fn %SearchResult{:document => x} -> x end)
   end
 
@@ -67,7 +65,7 @@ defmodule Dms42.DocumentsFinder do
       on: d.document_id == dt.document_id,
       left_join: t in Tag,
       on: t.tag_id == dt.tag_id,
-      or_where: t.name == ^term,
+      or_where: t.name_normalized == ^term,
       order_by: d.inserted_at,
       limit: @max_result,
       select: d
@@ -81,7 +79,7 @@ defmodule Dms42.DocumentsFinder do
       on: d.document_id == dt.document_id,
       left_join: t in Tag,
       on: t.tag_id == dt.tag_id,
-      or_where: ilike(t.name, ^"%#{term}%"),
+      or_where: ilike(t.name_normalized, ^"%#{term}%"),
       order_by: d.inserted_at,
       limit: @max_result,
       select: d

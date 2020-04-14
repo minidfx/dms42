@@ -28,12 +28,12 @@ type alias DocumentDateTimes =
 type alias DocumentResponse =
     { comments : Maybe String
     , id : String
-    , type_id : String
     , tags : List String
     , original_file_name : String
     , datetimes : DocumentDateTimes
     , thumbnails : DocumentThumbnails
     , ocr : Maybe String
+    , ranking : Maybe Int
     }
 
 

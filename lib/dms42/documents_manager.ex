@@ -2,6 +2,7 @@ defmodule Dms42.DocumentsManager do
   alias Dms42.Models.Document
   alias Dms42.Models.DocumentOcr
   alias Dms42.Models.Tag
+  alias Dms42.Models.SearchResult
 
   alias Dms42.TagManager
   alias Dms42.TransactionHelper
@@ -98,7 +99,10 @@ defmodule Dms42.DocumentsManager do
 
   def transform_to_viewmodels(documents), do: documents |> Enum.map(&transform_to_viewmodel/1)
 
-  def transform_to_viewmodel(%Document{:document_id => did} = document) do
+  def transform_to_viewmodel(%SearchResult{:document => document, :ranking => ranking}),
+      do: transform_to_viewmodel(document, ranking: ranking)
+  
+  def transform_to_viewmodel(%Document{:document_id => did} = document, additional_props \\ [] ) do
     document =
       Map.put(
         document,
@@ -124,23 +128,22 @@ defmodule Dms42.DocumentsManager do
 
     datetimes =
       %{
-        "inserted_datetime" => inserted |> to_rfc2822,
-        "original_file_datetime" => original_file_datetime |> to_rfc2822
+        "inserted_datetime" => inserted |> to_iso8601,
+        "original_file_datetime" => original_file_datetime |> to_iso8601
       }
-      |> MapHelper.put_if("updated_datetime", fn -> updated |> to_rfc2822 end, updated != nil)
+      |> MapHelper.put_if("updated_datetime", fn -> updated |> to_iso8601 end, updated != nil)
 
     document_ocr = DocumentOcr |> Dms42.Repo.get_by(document_id: did)
 
-    %{
+    document = %{
       "datetimes" => datetimes,
       "comments" => comments |> null_to_string,
       "document_id" => document_id_string,
-      "document_type_id" => document_type_id_string,
       "tags" => tags,
       "original_file_name" => original_file_name,
       "thumbnails" => %{"count-images": images |> Enum.count()}
     }
-    |> MapHelper.put_if(
+    document = document |> MapHelper.put_if(
       :ocr,
       fn ->
         %{:ocr => ocr} = document_ocr
@@ -148,9 +151,11 @@ defmodule Dms42.DocumentsManager do
       end,
       document_ocr != nil
     )
+    
+    additional_props |> Enum.reduce(document, fn {k, v}, d -> Map.put_new(d, k, v) end)
   end
 
-  def to_rfc2822(datetime) do
+  def to_iso8601(datetime) do
     Timex.format!(datetime, "{ISO:Extended:Z}")
   end
 

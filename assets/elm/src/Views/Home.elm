@@ -10,7 +10,9 @@ import Json.Decode
 import Models
 import String.Format
 import Task
+import Time
 import Views.Documents
+import Views.Shared
 
 
 
@@ -47,7 +49,7 @@ view state =
             ]
         ]
     , Html.div [ Html.Attributes.class "row" ]
-        [ Html.div [ Html.Attributes.class "col d-flex flex-wrap cards" ] (Views.Documents.cards state documents)
+        [ Html.div [ Html.Attributes.class "col d-flex flex-wrap cards" ] (cards state documents)
         ]
     ]
 
@@ -109,6 +111,17 @@ update state query =
 
 
 -- Private members
+
+
+rankingOrdering : Models.DocumentResponse -> Models.DocumentResponse -> Basics.Order
+rankingOrdering a b =
+    Basics.compare (Maybe.withDefault 0 <| a.ranking) (Maybe.withDefault 0 <| b.ranking)
+
+
+cards : Models.State -> List Models.DocumentResponse -> List (Html Models.Msg)
+cards state documents =
+    List.sortWith rankingOrdering documents
+        |> List.map (\x -> Views.Shared.card state x)
 
 
 internalUpdate : Models.State -> Maybe String -> ( Models.State, Cmd Models.Msg )

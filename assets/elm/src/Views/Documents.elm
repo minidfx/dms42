@@ -1,4 +1,4 @@
-module Views.Documents exposing (cards, documentDecoder, getDocuments, handleDocuments, init, update, view)
+module Views.Documents exposing (documentDecoder, getDocuments, handleDocuments, init, update, view)
 
 import Bootstrap.Spinner
 import Bootstrap.Text
@@ -13,6 +13,7 @@ import Iso8601
 import Json.Decode
 import Models
 import String.Format
+import Time
 import Views.Shared
 
 
@@ -120,7 +121,21 @@ view state offset =
 
 cards : Models.State -> List Models.DocumentResponse -> List (Html Models.Msg)
 cards state documents =
-    List.map (\x -> Views.Shared.card state x) documents
+    List.sortWith insertedAtOrdering documents
+        |> List.map (\x -> Views.Shared.card state x)
+
+
+insertedAtOrdering : Models.DocumentResponse -> Models.DocumentResponse -> Basics.Order
+insertedAtOrdering a b =
+    case Basics.compare (Time.posixToMillis a.datetimes.inserted_datetime) (Time.posixToMillis b.datetimes.inserted_datetime) of
+        GT ->
+            LT
+
+        EQ ->
+            EQ
+
+        LT ->
+            GT
 
 
 handleDocuments : Models.State -> Result Http.Error Models.DocumentsResponse -> ( Models.State, Cmd Models.Msg )
@@ -167,12 +182,12 @@ documentDecoder =
     Json.Decode.map8 Models.DocumentResponse
         (Json.Decode.maybe (Json.Decode.field "comments" Json.Decode.string))
         (Json.Decode.field "document_id" Json.Decode.string)
-        (Json.Decode.field "document_type_id" Json.Decode.string)
         (Json.Decode.field "tags" (Json.Decode.list Json.Decode.string))
         (Json.Decode.field "original_file_name" Json.Decode.string)
         (Json.Decode.field "datetimes" documentDateTimesDecoder)
         (Json.Decode.field "thumbnails" documentThumbnails)
         (Json.Decode.maybe (Json.Decode.field "ocr" Json.Decode.string))
+        (Json.Decode.maybe (Json.Decode.field "ranking" Json.Decode.int))
 
 
 

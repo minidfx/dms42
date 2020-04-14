@@ -12,7 +12,7 @@ defmodule Dms42.DocumentsFinder do
   @spec find(String.t()) :: list(Dms42.Models.Document.t())
   def find(""), do: []
 
-  @spec find(String.t()) :: list(Dms42.Models.Document.t())
+  @spec find(String.t()) :: list(Dms42.Models.SearchResult.t())
   def find(query) when is_bitstring(query) do
     query
     |> normalize
@@ -21,7 +21,6 @@ defmodule Dms42.DocumentsFinder do
     |> find_by_ocr_and_filename
     |> Enum.uniq_by(fn %SearchResult{:document_id => x} -> x end)
     |> Enum.sort_by(fn %SearchResult{:ranking => x} -> x end)
-    |> Enum.map(fn %SearchResult{:document => x} -> x end)
   end
 
   @spec normalize(String.t()) :: String.t()

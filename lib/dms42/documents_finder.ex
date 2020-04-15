@@ -19,8 +19,8 @@ defmodule Dms42.DocumentsFinder do
     |> find_by_tags
     |> find_by_comments
     |> find_by_ocr_and_filename
-    |> Enum.uniq_by(fn %SearchResult{:document_id => x} -> x end)
     |> Enum.sort_by(fn %SearchResult{:ranking => x} -> x end)
+    |> Enum.uniq_by(fn %SearchResult{:document_id => x} -> x end)
   end
 
   @spec normalize(String.t()) :: String.t()

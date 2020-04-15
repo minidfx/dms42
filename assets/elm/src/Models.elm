@@ -1,6 +1,7 @@
 module Models exposing (..)
 
 import Bootstrap.Modal
+import Bootstrap.Navbar
 import Browser
 import Browser.Navigation as Nav
 import Debounce exposing (Debounce)
@@ -98,6 +99,7 @@ type alias State =
     , searchState : Maybe SearchState
     , scrollTo : ScrollTo.State
     , queueInfo : Maybe QueueInfoResponse
+    , navBarState : Bootstrap.Navbar.State
     }
 
 
@@ -129,4 +131,5 @@ type Msg
     | GotQueueInfo (Result Http.Error QueueInfoResponse)
     | ScrollToTop
     | ScrollToMsg ScrollTo.Msg
+    | NavbarMsg Bootstrap.Navbar.State
     | Nop

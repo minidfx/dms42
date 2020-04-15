@@ -1,6 +1,7 @@
 module Factories exposing (..)
 
 import Bootstrap.Modal
+import Bootstrap.Navbar
 import Browser.Navigation as Nav
 import Debounce
 import Models
@@ -8,8 +9,8 @@ import ScrollTo
 import Url
 
 
-stateFactory : Nav.Key -> Url.Url -> Models.Route -> Models.State
-stateFactory key url route =
+stateFactory : Nav.Key -> Url.Url -> Models.Route -> Bootstrap.Navbar.State -> Models.State
+stateFactory key url route navBarState =
     { key = key
     , url = url
     , route = route
@@ -23,6 +24,7 @@ stateFactory key url route =
     , searchState = Nothing
     , scrollTo = ScrollTo.init
     , queueInfo = Nothing
+    , navBarState = navBarState
     }
 
 

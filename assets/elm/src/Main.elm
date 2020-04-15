@@ -1,6 +1,7 @@
 module Main exposing (init, main, subscriptions, update, view)
 
 import Bootstrap.Modal
+import Bootstrap.Navbar
 import Browser
 import Browser.Navigation as Nav
 import Debounce
@@ -65,8 +66,11 @@ init flags url key =
         route =
             Url.Parser.parse routes url |> Maybe.withDefault (Models.Home Nothing)
 
+        ( navBarState, navBarCmd ) =
+            Bootstrap.Navbar.initialState Models.NavbarMsg
+
         initialState =
-            Factories.stateFactory key url route
+            Factories.stateFactory key url route navBarState
 
         ( state, commands ) =
             case route of
@@ -86,7 +90,7 @@ init flags url key =
                     Views.Home.init initialState query
 
         newCommands =
-            Cmd.batch [ defaultActions, commands ]
+            Cmd.batch [ navBarCmd, defaultActions, commands ]
     in
     ( state, newCommands )
 
@@ -251,6 +255,9 @@ update msg state =
         Models.GotQueueInfo result ->
             Views.Settings.handleQueueInfo state result
 
+        NavbarMsg navBarState ->
+            ( { state | navBarState = navBarState }, Cmd.none )
+
         Models.Nop ->
             ( state, Cmd.none )
 
@@ -260,13 +267,14 @@ update msg state =
 
 
 subscriptions : Models.State -> Sub Models.Msg
-subscriptions { modalVisibility, scrollTo } =
+subscriptions { modalVisibility, scrollTo, navBarState } =
     Sub.batch
         [ Ports.Gates.uploadCompleted (always Models.UploadCompleted)
         , Ports.Gates.addTags Models.AddTags
         , Ports.Gates.removeTags Models.RemoveTags
         , Bootstrap.Modal.subscriptions modalVisibility Models.AnimatedModal
         , Sub.map ScrollToMsg <| ScrollTo.subscriptions scrollTo
+        , Bootstrap.Navbar.subscriptions navBarState Models.NavbarMsg
         ]
 
 
@@ -274,50 +282,19 @@ subscriptions { modalVisibility, scrollTo } =
 -- VIEW
 
 
-navbar : Html Models.Msg
-navbar =
-    Html.nav [ Html.Attributes.class "navbar navbar-expand-md navbar-dark sticky-top bg-dark" ]
-        [ Html.a [ Html.Attributes.class "navbar-brand", Html.Attributes.href "/" ] [ Html.text "DMS42" ]
-        , Html.button
-            [ Html.Attributes.class "navbar-toggler"
-            , Html.Attributes.type_ "button"
-            , Html.Attributes.attribute "data-toggle" "collapse"
-            , Html.Attributes.attribute "data-target" "#navBarNav"
-            , Html.Attributes.attribute "aria-controls" "navBarNav"
-            , Html.Attributes.attribute "aria-expanded" "false"
-            , Html.Attributes.attribute "aria-label" "Toggle navigation"
+navbar : Models.State -> Html Models.Msg
+navbar { navBarState } =
+    Bootstrap.Navbar.config Models.NavbarMsg
+        |> Bootstrap.Navbar.withAnimation
+        |> Bootstrap.Navbar.dark
+        |> Bootstrap.Navbar.brand [ Html.Attributes.href "#" ]
+            [ Html.text "DMS42" ]
+        |> Bootstrap.Navbar.items
+            [ Bootstrap.Navbar.itemLink [ Html.Attributes.href "/" ] [ Html.text "Home" ]
+            , Bootstrap.Navbar.itemLink [ Html.Attributes.href "/documents" ] [ Html.text "Documents" ]
+            , Bootstrap.Navbar.itemLink [ Html.Attributes.href "/settings" ] [ Html.text "Settings" ]
             ]
-            [ Html.span [ Html.Attributes.class "navbar-toggler-icon" ] []
-            ]
-        , Html.div
-            [ Html.Attributes.class "collapse navbar-collapse"
-            , Html.Attributes.id "navBarNav"
-            ]
-            [ Html.ul [ Html.Attributes.class "navbar-nav mr-auto" ]
-                [ Html.li [ Html.Attributes.class "nav-item", Html.Attributes.classList [] ]
-                    [ Html.a
-                        [ Html.Attributes.class "nav-link"
-                        , Html.Attributes.href "/"
-                        ]
-                        [ Html.text "Home" ]
-                    ]
-                , Html.li [ Html.Attributes.class "nav-item", Html.Attributes.classList [] ]
-                    [ Html.a
-                        [ Html.Attributes.class "nav-link"
-                        , Html.Attributes.href "/documents"
-                        ]
-                        [ Html.text "Documents" ]
-                    ]
-                , Html.li [ Html.Attributes.class "nav-item", Html.Attributes.classList [] ]
-                    [ Html.a
-                        [ Html.Attributes.class "nav-link"
-                        , Html.Attributes.href "/settings"
-                        ]
-                        [ Html.text "Settings" ]
-                    ]
-                ]
-            ]
-        ]
+        |> Bootstrap.Navbar.view navBarState
 
 
 mainView : Models.State -> List (Html Models.Msg)
@@ -352,7 +329,7 @@ mainView state =
                 Nothing ->
                     content
     in
-    [ navbar
+    [ navbar state
     , Html.main_
         [ Html.Attributes.class "container-fluid"
         , Html.Attributes.attribute "role" "main"

@@ -219,7 +219,7 @@ update msg state =
                 ( newDebouncer, cmd ) =
                     Debounce.update
                         (debounceConfig Models.ThrottleSearchDocuments)
-                        (Debounce.takeLast (\x -> Task.perform Models.LinkClicked (Task.succeed <| Helpers.navTo state [] [ Url.Builder.string "query" x ])))
+                        (Debounce.takeLast (\x -> searchTo state x))
                         msg_
                         searchState.debouncer
             in
@@ -291,8 +291,18 @@ navbar { navBarState } =
     Bootstrap.Navbar.config Models.NavbarMsg
         |> Bootstrap.Navbar.withAnimation
         |> Bootstrap.Navbar.dark
-        |> Bootstrap.Navbar.brand [ Html.Attributes.href "#" ]
-            [ Html.text "DMS42" ]
+        |> Bootstrap.Navbar.brand
+            [ Html.Attributes.href "/"
+            , Html.Attributes.class "d-flex align-items-center"
+            ]
+            [ Html.img
+                [ Html.Attributes.title "DMS42"
+                , Html.Attributes.src "/images/brand.png"
+                , Html.Attributes.class "mr-2 p-1 rounded"
+                ]
+                []
+            , Html.text "DMS42"
+            ]
         |> Bootstrap.Navbar.items
             [ Bootstrap.Navbar.itemLink [ Html.Attributes.href "/" ] [ Html.text "Home" ]
             , Bootstrap.Navbar.itemLink [ Html.Attributes.href "/documents" ] [ Html.text "Documents" ]
@@ -347,3 +357,17 @@ view state =
     { title = "DMS42"
     , body = mainView state
     }
+
+
+
+-- Internal
+
+
+searchTo : Models.State -> String -> Cmd Models.Msg
+searchTo state query =
+    case query |> Views.Home.parseQuery of
+        Just x ->
+            Task.perform Models.LinkClicked (Task.succeed <| Helpers.navTo state [] [ Url.Builder.string "query" x ])
+
+        Nothing ->
+            Cmd.none

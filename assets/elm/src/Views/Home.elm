@@ -1,4 +1,4 @@
-module Views.Home exposing (handleSearchResult, init, searchDocuments, update, view)
+module Views.Home exposing (handleSearchResult, init, parseQuery, searchDocuments, update, view)
 
 import Browser.Dom
 import Factories
@@ -55,20 +55,7 @@ view state =
 
 searchDocuments : Models.State -> Maybe String -> ( Models.State, Cmd Models.Msg )
 searchDocuments state query =
-    let
-        queryClean =
-            case query of
-                Just x ->
-                    if String.length x <= 2 then
-                        Nothing
-
-                    else
-                        query
-
-                Nothing ->
-                    Nothing
-    in
-    case queryClean of
+    case parseMaybeQuery query of
         Nothing ->
             ( state, Cmd.none )
 
@@ -108,8 +95,32 @@ update state query =
     internalUpdate state query
 
 
+cleanQuery : String -> String
+cleanQuery query =
+    query |> String.trim
+
+
+parseQuery : String -> Maybe String
+parseQuery query =
+    if (query |> cleanQuery |> String.length) > 2 then
+        Just <| cleanQuery query
+
+    else
+        Nothing
+
+
 
 -- Private members
+
+
+parseMaybeQuery : Maybe String -> Maybe String
+parseMaybeQuery query =
+    case query of
+        Just x ->
+            parseQuery x
+
+        Nothing ->
+            Nothing
 
 
 rankingOrdering : Models.DocumentResponse -> Models.DocumentResponse -> Basics.Order

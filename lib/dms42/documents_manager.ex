@@ -100,9 +100,9 @@ defmodule Dms42.DocumentsManager do
   def transform_to_viewmodels(documents), do: documents |> Enum.map(&transform_to_viewmodel/1)
 
   def transform_to_viewmodel(%SearchResult{:document => document, :ranking => ranking}),
-      do: transform_to_viewmodel(document, ranking: ranking)
-  
-  def transform_to_viewmodel(%Document{:document_id => did} = document, additional_props \\ [] ) do
+    do: transform_to_viewmodel(document, ranking: ranking)
+
+  def transform_to_viewmodel(%Document{:document_id => did} = document, additional_props \\ []) do
     document =
       Map.put(
         document,
@@ -143,15 +143,18 @@ defmodule Dms42.DocumentsManager do
       "original_file_name" => original_file_name,
       "thumbnails" => %{"count-images": images |> Enum.count()}
     }
-    document = document |> MapHelper.put_if(
-      :ocr,
-      fn ->
-        %{:ocr => ocr} = document_ocr
-        ocr
-      end,
-      document_ocr != nil
-    )
-    
+
+    document =
+      document
+      |> MapHelper.put_if(
+        :ocr,
+        fn ->
+          %{:ocr => ocr} = document_ocr
+          ocr
+        end,
+        document_ocr != nil
+      )
+
     additional_props |> Enum.reduce(document, fn {k, v}, d -> Map.put_new(d, k, v) end)
   end
 

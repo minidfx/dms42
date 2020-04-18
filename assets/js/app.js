@@ -77,12 +77,8 @@ app.ports.dropZone.subscribe(request => {
 })
 app.ports.tags.subscribe(request => {
     const {jQueryPath, documentId, tags, documentTags} = request
-    const data = _.concat(tags.map((x, i) => {
-            return {id: i, text: x,selected: false}
-        }),
-        documentTags.map((x, i) => {
-            return {id: i, text: x, selected: true}
-        }))
+    const localTags = tags.sort().map((x, i) => {return {id: i, text: x, selected: false}})
+    const data = localTags.map(x => _.indexOf(documentTags, x.text) !== -1 ? _.set(x, 'selected', true) : x)
 
     waitForNode(jQueryPath,
         x => {
@@ -90,6 +86,7 @@ app.ports.tags.subscribe(request => {
                 tags: true,
                 tokenSeparators: [','],
                 minimumInputLength: 2,
+                multiple: true,
                 data: data
             })
 

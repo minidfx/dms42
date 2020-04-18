@@ -22,7 +22,7 @@ import Html.Attributes
 import Html.Events
 import Http
 import Models
-import Ports.Gates
+import Ports.Gates exposing (tags)
 import ScrollTo
 import String.Format
 import Time
@@ -132,20 +132,19 @@ handleDocument state result =
         documentsState =
             state.documentsState
                 |> Maybe.withDefault Factories.documentsStateFactory
-
-        newDocumentsState =
-            case result of
-                Ok x ->
-                    let
-                        { id } =
-                            x
-                    in
-                    { documentsState | documents = Just <| Dict.insert id x <| Maybe.withDefault Dict.empty documentsState.documents }
-
-                Err _ ->
-                    documentsState
     in
-    ( { state | documentsState = Just newDocumentsState }, Cmd.none )
+    case result of
+        Ok x ->
+            let
+                { id, tags } =
+                    x
+            in
+            ( { state | documentsState = Just { documentsState | documents = Just <| Dict.insert id x <| Maybe.withDefault Dict.empty documentsState.documents } }
+            , Views.Shared.getTags
+            )
+
+        Err _ ->
+            ( state, Cmd.none )
 
 
 runOcr : Models.DocumentResponse -> Cmd Models.Msg
@@ -359,8 +358,6 @@ internalUpdate state documentId =
     ( state
     , Cmd.batch
         [ getDocument documentId
-        , Ports.Gates.clearCacheTags ()
-        , Ports.Gates.tags { jQueryPath = "#tags", documentId = Just documentId }
         , Cmd.map Models.ScrollToMsg <| ScrollTo.scrollToTop
         ]
     )

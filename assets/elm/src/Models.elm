@@ -110,6 +110,7 @@ type Msg
     | UploadCompleted
     | GotDocuments (Result Http.Error DocumentsResponse)
     | GotDocument (Result Http.Error DocumentResponse)
+    | GotTags (Result Http.Error (List String))
     | GetUserTimeZone Time.Zone
     | AddTags Ports.Models.TagsAdded
     | RemoveTags Ports.Models.TagsRemoved

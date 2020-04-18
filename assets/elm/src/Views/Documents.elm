@@ -12,6 +12,7 @@ import Http
 import Iso8601
 import Json.Decode
 import Models
+import Ports.Gates
 import String.Format
 import Time
 import Views.Shared
@@ -161,9 +162,7 @@ handleDocuments state result =
             ( { stateWithoutLoading | documentsState = Just documentsState }, Cmd.none )
 
         Err message ->
-            ( { stateWithoutLoading | error = Just <| httpErrorToString message, documentsState = Nothing }
-            , Cmd.none
-            )
+            ( { stateWithoutLoading | error = Just <| httpErrorToString message, documentsState = Nothing }, Cmd.none )
 
 
 getDocuments : Models.DocumentsRequest -> Cmd Models.Msg

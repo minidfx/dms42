@@ -24,6 +24,7 @@ import Views.Document
 import Views.Documents
 import Views.Home
 import Views.Settings
+import Views.Shared
 
 
 
@@ -111,6 +112,15 @@ update msg state =
     case msg of
         Models.GotDocuments documentsResult ->
             Views.Documents.handleDocuments state documentsResult
+
+        Models.GotTags result ->
+            Views.Shared.handleTags state result
+
+        Models.GotSearchResult result ->
+            Views.Home.handleSearchResult state result
+
+        Models.GotDocument result ->
+            Views.Document.handleDocument state result
 
         Models.LinkClicked urlRequest ->
             case urlRequest of
@@ -214,12 +224,6 @@ update msg state =
                         searchState.debouncer
             in
             ( { state | searchState = Just { searchState | debouncer = newDebouncer } }, cmd )
-
-        Models.GotSearchResult result ->
-            Views.Home.handleSearchResult state result
-
-        Models.GotDocument result ->
-            Views.Document.handleDocument state result
 
         Models.RunOcr document ->
             ( state, Views.Document.runOcr document )

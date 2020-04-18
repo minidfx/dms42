@@ -1,6 +1,7 @@
 module Views.AddDocuments exposing (init, startUpload, update, view)
 
 import Browser.Navigation as Nav
+import Helpers
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
@@ -17,9 +18,8 @@ init : () -> Nav.Key -> Models.State -> ( Models.State, Cmd Models.Msg )
 init _ _ initialState =
     ( initialState
     , Cmd.batch
-        [ Ports.Gates.dropZone { jQueryPath = "div.dropzone", jQueryTagsPath = "#tags" }
-        , Ports.Gates.tags { jQueryPath = "#tags", documentId = Nothing }
-        , Ports.Gates.clearCacheTags ()
+        [ Views.Shared.getTags
+        , Ports.Gates.dropZone { jQueryPath = "div.dropzone", jQueryTagsPath = "#tags" }
         ]
     )
 
@@ -29,8 +29,7 @@ update state =
     ( state
     , Cmd.batch
         [ Ports.Gates.dropZone { jQueryPath = "div.dropzone", jQueryTagsPath = "#tags" }
-        , Ports.Gates.tags { jQueryPath = "#tags", documentId = Nothing }
-        , Ports.Gates.clearCacheTags ()
+        , Views.Shared.getTags
         ]
     )
 

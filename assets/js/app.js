@@ -2,12 +2,12 @@ import '../css/app.css'
 
 import $ from 'jquery'
 import Dropzone from 'dropzone'
-import 'typeahead.js'
 import 'bootstrap4-tagsinput-douglasanpa/tagsinput.js'
 import 'bootstrap/js/dist'
 import 'bootstrap/dist/js/bootstrap.min.js'
-import Bloodhound from 'typeahead.js/dist/bloodhound.min.js'
 import '@fortawesome/fontawesome-free'
+import 'select2/dist/js/select2.min.js'
+import _ from 'lodash/lodash.min'
 
 import Elm from '../elm/src/Main.elm'
 
@@ -15,17 +15,18 @@ import Elm from '../elm/src/Main.elm'
 Dropzone.autoDiscover = false
 
 const app = Elm.Elm.Main.init({node: document.getElementsByName("body")})
-const maxRetry = 10
+const maxRetry = 100
 
 // INFO: Because the message is sometimes received before than the element exists, we have to wait for the DOM to be updated and retry.
 const waitForNode = (jQueryPath, callback, retry) => {
-    if (retry > maxRetry) {
+    const localRetry = retry || 0
+    if (localRetry > maxRetry) {
         throw new Error(`Was not able to find the node after ${maxRetry}.`)
     }
 
     let htmlTag = $(jQueryPath)
     if (htmlTag.length < 1) {
-        window.setTimeout(() => waitForNode(jQueryPath, callback, retry + 1), 10)
+        window.setTimeout(() => waitForNode(jQueryPath, callback, localRetry + 1), 10)
         return
     }
 
@@ -41,7 +42,7 @@ app.ports.dropZone.subscribe(request => {
                 params: (file) => {
                     const localFile = file[0]
                     return {
-                        tags: $(jQueryTagsPath).val(),
+                        tags: $(jQueryTagsPath).select2('data').map(x => x.text),
                         fileUnixTimestamp: localFile.lastModified
                     }
                 },
@@ -54,6 +55,7 @@ app.ports.dropZone.subscribe(request => {
             localDropZone.on('queuecomplete',
                 () => {
                     app.ports.uploadCompleted.send(null)
+                    $(jQueryTagsPath).val(null).trigger('change')
                 })
                 .on('complete',
                     x => {
@@ -71,54 +73,45 @@ app.ports.dropZone.subscribe(request => {
                             },
                             3000)
                     })
-        },
-        0)
+        })
 })
 app.ports.tags.subscribe(request => {
-    const {jQueryPath, documentId} = request
+    const {jQueryPath, documentId, tags, documentTags} = request
+    const data = _.concat(tags.map((x, i) => {
+            return {id: i, text: x,selected: false}
+        }),
+        documentTags.map((x, i) => {
+            return {id: i, text: x, selected: true}
+        }))
 
     waitForNode(jQueryPath,
         x => {
-            const tags = new Bloodhound({
-                datumTokenizer: Bloodhound.tokenizers.whitespace,
-                queryTokenizer: Bloodhound.tokenizers.whitespace,
-                // url points to a json file that contains an array of country names, see
-                // https://github.com/twitter/typeahead.js/blob/gh-pages/data/countries.json
-                prefetch: '/api/tags'
+            const localControl = x.select2({
+                tags: true,
+                tokenSeparators: [','],
+                minimumInputLength: 2,
+                data: data
             })
 
-            x.tagsinput(
-                {
-                    trimValue: true,
-                    typeaheadjs: {
-                        name: 'tags',
-                        source: tags
-                    }
-                })
-
             if (documentId) {
-                x
-                    .on('itemRemoved', t => {
-                        app.ports.removeTags.send({documentId: documentId, tags: [t.item]})
-                    })
-                    .on('itemAdded', t => {
-                        app.ports.addTags.send({documentId: documentId, tags: [t.item]})
-                    })
+                localControl.on('select2:select', x => {
+                    app.ports.addTags.send({documentId: documentId, tags: [x.params.data.text]})
+                })
+                localControl.on('select2:unselect', x => {
+                    app.ports.removeTags.send({documentId: documentId, tags: [x.params.data.text]})
+                })
             }
-        },
-        0)
-})
-app.ports.clearCacheTags.subscribe(() => {
-    window.localStorage.removeItem('__/api/tags__data')
+        })
 })
 app.ports.upload.subscribe(request => {
     const {jQueryPath, jQueryTagsPath} = request
     const localDropZone = $(jQueryPath)[0].dropzone
-    const newFiles = localDropZone.files.filter(x => x.status !== "success")
-
+    const newFiles = localDropZone.files.filter(x => x.status !== 'success')
+    
     if (newFiles.length < 1) {
         app.ports.uploadCompleted.send(null)
-        $(jQueryTagsPath).tagsinput('removeAll');
+        $(jQueryTagsPath).val(null).trigger('change')
+        return
     }
 
     localDropZone.processQueue()

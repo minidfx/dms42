@@ -1,15 +1,18 @@
-module Views.Shared exposing (badge, card, flattenTags, pagination, posix2String, tagsinputs)
+module Views.Shared exposing (badge, card, flattenTags, getTags, handleTags, pagination, posix2String, tagsinputs)
 
-import Bootstrap.Card
-import Bootstrap.Card.Block
 import Bootstrap.General.HAlign
 import Bootstrap.Pagination
+import Dict
+import Factories
 import Helpers
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 import Html.Keyed
+import Http
+import Json.Decode
 import Models
+import Ports.Gates
 import String.Format
 import Time
 
@@ -76,13 +79,12 @@ tagsinputs tags isDisabled =
     Html.Keyed.node "tags"
         []
         [ ( "tags_input"
-          , Html.input
-                [ Html.Attributes.type_ "text"
-                , Html.Attributes.class "form-control typeahead"
-                , Html.Attributes.id "tags"
-                , Html.Attributes.attribute "data-role" "tagsinput"
-                , Html.Attributes.value <| String.join "," <| tags
+          , Html.select
+                [ Html.Attributes.id "tags"
                 , Html.Attributes.disabled isDisabled
+                , Html.Attributes.class "form-control"
+                , Html.Attributes.multiple True
+                , Html.Attributes.attribute "data-placeholder" "Insert your tags"
                 ]
                 []
           )
@@ -121,8 +123,68 @@ pagination total length offset urlFn =
         |> Bootstrap.Pagination.view
 
 
+getTags : Cmd Models.Msg
+getTags =
+    Http.get
+        { url = "/api/tags"
+        , expect = Http.expectJson Models.GotTags tagsDecoder
+        }
+
+
+handleTags : Models.State -> Result Http.Error (List String) -> ( Models.State, Cmd Models.Msg )
+handleTags state result =
+    let
+        { route } =
+            state
+
+        documentId =
+            case route of
+                Models.Document id _ ->
+                    Just id
+
+                _ ->
+                    Nothing
+
+        documents =
+            state.documentsState
+                |> Maybe.withDefault Factories.documentsStateFactory
+                |> Helpers.fluentSelect (\x -> x.documents)
+                |> Maybe.withDefault Dict.empty
+
+        -- FIXME: Don't like this syntax, too many nesting with the case statement.
+        documentTags =
+            case documentId of
+                Just id ->
+                    case Dict.get id <| documents of
+                        Just x ->
+                            x.tags
+
+                        Nothing ->
+                            []
+
+                Nothing ->
+                    []
+
+        tags =
+            case result of
+                Ok x ->
+                    x
+
+                Err _ ->
+                    []
+    in
+    ( { state | tagsResponse = Just tags }
+    , Ports.Gates.tags { jQueryPath = "#tags", documentId = documentId, tags = tags, documentTags = documentTags }
+    )
+
+
 
 -- Private members
+
+
+tagsDecoder : Json.Decode.Decoder (List String)
+tagsDecoder =
+    Json.Decode.list Json.Decode.string
 
 
 baseUrlFn : Int -> String -> (Int -> String) -> String

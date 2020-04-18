@@ -74,8 +74,8 @@ flattenTags tags =
     Html.div [ Html.Attributes.class "dms42-card-tags d-flex flex-wrap justify-content-center my-1" ] (List.map (\x -> badge x) tags)
 
 
-tagsinputs : List String -> Bool -> Html Models.Msg
-tagsinputs tags isDisabled =
+tagsinputs : Bool -> Html Models.Msg
+tagsinputs isDisabled =
     Html.Keyed.node "tags"
         []
         [ ( "tags_input"

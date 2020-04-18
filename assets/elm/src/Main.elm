@@ -81,8 +81,8 @@ init flags url key =
                 Models.Documents offset ->
                     Views.Documents.init flags key initialState offset
 
-                Models.Document id _ ->
-                    Views.Document.init flags key initialState id
+                Models.Document id offset ->
+                    Views.Document.init flags key initialState id offset
 
                 Models.Settings ->
                     Views.Settings.update initialState
@@ -155,8 +155,8 @@ update msg state =
                 Models.Documents offset ->
                     Views.Documents.update newState offset
 
-                Models.Document id _ ->
-                    Views.Document.update newState id
+                Models.Document id offset ->
+                    Views.Document.update newState id offset
 
                 Models.Settings ->
                     Views.Settings.update newState

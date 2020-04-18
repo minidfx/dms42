@@ -22,7 +22,6 @@ import Html.Attributes
 import Html.Events
 import Http
 import Models
-import Ports.Gates exposing (tags)
 import ScrollTo
 import String.Format
 import Time
@@ -34,14 +33,14 @@ import Views.Shared
 -- Public members
 
 
-init : () -> Nav.Key -> Models.State -> String -> ( Models.State, Cmd Models.Msg )
-init _ _ state documentId =
-    internalUpdate state documentId
+init : () -> Nav.Key -> Models.State -> String -> Maybe Int -> ( Models.State, Cmd Models.Msg )
+init _ _ state documentId offset =
+    internalUpdate state documentId offset
 
 
-update : Models.State -> String -> ( Models.State, Cmd Models.Msg )
-update state documentId =
-    internalUpdate state documentId
+update : Models.State -> String -> Maybe Int -> ( Models.State, Cmd Models.Msg )
+update state documentId offset =
+    internalUpdate state documentId offset
 
 
 view : Models.State -> String -> Maybe Int -> List (Html Models.Msg)
@@ -281,7 +280,7 @@ internalView state document offset =
                         , Html.dd [] [ Html.text original_file_name ]
                         ]
                     ]
-                , Views.Shared.tagsinputs tags False
+                , Views.Shared.tagsinputs False
                 ]
             ]
         , Html.div [ Html.Attributes.class "row" ]
@@ -353,11 +352,27 @@ pagination { thumbnails, id } offset =
         (\x -> "/documents/{{ documentId }}?offset={{ offset }}" |> String.Format.namedValue "documentId" id |> (String.Format.namedValue "offset" <| String.fromInt x))
 
 
-internalUpdate : Models.State -> String -> ( Models.State, Cmd Models.Msg )
-internalUpdate state documentId =
-    ( state
-    , Cmd.batch
-        [ getDocument documentId
-        , Cmd.map Models.ScrollToMsg <| ScrollTo.scrollToTop
-        ]
-    )
+internalUpdate : Models.State -> String -> Maybe Int -> ( Models.State, Cmd Models.Msg )
+internalUpdate state documentId offset =
+    let
+        documents =
+            state.documentsState
+                |> Maybe.withDefault Factories.documentsStateFactory
+                |> Helpers.fluentSelect (\x -> x.documents)
+                |> Maybe.withDefault Dict.empty
+
+        document =
+            documents |> Dict.get documentId
+
+        defaultCommands =
+            [ Cmd.map Models.ScrollToMsg <| ScrollTo.scrollToTop ]
+
+        commands =
+            case document |> Maybe.andThen (\x -> offset) of
+                Just _ ->
+                    []
+
+                Nothing ->
+                    [ getDocument documentId ]
+    in
+    ( state, Cmd.batch (commands ++ defaultCommands) )

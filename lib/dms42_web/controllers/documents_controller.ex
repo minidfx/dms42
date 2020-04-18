@@ -70,12 +70,7 @@ defmodule Dms42Web.DocumentsController do
       {:ok, conn, document} ->
         absolute_file_path =
           DocumentPath.small_thumbnail_path!(document)
-          |> small_thumbnail_fallback_whether_no_exists()
-
-        conn
-        |> put_resp_content_type("image/png")
-        |> put_resp_header("cache-control", "private, max-age=300")
-        |> send_file(200, absolute_file_path)
+          |> small_thumbnail_fallback_whether_no_exists(conn)
     end
   end
 
@@ -111,23 +106,7 @@ defmodule Dms42Web.DocumentsController do
         path =
           DocumentPath.big_thumbnail_paths!(document)
           |> Enum.at(image_id |> String.to_integer())
-          |> big_thumbnail_fallback_whether_no_exists()
-
-        case path do
-          nil ->
-            conn |> send_resp(404, "")
-
-          x ->
-            case File.exists?(x) do
-              false ->
-                conn |> send_resp(404, "")
-
-              true ->
-                conn
-                |> put_resp_content_type("image/png")
-                |> send_file(200, x)
-            end
-        end
+          |> big_thumbnail_fallback_whether_no_exists(conn)
     end
   end
 
@@ -142,17 +121,7 @@ defmodule Dms42Web.DocumentsController do
           DocumentPath.big_thumbnail_paths!(document)
           |> Enum.take(1)
           |> Enum.at(0)
-          |> big_thumbnail_fallback_whether_no_exists()
-
-        case File.exists?(absolute_file_path) do
-          false ->
-            conn |> put_status(404)
-
-          true ->
-            conn
-            |> put_resp_content_type("image/png")
-            |> send_file(200, absolute_file_path)
-        end
+          |> big_thumbnail_fallback_whether_no_exists(conn)
     end
   end
 
@@ -234,24 +203,34 @@ defmodule Dms42Web.DocumentsController do
 
   ##### Private members
 
-  @spec thumbnail_fallback_whether_no_exists(nil, String.t()) :: String.t()
-  defp thumbnail_fallback_whether_no_exists(nil, fallback_path), do: Path.absname(fallback_path)
+  @spec thumbnail_fallback_whether_no_exists(nil, Plug.Conn.t(), String.t()) :: String.t()
+  defp thumbnail_fallback_whether_no_exists(nil, conn, fallback_path),
+    do: Path.absname(fallback_path)
 
-  @spec thumbnail_fallback_whether_no_exists(String.t(), String.t()) :: String.t()
-  defp thumbnail_fallback_whether_no_exists(path, fallback_path) do
+  @spec thumbnail_fallback_whether_no_exists(String.t(), Plug.Conn.t(), String.t()) ::
+          Plug.Conn.t()
+  defp thumbnail_fallback_whether_no_exists(path, conn, fallback_path) do
     case File.exists?(path) do
-      true -> path
-      false -> Path.absname(fallback_path)
+      true ->
+        conn
+        |> put_resp_content_type("image/png")
+        |> send_file(200, path)
+
+      false ->
+        conn
+        |> update_resp_header("cache-control", "no-cache", fn _ -> "no-cache" end)
+        |> put_resp_content_type("image/png")
+        |> send_file(404, fallback_path)
     end
   end
 
-  @spec big_thumbnail_fallback_whether_no_exists(String.t()) :: String.t()
-  defp big_thumbnail_fallback_whether_no_exists(path),
-    do: thumbnail_fallback_whether_no_exists(path, "priv/static/images/big_thumbnail_404.png")
+  @spec big_thumbnail_fallback_whether_no_exists(String.t(), Plug.Conn.t()) :: Plug.Conn.t()
+  defp big_thumbnail_fallback_whether_no_exists(path, conn),
+    do: thumbnail_fallback_whether_no_exists(path, conn, "priv/static/images/big_thumbnail_404.png")
 
-  @spec small_thumbnail_fallback_whether_no_exists(String.t()) :: String.t()
-  defp small_thumbnail_fallback_whether_no_exists(path),
-    do: thumbnail_fallback_whether_no_exists(path, "priv/static/images/small_thumbnail_404.png")
+  @spec small_thumbnail_fallback_whether_no_exists(String.t(), Plug.Conn.t()) :: Plug.Conn.t()
+  defp small_thumbnail_fallback_whether_no_exists(path, conn),
+    do: thumbnail_fallback_whether_no_exists(path, conn, "priv/static/images/small_thumbnail_404.png")
 
   defp get_document(conn, document_id) do
     case Ecto.UUID.dump(document_id) do

@@ -226,11 +226,17 @@ defmodule Dms42Web.DocumentsController do
 
   @spec big_thumbnail_fallback_whether_no_exists(String.t(), Plug.Conn.t()) :: Plug.Conn.t()
   defp big_thumbnail_fallback_whether_no_exists(path, conn),
-    do: thumbnail_fallback_whether_no_exists(path, conn, "priv/static/images/big_thumbnail_404.png")
+    do:
+      thumbnail_fallback_whether_no_exists(path, conn, "priv/static/images/big_thumbnail_404.png")
 
   @spec small_thumbnail_fallback_whether_no_exists(String.t(), Plug.Conn.t()) :: Plug.Conn.t()
   defp small_thumbnail_fallback_whether_no_exists(path, conn),
-    do: thumbnail_fallback_whether_no_exists(path, conn, "priv/static/images/small_thumbnail_404.png")
+    do:
+      thumbnail_fallback_whether_no_exists(
+        path,
+        conn,
+        "priv/static/images/small_thumbnail_404.png"
+      )
 
   defp get_document(conn, document_id) do
     case Ecto.UUID.dump(document_id) do

@@ -15,12 +15,11 @@ defmodule Dms42.DocumentsFinder do
 
   @spec find(String.t()) :: list(Dms42.Models.SearchResult.t())
   def find(query) when is_bitstring(query) do
-    query
-    |> normalize
+    {query |> normalize, []}
     |> find_by_exact_tags
-    |> find_by_partial_tags
     |> find_by_exact_comments
     |> find_by_exact_ocr
+    |> find_by_partial_tags
     |> find_by_partial_ocr
     |> to_result
     |> Enum.sort_by(fn %SearchResult{:ranking => x} -> x end)
@@ -43,8 +42,9 @@ defmodule Dms42.DocumentsFinder do
   @spec to_result({String.t(), list}) :: list
   defp to_result({_, result}), do: result
 
-  @spec find_by_exact_tags(String.t()) :: {String.t(), list(Dms42.Models.Document.t())}
-  defp find_by_exact_tags(query) do
+  @spec find_by_exact_tags({String.t(), list(String.t())}) ::
+          {String.t(), list(Dms42.Models.Document.t())}
+  defp find_by_exact_tags({query, acc}) do
     result =
       query
       |> String.split(" ")
@@ -63,6 +63,7 @@ defmodule Dms42.DocumentsFinder do
     result =
       query
       |> String.split(" ")
+      |> filter_stop_words()
       |> Enum.map(fn x -> x |> normalize |> query_find_by_partial_tag end)
       |> Enum.map(&Dms42.Repo.all/1)
       |> Enum.flat_map(fn x -> x end)
@@ -164,7 +165,11 @@ defmodule Dms42.DocumentsFinder do
 
   @spec query_find_by_partial_ocr(String.t()) :: Ecto.Queryable.t()
   def query_find_by_partial_ocr(query) do
-    terms = query |> normalize |> String.split(" ")
+    terms =
+      query
+      |> normalize
+      |> String.split(" ")
+      |> filter_stop_words()
 
     case terms do
       [_] ->
@@ -191,5 +196,24 @@ defmodule Dms42.DocumentsFinder do
   @spec to_search_result(Dms42.Models.Document.t(), integer) :: Dms42.Models.SearchResult.t()
   defp to_search_result(%Document{:document_id => did} = document, ranking) do
     %SearchResult{document_id: did, document: document, ranking: ranking}
+  end
+
+  @spec filter_stop_words(list(String.t())) :: list(String.t())
+  defp filter_stop_words(words) do
+    case System.get_env("STOP_WORDS") do
+      nil ->
+        words |> Enum.filter(fn x -> String.length(x) > 1 end)
+
+      x ->
+        stop_words =
+          x
+          |> String.split(" ")
+          |> Enum.map(&normalize/1)
+          |> MapSet.new()
+
+        words
+        |> Enum.filter(fn x -> !MapSet.member?(stop_words, x) end)
+        |> Enum.filter(fn x -> String.length(x) > 1 end)
+    end
   end
 end

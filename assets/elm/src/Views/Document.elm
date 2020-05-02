@@ -1,15 +1,4 @@
-module Views.Document exposing
-    ( addTags
-    , deleteDocument
-    , didDeleteDocument
-    , handleDocument
-    , init
-    , removeTags
-    , runOcr
-    , runUpdateThumbnails
-    , update
-    , view
-    )
+module Views.Document exposing (init, update, view)
 
 import Bootstrap.Button
 import Bootstrap.Modal
@@ -21,7 +10,11 @@ import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 import Http
+import Json.Decode
 import Models
+import Msgs.Document
+import Msgs.Main
+import Ports.Gates
 import ScrollTo
 import String.Format
 import Time
@@ -33,17 +26,17 @@ import Views.Shared
 -- Public members
 
 
-init : () -> Nav.Key -> Models.State -> String -> Maybe Int -> ( Models.State, Cmd Models.Msg )
-init _ _ state documentId offset =
-    internalUpdate state documentId offset
+init : () -> Nav.Key -> Models.State -> Msgs.Document.Msg -> Maybe String -> ( Models.State, Cmd Msgs.Main.Msg )
+init _ _ state msg documentId =
+    internalUpdate state msg documentId
 
 
-update : Models.State -> String -> Maybe Int -> ( Models.State, Cmd Models.Msg )
-update state documentId offset =
-    internalUpdate state documentId offset
+update : Models.State -> Msgs.Document.Msg -> Maybe String -> ( Models.State, Cmd Msgs.Main.Msg )
+update state msg documentId =
+    internalUpdate state msg documentId
 
 
-view : Models.State -> String -> Maybe Int -> List (Html Models.Msg)
+view : Models.State -> String -> Maybe Int -> List (Html Msgs.Main.Msg)
 view state documentId offset =
     let
         documents =
@@ -65,7 +58,11 @@ view state documentId offset =
             [ Html.div [] [ Html.text "Document not found!" ] ]
 
 
-addTags : String -> List String -> Cmd Models.Msg
+
+-- Private members
+
+
+addTags : String -> List String -> Cmd Msgs.Main.Msg
 addTags documentId tags =
     Cmd.batch <|
         (tags
@@ -77,13 +74,13 @@ addTags documentId tags =
                                 |> String.Format.namedValue "documentId" documentId
                                 |> String.Format.namedValue "tag" x
                         , body = Http.emptyBody
-                        , expect = Http.expectWhatever Models.DidAddTags
+                        , expect = Http.expectWhatever (Msgs.Main.DocumentMsg << Msgs.Document.DidAddTags)
                         }
                 )
         )
 
 
-removeTags : String -> List String -> Cmd Models.Msg
+removeTags : String -> List String -> Cmd Msgs.Main.Msg
 removeTags documentId tags =
     Cmd.batch <|
         (tags
@@ -97,7 +94,7 @@ removeTags documentId tags =
                                 |> String.Format.namedValue "documentId" documentId
                                 |> String.Format.namedValue "tag" x
                         , body = Http.emptyBody
-                        , expect = Http.expectWhatever Models.DidRemoveTags
+                        , expect = Http.expectWhatever (Msgs.Main.DocumentMsg << Msgs.Document.DidRemoveTags)
                         , timeout = Nothing
                         , tracker = Nothing
                         }
@@ -105,7 +102,7 @@ removeTags documentId tags =
         )
 
 
-deleteDocument : String -> Cmd Models.Msg
+deleteDocument : String -> Cmd Msgs.Main.Msg
 deleteDocument documentId =
     Http.request
         { method = "DELETE"
@@ -114,18 +111,18 @@ deleteDocument documentId =
             "/api/documents/{{ documentId }}"
                 |> String.Format.namedValue "documentId" documentId
         , body = Http.emptyBody
-        , expect = Http.expectWhatever Models.DidDeleteDocument
+        , expect = Http.expectWhatever (Msgs.Main.DocumentMsg << Msgs.Document.DidDeleteDocument)
         , timeout = Nothing
         , tracker = Nothing
         }
 
 
-didDeleteDocument : Models.State -> Result Http.Error () -> ( Models.State, Cmd Models.Msg )
+didDeleteDocument : Models.State -> Result Http.Error () -> ( Models.State, Cmd Msgs.Main.Msg )
 didDeleteDocument state _ =
     ( { state | modalVisibility = Bootstrap.Modal.hidden }, Nav.pushUrl state.key "/documents" )
 
 
-handleDocument : Models.State -> Result Http.Error Models.DocumentResponse -> ( Models.State, Cmd Models.Msg )
+handleDocument : Models.State -> Result Http.Error Models.DocumentResponse -> ( Models.State, Cmd Msgs.Main.Msg )
 handleDocument state result =
     let
         documentsState =
@@ -146,62 +143,58 @@ handleDocument state result =
             ( state, Cmd.none )
 
 
-runOcr : Models.DocumentResponse -> Cmd Models.Msg
+runOcr : Models.DocumentResponse -> Cmd Msgs.Main.Msg
 runOcr { id } =
     Http.post
         { url = "/api/documents/{{ }}/ocr" |> String.Format.value id
-        , expect = Http.expectWhatever Models.DidRunOcr
+        , expect = Http.expectWhatever (Msgs.Main.DocumentMsg << Msgs.Document.DidRunOcr)
         , body = Http.emptyBody
         }
 
 
-runUpdateThumbnails : Models.DocumentResponse -> Cmd Models.Msg
+runUpdateThumbnails : Models.DocumentResponse -> Cmd Msgs.Main.Msg
 runUpdateThumbnails { id } =
     Http.post
         { url = "/api/documents/{{ }}/thumbnails" |> String.Format.value id
-        , expect = Http.expectWhatever Models.DidRunUpdateThumbnails
+        , expect = Http.expectWhatever (Msgs.Main.DocumentMsg << Msgs.Document.DidRunUpdateThumbnails)
         , body = Http.emptyBody
         }
 
 
-
--- Private members
-
-
-getDocument : String -> Cmd Models.Msg
+getDocument : String -> Cmd Msgs.Main.Msg
 getDocument documentId =
     Http.get
         { url =
             "/api/documents/{{ }}"
                 |> String.Format.value documentId
-        , expect = Http.expectJson Models.GotDocument Views.Documents.documentDecoder
+        , expect = Http.expectJson (Msgs.Main.DocumentMsg << Msgs.Document.GotDocument) Views.Documents.documentDecoder
         }
 
 
-deleteConfirmation : Models.State -> Models.DocumentResponse -> Html Models.Msg
+deleteConfirmation : Models.State -> Models.DocumentResponse -> Html Msgs.Main.Msg
 deleteConfirmation { modalVisibility } { id } =
-    Bootstrap.Modal.config Models.CloseModal
+    Bootstrap.Modal.config Msgs.Main.CloseModal
         |> Bootstrap.Modal.small
-        |> Bootstrap.Modal.withAnimation (\x -> Models.AnimatedModal x)
+        |> Bootstrap.Modal.withAnimation (\x -> Msgs.Main.AnimatedModal x)
         |> Bootstrap.Modal.hideOnBackdropClick True
         |> Bootstrap.Modal.h5 [] [ Html.text "Confirmation" ]
         |> Bootstrap.Modal.body [] [ Html.text "You are about to delete the document. Are you sure?" ]
         |> Bootstrap.Modal.footer []
             [ Bootstrap.Button.button
                 [ Bootstrap.Button.outlineSecondary
-                , Bootstrap.Button.onClick <| Models.AnimatedModal Bootstrap.Modal.hiddenAnimated
+                , Bootstrap.Button.onClick <| Msgs.Main.AnimatedModal Bootstrap.Modal.hiddenAnimated
                 ]
                 [ Html.text "Cancel" ]
             , Bootstrap.Button.button
                 [ Bootstrap.Button.danger
-                , Bootstrap.Button.onClick <| Models.DeleteDocument id
+                , Bootstrap.Button.onClick <| (Msgs.Main.DocumentMsg << Msgs.Document.DeleteDocument) <| id
                 ]
                 [ Html.text "Delete" ]
             ]
         |> Bootstrap.Modal.view modalVisibility
 
 
-internalView : Models.State -> Models.DocumentResponse -> Maybe Int -> Html Models.Msg
+internalView : Models.State -> Models.DocumentResponse -> Maybe Int -> Html Msgs.Main.Msg
 internalView state document offset =
     let
         { id, original_file_name, tags, datetimes, ocr, thumbnails } =
@@ -221,7 +214,7 @@ internalView state document offset =
                     [ Html.div [ Html.Attributes.class "d-none d-md-block ml-auto" ]
                         [ Bootstrap.Button.button
                             [ Bootstrap.Button.danger
-                            , Bootstrap.Button.onClick Models.ShowModal
+                            , Bootstrap.Button.onClick Msgs.Main.ShowModal
                             ]
                             [ Html.text "Delete" ]
                         , Bootstrap.Button.linkButton
@@ -251,17 +244,17 @@ internalView state document offset =
                                 ]
                                 [ Html.button
                                     [ Html.Attributes.class "dropdown-item"
-                                    , Html.Events.onClick <| Models.RunOcr document
+                                    , Html.Events.onClick <| (Msgs.Main.DocumentMsg << Msgs.Document.RunOcr) <| document
                                     ]
                                     [ Html.text "Update OCR" ]
                                 , Html.button
                                     [ Html.Attributes.class "dropdown-item"
-                                    , Html.Events.onClick <| Models.RunUpdateThumbnails document
+                                    , Html.Events.onClick <| (Msgs.Main.DocumentMsg << Msgs.Document.RunUpdateThumbnails) <| document
                                     ]
                                     [ Html.text "Update thumbnails" ]
                                 , Html.button
                                     [ Html.Attributes.class "dropdown-item"
-                                    , Html.Events.onClick <| Models.RunUpdateAll document
+                                    , Html.Events.onClick <| (Msgs.Main.DocumentMsg << Msgs.Document.RunUpdateAll) <| document
                                     ]
                                     [ Html.text "Update all" ]
                                 ]
@@ -300,7 +293,7 @@ internalView state document offset =
         ]
 
 
-documentView : Models.DocumentResponse -> Maybe Int -> List (Html Models.Msg)
+documentView : Models.DocumentResponse -> Maybe Int -> List (Html Msgs.Main.Msg)
 documentView document offset =
     let
         { original_file_name, id, thumbnails } =
@@ -339,7 +332,7 @@ documentView document offset =
             ]
 
 
-pagination : Models.DocumentResponse -> Maybe Int -> Html Models.Msg
+pagination : Models.DocumentResponse -> Maybe Int -> Html Msgs.Main.Msg
 pagination { thumbnails, id } offset =
     let
         { countImages } =
@@ -352,27 +345,72 @@ pagination { thumbnails, id } offset =
         (\x -> "/documents/{{ documentId }}?offset={{ offset }}" |> String.Format.namedValue "documentId" id |> (String.Format.namedValue "offset" <| String.fromInt x))
 
 
-internalUpdate : Models.State -> String -> Maybe Int -> ( Models.State, Cmd Models.Msg )
-internalUpdate state documentId offset =
-    let
-        documents =
-            state.documentsState
-                |> Maybe.withDefault Factories.documentsStateFactory
-                |> Helpers.fluentSelect (\x -> x.documents)
-                |> Maybe.withDefault Dict.empty
+internalUpdate : Models.State -> Msgs.Document.Msg -> Maybe String -> ( Models.State, Cmd Msgs.Main.Msg )
+internalUpdate state msg routeDocumentId =
+    case msg of
+        Msgs.Document.Home ->
+            let
+                documents =
+                    state.documentsState
+                        |> Maybe.withDefault Factories.documentsStateFactory
+                        |> Helpers.fluentSelect (\x -> x.documents)
+                        |> Maybe.withDefault Dict.empty
 
-        document =
-            documents |> Dict.get documentId
+                document =
+                    case routeDocumentId of
+                        Just x ->
+                            documents |> Dict.get x
 
-        defaultCommands =
-            [ Cmd.map Models.ScrollToMsg <| ScrollTo.scrollToTop ]
+                        Nothing ->
+                            Nothing
 
-        commands =
-            case document |> Maybe.andThen (\x -> offset) of
-                Just _ ->
-                    []
+                commands =
+                    case document of
+                        Just _ ->
+                            []
 
-                Nothing ->
-                    [ getDocument documentId ]
-    in
-    ( state, Cmd.batch (commands ++ defaultCommands) )
+                        Nothing ->
+                            case routeDocumentId of
+                                Just x ->
+                                    [ getDocument x ]
+
+                                Nothing ->
+                                    []
+            in
+            ( state, Cmd.batch <| [ Cmd.map Msgs.Main.ScrollToMsg <| ScrollTo.scrollToTop, Views.Shared.getTags ] ++ commands )
+
+        Msgs.Document.GotDocument result ->
+            handleDocument state result
+
+        Msgs.Document.AddTags { documentId, tags } ->
+            ( state, addTags documentId tags )
+
+        Msgs.Document.RemoveTags { documentId, tags } ->
+            ( state, removeTags documentId tags )
+
+        Msgs.Document.DidRemoveTags _ ->
+            ( state, Cmd.none )
+
+        Msgs.Document.DidAddTags _ ->
+            ( state, Cmd.none )
+
+        Msgs.Document.DeleteDocument documentId ->
+            ( state, deleteDocument documentId )
+
+        Msgs.Document.DidDeleteDocument result ->
+            didDeleteDocument state result
+
+        Msgs.Document.RunOcr document ->
+            ( state, runOcr document )
+
+        Msgs.Document.RunUpdateThumbnails document ->
+            ( state, runUpdateThumbnails document )
+
+        Msgs.Document.DidRunOcr _ ->
+            ( state, Cmd.none )
+
+        Msgs.Document.DidRunUpdateThumbnails _ ->
+            ( state, Cmd.none )
+
+        Msgs.Document.RunUpdateAll document ->
+            ( state, Cmd.batch [ runOcr document, runUpdateThumbnails document ] )

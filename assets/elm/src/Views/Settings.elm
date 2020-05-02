@@ -7,13 +7,15 @@ import Html.Attributes
 import Http
 import Json.Decode
 import Models
+import Msgs.Main
+import Msgs.Settings
 
 
 
 -- Public members
 
 
-view : Models.State -> List (Html Models.Msg)
+view : Models.State -> List (Html Msgs.Main.Msg)
 view state =
     let
         queueInfo =
@@ -35,17 +37,17 @@ view state =
     ]
 
 
-init : Models.State -> ( Models.State, Cmd Models.Msg )
+init : Models.State -> ( Models.State, Cmd Msgs.Main.Msg )
 init state =
-    internalUpdate state
+    internalUpdate state Msgs.Settings.Home
 
 
-update : Models.State -> ( Models.State, Cmd Models.Msg )
-update state =
-    internalUpdate state
+update : Models.State -> Msgs.Settings.Msg -> ( Models.State, Cmd Msgs.Main.Msg )
+update state msg =
+    internalUpdate state msg
 
 
-handleQueueInfo : Models.State -> Result Http.Error Models.QueueInfoResponse -> ( Models.State, Cmd Models.Msg )
+handleQueueInfo : Models.State -> Result Http.Error Models.QueueInfoResponse -> ( Models.State, Cmd Msgs.Main.Msg )
 handleQueueInfo state result =
     case result of
         Ok x ->
@@ -67,14 +69,22 @@ queueInfoDecoder =
         (Json.Decode.field "workers" Json.Decode.int)
 
 
-getQueueInfo : Cmd Models.Msg
+getQueueInfo : Cmd Msgs.Main.Msg
 getQueueInfo =
     Http.get
         { url = "/api/settings/queue"
-        , expect = Http.expectJson Models.GotQueueInfo queueInfoDecoder
+        , expect = Http.expectJson (Msgs.Main.SettingsMsg << Msgs.Settings.GotQueueInfo) queueInfoDecoder
         }
 
 
-internalUpdate : Models.State -> ( Models.State, Cmd Models.Msg )
-internalUpdate state =
-    ( { state | isLoading = True }, getQueueInfo )
+internalUpdate : Models.State -> Msgs.Settings.Msg -> ( Models.State, Cmd Msgs.Main.Msg )
+internalUpdate state msg =
+    case msg of
+        Msgs.Settings.GotQueueInfo result ->
+            handleQueueInfo state result
+
+        Msgs.Settings.Home ->
+            ( { state | isLoading = True }, getQueueInfo )
+
+        _ ->
+            ( { state | isLoading = True }, getQueueInfo )

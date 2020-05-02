@@ -2,12 +2,9 @@ module Models exposing (..)
 
 import Bootstrap.Modal
 import Bootstrap.Navbar
-import Browser
 import Browser.Navigation as Nav
 import Debounce exposing (Debounce)
 import Dict exposing (Dict)
-import Http
-import Ports.Models
 import ScrollTo
 import Time exposing (Posix)
 import Url
@@ -101,36 +98,3 @@ type alias State =
     , queueInfo : Maybe QueueInfoResponse
     , navBarState : Bootstrap.Navbar.State
     }
-
-
-type Msg
-    = LinkClicked Browser.UrlRequest
-    | UrlChanged Url.Url
-    | StartUpload
-    | UploadCompleted
-    | GotDocuments (Result Http.Error DocumentsResponse)
-    | GotDocument (Result Http.Error DocumentResponse)
-    | GotTags (Result Http.Error (List String))
-    | GetUserTimeZone Time.Zone
-    | AddTags Ports.Models.TagsAdded
-    | RemoveTags Ports.Models.TagsRemoved
-    | DidRemoveTags (Result Http.Error ())
-    | DidAddTags (Result Http.Error ())
-    | CloseModal
-    | ShowModal
-    | AnimatedModal Bootstrap.Modal.Visibility
-    | DeleteDocument String
-    | DidDeleteDocument (Result Http.Error ())
-    | UserTypeSearch String
-    | ThrottleSearchDocuments Debounce.Msg
-    | GotSearchResult (Result Http.Error (List DocumentResponse))
-    | RunOcr DocumentResponse
-    | RunUpdateThumbnails DocumentResponse
-    | RunUpdateAll DocumentResponse
-    | DidRunOcr (Result Http.Error ())
-    | DidRunUpdateThumbnails (Result Http.Error ())
-    | GotQueueInfo (Result Http.Error QueueInfoResponse)
-    | ScrollToTop
-    | ScrollToMsg ScrollTo.Msg
-    | NavbarMsg Bootstrap.Navbar.State
-    | Nop

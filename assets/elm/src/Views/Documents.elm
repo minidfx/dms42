@@ -1,18 +1,19 @@
-module Views.Documents exposing (documentDecoder, getDocuments, handleDocuments, init, update, view)
+module Views.Documents exposing (documentDecoder, init, update, view)
 
 import Bootstrap.Spinner
 import Bootstrap.Text
 import Browser.Navigation as Nav
 import Dict exposing (Dict)
 import Factories
-import Helpers exposing (httpErrorToString)
+import Helpers
 import Html exposing (Html)
 import Html.Attributes
 import Http
 import Iso8601
 import Json.Decode
 import Models
-import Ports.Gates
+import Msgs.Documents
+import Msgs.Main
 import String.Format
 import Time
 import Views.Shared
@@ -22,17 +23,17 @@ import Views.Shared
 -- Public members
 
 
-init : () -> Nav.Key -> Models.State -> Maybe Int -> ( Models.State, Cmd Models.Msg )
-init _ _ initialState offset =
-    internalUpdate initialState offset
+init : () -> Nav.Key -> Models.State -> Msgs.Documents.Msg -> Maybe Int -> ( Models.State, Cmd Msgs.Main.Msg )
+init _ _ initialState msg offset =
+    internalUpdate initialState msg offset
 
 
-update : Models.State -> Maybe Int -> ( Models.State, Cmd Models.Msg )
-update state offset =
-    internalUpdate state offset
+update : Models.State -> Msgs.Documents.Msg -> Maybe Int -> ( Models.State, Cmd Msgs.Main.Msg )
+update state msg offset =
+    internalUpdate state msg offset
 
 
-view : Models.State -> Maybe Int -> List (Html Models.Msg)
+view : Models.State -> Maybe Int -> List (Html Msgs.Main.Msg)
 view state offset =
     let
         documentsState =
@@ -120,7 +121,7 @@ view state offset =
     ]
 
 
-cards : Models.State -> List Models.DocumentResponse -> List (Html Models.Msg)
+cards : Models.State -> List Models.DocumentResponse -> List (Html Msgs.Main.Msg)
 cards state documents =
     List.sortWith insertedAtOrdering documents
         |> List.map (\x -> Views.Shared.card state x)
@@ -139,7 +140,24 @@ insertedAtOrdering a b =
             GT
 
 
-handleDocuments : Models.State -> Result Http.Error Models.DocumentsResponse -> ( Models.State, Cmd Models.Msg )
+documentDecoder : Json.Decode.Decoder Models.DocumentResponse
+documentDecoder =
+    Json.Decode.map8 Models.DocumentResponse
+        (Json.Decode.maybe (Json.Decode.field "comments" Json.Decode.string))
+        (Json.Decode.field "document_id" Json.Decode.string)
+        (Json.Decode.field "tags" (Json.Decode.list Json.Decode.string))
+        (Json.Decode.field "original_file_name" Json.Decode.string)
+        (Json.Decode.field "datetimes" documentDateTimesDecoder)
+        (Json.Decode.field "thumbnails" documentThumbnails)
+        (Json.Decode.maybe (Json.Decode.field "ocr" Json.Decode.string))
+        (Json.Decode.maybe (Json.Decode.field "ranking" Json.Decode.int))
+
+
+
+-- Private members
+
+
+handleDocuments : Models.State -> Result Http.Error Models.DocumentsResponse -> ( Models.State, Cmd Msgs.Main.Msg )
 handleDocuments state result =
     let
         stateWithoutLoading =
@@ -162,38 +180,21 @@ handleDocuments state result =
             ( { stateWithoutLoading | documentsState = Just documentsState }, Cmd.none )
 
         Err message ->
-            ( { stateWithoutLoading | error = Just <| httpErrorToString message, documentsState = Nothing }, Cmd.none )
+            ( { stateWithoutLoading | error = Just <| Helpers.httpErrorToString message, documentsState = Nothing }, Cmd.none )
 
 
-getDocuments : Models.DocumentsRequest -> Cmd Models.Msg
+getDocuments : Models.DocumentsRequest -> Cmd Msgs.Main.Msg
 getDocuments { offset, length } =
     Http.get
         { url =
             "/api/documents?offset={{ offset }}&length={{ length }}"
                 |> (String.Format.namedValue "offset" <| String.fromInt offset)
                 |> (String.Format.namedValue "length" <| String.fromInt length)
-        , expect = Http.expectJson Models.GotDocuments documentsDecoder
+        , expect = Http.expectJson (Msgs.Main.DocumentsMsg << Msgs.Documents.GotDocuments) documentsDecoder
         }
 
 
-documentDecoder : Json.Decode.Decoder Models.DocumentResponse
-documentDecoder =
-    Json.Decode.map8 Models.DocumentResponse
-        (Json.Decode.maybe (Json.Decode.field "comments" Json.Decode.string))
-        (Json.Decode.field "document_id" Json.Decode.string)
-        (Json.Decode.field "tags" (Json.Decode.list Json.Decode.string))
-        (Json.Decode.field "original_file_name" Json.Decode.string)
-        (Json.Decode.field "datetimes" documentDateTimesDecoder)
-        (Json.Decode.field "thumbnails" documentThumbnails)
-        (Json.Decode.maybe (Json.Decode.field "ocr" Json.Decode.string))
-        (Json.Decode.maybe (Json.Decode.field "ranking" Json.Decode.int))
-
-
-
--- Private members
-
-
-internalDocumentsView : Models.State -> List Models.DocumentResponse -> Maybe Int -> List (Html Models.Msg)
+internalDocumentsView : Models.State -> List Models.DocumentResponse -> Maybe Int -> List (Html Msgs.Main.Msg)
 internalDocumentsView state documents offset =
     let
         documentsState =
@@ -228,8 +229,8 @@ internalDocumentsView state documents offset =
         ]
 
 
-internalUpdate : Models.State -> Maybe Int -> ( Models.State, Cmd Models.Msg )
-internalUpdate state offset =
+internalUpdate : Models.State -> Msgs.Documents.Msg -> Maybe Int -> ( Models.State, Cmd Msgs.Main.Msg )
+internalUpdate state msg offset =
     let
         documentsState =
             Maybe.withDefault Factories.documentsStateFactory <| state.documentsState
@@ -240,9 +241,15 @@ internalUpdate state offset =
         localOffset =
             Maybe.withDefault 0 <| offset
     in
-    ( { state | isLoading = True }
-    , Cmd.batch [ getDocuments { offset = localOffset, length = length } ]
-    )
+    case msg of
+        Msgs.Documents.Home ->
+            ( { state | isLoading = True }, getDocuments { offset = localOffset, length = length } )
+
+        Msgs.Documents.GotDocuments result ->
+            handleDocuments state result
+
+        _ ->
+            ( state, Cmd.none )
 
 
 documentDateTimesDecoder : Json.Decode.Decoder Models.DocumentDateTimes

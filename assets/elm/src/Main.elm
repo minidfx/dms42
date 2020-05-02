@@ -4,19 +4,21 @@ import Bootstrap.Modal
 import Bootstrap.Navbar
 import Browser
 import Browser.Navigation as Nav
-import Debounce
 import Factories
-import Helpers
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Models exposing (Msg(..))
+import Models
+import Msgs.AddDocument
+import Msgs.Document
+import Msgs.Documents
+import Msgs.Home
+import Msgs.Main
+import Msgs.Settings
 import Ports.Gates
-import Ports.Models
 import ScrollTo
 import Task
 import Time
 import Url exposing (Url)
-import Url.Builder
 import Url.Parser exposing (..)
 import Url.Parser.Query
 import Views.AddDocuments
@@ -31,15 +33,15 @@ import Views.Shared
 -- MAIN
 
 
-main : Program () Models.State Models.Msg
+main : Program () Models.State Msgs.Main.Msg
 main =
     Browser.application
         { init = init
         , view = view
         , update = update
         , subscriptions = subscriptions
-        , onUrlChange = Models.UrlChanged
-        , onUrlRequest = Models.LinkClicked
+        , onUrlChange = Msgs.Main.UrlChanged
+        , onUrlRequest = Msgs.Main.LinkClicked
         }
 
 
@@ -58,17 +60,17 @@ routes =
         ]
 
 
-init : () -> Url.Url -> Nav.Key -> ( Models.State, Cmd Models.Msg )
+init : () -> Url.Url -> Nav.Key -> ( Models.State, Cmd Msgs.Main.Msg )
 init flags url key =
     let
         defaultActions =
-            Task.perform Models.GetUserTimeZone Time.here
+            Task.perform Msgs.Main.GetUserTimeZone Time.here
 
         route =
             Url.Parser.parse routes url |> Maybe.withDefault (Models.Home Nothing)
 
         ( navBarState, navBarCmd ) =
-            Bootstrap.Navbar.initialState Models.NavbarMsg
+            Bootstrap.Navbar.initialState Msgs.Main.NavbarMsg
 
         initialState =
             Factories.stateFactory key url route navBarState
@@ -76,16 +78,16 @@ init flags url key =
         ( state, commands ) =
             case route of
                 Models.AddDocuments ->
-                    Views.AddDocuments.init flags key initialState
+                    Views.AddDocuments.init flags key initialState Msgs.AddDocument.Home
 
                 Models.Documents offset ->
-                    Views.Documents.init flags key initialState offset
+                    Views.Documents.init flags key initialState Msgs.Documents.Home offset
 
-                Models.Document id offset ->
-                    Views.Document.init flags key initialState id offset
+                Models.Document documentId _ ->
+                    Views.Document.init flags key initialState Msgs.Document.Home (Just documentId)
 
                 Models.Settings ->
-                    Views.Settings.update initialState
+                    Views.Settings.init initialState
 
                 Models.Home query ->
                     Views.Home.init initialState query
@@ -100,29 +102,28 @@ init flags url key =
 -- UPDATE
 
 
-debounceConfig : (Debounce.Msg -> Models.Msg) -> Debounce.Config Models.Msg
-debounceConfig debounceMsg =
-    { strategy = Debounce.later 500
-    , transform = debounceMsg
-    }
-
-
-update : Models.Msg -> Models.State -> ( Models.State, Cmd Models.Msg )
+update : Msgs.Main.Msg -> Models.State -> ( Models.State, Cmd Msgs.Main.Msg )
 update msg state =
     case msg of
-        Models.GotDocuments documentsResult ->
-            Views.Documents.handleDocuments state documentsResult
+        Msgs.Main.DocumentsMsg documentsMsg ->
+            Views.Documents.update state documentsMsg Nothing
 
-        Models.GotTags result ->
+        Msgs.Main.HomeMsg homeMsg ->
+            Views.Home.update state homeMsg Nothing
+
+        Msgs.Main.SettingsMsg settingsMsg ->
+            Views.Settings.update state settingsMsg
+
+        Msgs.Main.DocumentMsg documentMsg ->
+            Views.Document.update state documentMsg Nothing
+
+        Msgs.Main.AddDocumentMsg addDocumentMsg ->
+            Views.AddDocuments.update state addDocumentMsg
+
+        Msgs.Main.GotTags result ->
             Views.Shared.handleTags state result
 
-        Models.GotSearchResult result ->
-            Views.Home.handleSearchResult state result
-
-        Models.GotDocument result ->
-            Views.Document.handleDocument state result
-
-        Models.LinkClicked urlRequest ->
+        Msgs.Main.LinkClicked urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
                     ( state, Nav.pushUrl state.key (Url.toString url) )
@@ -130,17 +131,7 @@ update msg state =
                 Browser.External href ->
                     ( state, Nav.load href )
 
-        Models.StartUpload ->
-            ( { state | isUploading = True }
-            , Cmd.batch [ Views.AddDocuments.startUpload ]
-            )
-
-        Models.UploadCompleted ->
-            ( { state | isUploading = False }
-            , Cmd.none
-            )
-
-        Models.UrlChanged url ->
+        Msgs.Main.UrlChanged url ->
             let
                 route =
                     Url.Parser.parse routes url |> Maybe.withDefault (Models.Home Nothing)
@@ -150,102 +141,46 @@ update msg state =
             in
             case route of
                 Models.AddDocuments ->
-                    Views.AddDocuments.update newState
+                    Views.AddDocuments.update newState Msgs.AddDocument.Home
 
                 Models.Documents offset ->
-                    Views.Documents.update newState offset
+                    Views.Documents.update
+                        newState
+                        Msgs.Documents.Home
+                        offset
 
-                Models.Document id offset ->
-                    Views.Document.update newState id offset
+                Models.Document documentId _ ->
+                    Views.Document.update
+                        newState
+                        Msgs.Document.Home
+                        (Just documentId)
 
                 Models.Settings ->
-                    Views.Settings.update newState
+                    Views.Settings.update newState Msgs.Settings.Home
 
                 Models.Home query ->
-                    Views.Home.update newState query
+                    Views.Home.update newState Msgs.Home.Home query
 
-        Models.GetUserTimeZone zone ->
+        Msgs.Main.GetUserTimeZone zone ->
             ( { state | userTimeZone = Just zone }
             , Cmd.none
             )
 
-        Models.AddTags { documentId, tags } ->
-            ( state, Views.Document.addTags documentId tags )
-
-        Models.RemoveTags { documentId, tags } ->
-            ( state, Views.Document.removeTags documentId tags )
-
-        Models.DidRemoveTags _ ->
-            ( state, Cmd.none )
-
-        Models.DidAddTags _ ->
-            ( state, Cmd.none )
-
-        Models.CloseModal ->
+        Msgs.Main.CloseModal ->
             ( { state | modalVisibility = Bootstrap.Modal.hidden }, Cmd.none )
 
-        Models.ShowModal ->
+        Msgs.Main.ShowModal ->
             ( { state | modalVisibility = Bootstrap.Modal.shown }, Cmd.none )
 
-        Models.AnimatedModal visibility ->
+        Msgs.Main.AnimatedModal visibility ->
             ( { state | modalVisibility = visibility }, Cmd.none )
 
-        Models.DeleteDocument documentId ->
-            ( state, Views.Document.deleteDocument documentId )
-
-        Models.DidDeleteDocument result ->
-            Views.Document.didDeleteDocument state result
-
-        Models.UserTypeSearch query ->
-            let
-                searchState =
-                    Maybe.withDefault Factories.searchStateFactory <| state.searchState
-
-                ( newDebouncer, cmd ) =
-                    Debounce.push
-                        (debounceConfig Models.ThrottleSearchDocuments)
-                        query
-                        searchState.debouncer
-            in
-            ( { state | searchState = Just { searchState | query = Just query, debouncer = newDebouncer } }
-            , cmd
-            )
-
-        Models.ThrottleSearchDocuments msg_ ->
-            let
-                searchState =
-                    Maybe.withDefault Factories.searchStateFactory <| state.searchState
-
-                ( newDebouncer, cmd ) =
-                    Debounce.update
-                        (debounceConfig Models.ThrottleSearchDocuments)
-                        (Debounce.takeLast (\x -> searchTo state x))
-                        msg_
-                        searchState.debouncer
-            in
-            ( { state | searchState = Just { searchState | debouncer = newDebouncer } }, cmd )
-
-        Models.RunOcr document ->
-            ( state, Views.Document.runOcr document )
-
-        Models.RunUpdateThumbnails document ->
-            ( state, Views.Document.runUpdateThumbnails document )
-
-        Models.DidRunOcr _ ->
-            ( state, Cmd.none )
-
-        Models.DidRunUpdateThumbnails _ ->
-            ( state, Cmd.none )
-
-        Models.RunUpdateAll document ->
-            ( state, Cmd.batch [ Views.Document.runOcr document, Views.Document.runUpdateThumbnails document ] )
-
-        Models.ScrollToTop ->
+        Msgs.Main.ScrollToTop ->
             ( state
-            , Cmd.map Models.ScrollToMsg <| ScrollTo.scrollToTop
+            , Cmd.map Msgs.Main.ScrollToMsg <| ScrollTo.scrollToTop
             )
 
-        Models.ScrollToMsg scrollToMsg ->
+        Msgs.Main.ScrollToMsg scrollToMsg ->
             let
                 ( scrollToModel, scrollToCmds ) =
                     ScrollTo.update
@@ -253,16 +188,16 @@ update msg state =
                         state.scrollTo
             in
             ( { state | scrollTo = scrollToModel }
-            , Cmd.map Models.ScrollToMsg scrollToCmds
+            , Cmd.map Msgs.Main.ScrollToMsg scrollToCmds
             )
 
-        Models.GotQueueInfo result ->
-            Views.Settings.handleQueueInfo state result
-
-        NavbarMsg navBarState ->
+        Msgs.Main.NavbarMsg navBarState ->
             ( { state | navBarState = navBarState }, Cmd.none )
 
-        Models.Nop ->
+        Msgs.Main.Nop ->
+            ( state, Cmd.none )
+
+        Msgs.Main.StartUpload ->
             ( state, Cmd.none )
 
 
@@ -270,15 +205,15 @@ update msg state =
 -- SUBSCRIPTIONS
 
 
-subscriptions : Models.State -> Sub Models.Msg
+subscriptions : Models.State -> Sub Msgs.Main.Msg
 subscriptions { modalVisibility, scrollTo, navBarState } =
     Sub.batch
-        [ Ports.Gates.uploadCompleted (always Models.UploadCompleted)
-        , Ports.Gates.addTags Models.AddTags
-        , Ports.Gates.removeTags Models.RemoveTags
-        , Bootstrap.Modal.subscriptions modalVisibility Models.AnimatedModal
-        , Sub.map ScrollToMsg <| ScrollTo.subscriptions scrollTo
-        , Bootstrap.Navbar.subscriptions navBarState Models.NavbarMsg
+        [ Ports.Gates.uploadCompleted (always <| Msgs.Main.AddDocumentMsg Msgs.AddDocument.UploadCompleted)
+        , Ports.Gates.addTags <| Msgs.Main.DocumentMsg << Msgs.Document.AddTags
+        , Ports.Gates.removeTags <| Msgs.Main.DocumentMsg << Msgs.Document.RemoveTags
+        , Bootstrap.Modal.subscriptions modalVisibility Msgs.Main.AnimatedModal
+        , Sub.map Msgs.Main.ScrollToMsg <| ScrollTo.subscriptions scrollTo
+        , Bootstrap.Navbar.subscriptions navBarState Msgs.Main.NavbarMsg
         ]
 
 
@@ -286,9 +221,13 @@ subscriptions { modalVisibility, scrollTo, navBarState } =
 -- VIEW
 
 
-navbar : Models.State -> Html Models.Msg
-navbar { navBarState } =
-    Bootstrap.Navbar.config Models.NavbarMsg
+navbar : Models.State -> Html Msgs.Main.Msg
+navbar state =
+    let
+        { navBarState } =
+            state
+    in
+    Bootstrap.Navbar.config Msgs.Main.NavbarMsg
         |> Bootstrap.Navbar.withAnimation
         |> Bootstrap.Navbar.dark
         |> Bootstrap.Navbar.brand
@@ -304,14 +243,23 @@ navbar { navBarState } =
             , Html.text "DMS42"
             ]
         |> Bootstrap.Navbar.items
-            [ Bootstrap.Navbar.itemLink [ Html.Attributes.href "/" ] [ Html.text "Home" ]
-            , Bootstrap.Navbar.itemLink [ Html.Attributes.href "/documents" ] [ Html.text "Documents" ]
-            , Bootstrap.Navbar.itemLink [ Html.Attributes.href "/settings" ] [ Html.text "Settings" ]
+            [ yieldItem state "/" "Home"
+            , yieldItem state "/documents" "Documents"
+            , yieldItem state "/settings" "Settings"
             ]
         |> Bootstrap.Navbar.view navBarState
 
 
-mainView : Models.State -> List (Html Models.Msg)
+yieldItem : Models.State -> String -> String -> Bootstrap.Navbar.Item Msgs.Main.Msg
+yieldItem { url } path name =
+    if url.path == path then
+        Bootstrap.Navbar.itemLinkActive [ Html.Attributes.href path ] [ Html.text name ]
+
+    else
+        Bootstrap.Navbar.itemLink [ Html.Attributes.href path ] [ Html.text name ]
+
+
+mainView : Models.State -> List (Html Msgs.Main.Msg)
 mainView state =
     let
         content =
@@ -352,22 +300,8 @@ mainView state =
     ]
 
 
-view : Models.State -> Browser.Document Models.Msg
+view : Models.State -> Browser.Document Msgs.Main.Msg
 view state =
     { title = "DMS42"
     , body = mainView state
     }
-
-
-
--- Internal
-
-
-searchTo : Models.State -> String -> Cmd Models.Msg
-searchTo state query =
-    case query |> Views.Home.parseQuery of
-        Just x ->
-            Task.perform Models.LinkClicked (Task.succeed <| Helpers.navTo state [] [ Url.Builder.string "query" x ])
-
-        Nothing ->
-            Cmd.none

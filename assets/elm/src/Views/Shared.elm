@@ -12,6 +12,7 @@ import Html.Keyed
 import Http
 import Json.Decode
 import Models
+import Msgs.Main
 import Ports.Gates
 import String.Format
 import Time
@@ -31,7 +32,7 @@ posix2String zone timestamp =
         |> (String.Format.namedValue "minute" <| String.padLeft 2 '0' <| String.fromInt <| Time.toMinute zone timestamp)
 
 
-card : Models.State -> Models.DocumentResponse -> Html Models.Msg
+card : Models.State -> Models.DocumentResponse -> Html Msgs.Main.Msg
 card state { datetimes, id, tags, thumbnails } =
     let
         { key, url, userTimeZone } =
@@ -51,7 +52,7 @@ card state { datetimes, id, tags, thumbnails } =
             [ Html.Attributes.class "dms42-card-img d-flex align-items-center" ]
             [ Html.img
                 [ Html.Attributes.src <| ("/documents/thumbnail/{{ }}" |> String.Format.value id)
-                , Html.Events.onClick <| Models.LinkClicked <| Helpers.navTo state [ "documents", id ] []
+                , Html.Events.onClick <| Msgs.Main.LinkClicked <| Helpers.navTo state [ "documents", id ] []
                 ]
                 []
             , Html.div [ Html.Attributes.class "dms42-card-count px-1 py-0 border rounded-left text-light bg-dark" ] [ Html.text <| String.fromInt countImages ]
@@ -64,17 +65,17 @@ card state { datetimes, id, tags, thumbnails } =
         ]
 
 
-badge : String -> Html Models.Msg
+badge : String -> Html Msgs.Main.Msg
 badge tag =
     Html.span [ Html.Attributes.class "badge badge-info" ] [ Html.text tag ]
 
 
-flattenTags : List String -> Html Models.Msg
+flattenTags : List String -> Html Msgs.Main.Msg
 flattenTags tags =
     Html.div [ Html.Attributes.class "dms42-card-tags d-flex flex-wrap justify-content-center my-1" ] (List.map (\x -> badge x) tags)
 
 
-tagsinputs : Bool -> Html Models.Msg
+tagsinputs : Bool -> Html Msgs.Main.Msg
 tagsinputs isDisabled =
     Html.Keyed.node "tags"
         []
@@ -91,7 +92,7 @@ tagsinputs isDisabled =
         ]
 
 
-pagination : Int -> Int -> Maybe Int -> (Int -> String) -> Html Models.Msg
+pagination : Int -> Int -> Maybe Int -> (Int -> String) -> Html Msgs.Main.Msg
 pagination total length offset urlFn =
     let
         localOffset =
@@ -107,7 +108,7 @@ pagination total length offset urlFn =
             (//) localOffset length
 
         itemsList =
-            { selectedMsg = \_ -> Models.Nop
+            { selectedMsg = \_ -> Msgs.Main.Nop
             , prevItem = Nothing
             , nextItem = Nothing
             , activeIdx = activeIdx
@@ -123,15 +124,15 @@ pagination total length offset urlFn =
         |> Bootstrap.Pagination.view
 
 
-getTags : Cmd Models.Msg
+getTags : Cmd Msgs.Main.Msg
 getTags =
     Http.get
         { url = "/api/tags"
-        , expect = Http.expectJson Models.GotTags tagsDecoder
+        , expect = Http.expectJson Msgs.Main.GotTags tagsDecoder
         }
 
 
-handleTags : Models.State -> Result Http.Error (List String) -> ( Models.State, Cmd Models.Msg )
+handleTags : Models.State -> Result Http.Error (List String) -> ( Models.State, Cmd Msgs.Main.Msg )
 handleTags state result =
     let
         { route } =

@@ -84,7 +84,7 @@ app.ports.tags.subscribe(request => {
         x => {
             const localControl = x.select2({
                 tags: true,
-                tokenSeparators: [','],
+                tokenSeparators: [',', ' '],
                 minimumInputLength: 2,
                 multiple: true,
                 data: data

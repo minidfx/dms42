@@ -1,4 +1,4 @@
-defmodule Dms42Web.TagController do
+defmodule Dms42Web.TagsController do
   use Dms42Web, :controller
 
   alias Dms42.TagManager

@@ -19,6 +19,3 @@ port addTags : (Ports.Models.TagsAdded -> msg) -> Sub msg
 
 
 port removeTags : (Ports.Models.TagsRemoved -> msg) -> Sub msg
-
-
-port clearCacheTags : () -> Cmd msg

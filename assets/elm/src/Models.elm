@@ -6,6 +6,7 @@ import Browser.Navigation as Nav
 import Debounce exposing (Debounce)
 import Dict exposing (Dict)
 import ScrollTo
+import Set exposing (Set)
 import Time exposing (Posix)
 import Url
 
@@ -74,11 +75,18 @@ type alias QueueInfoResponse =
     }
 
 
+type alias TagsState =
+    { selected : Set String
+    , documents : Maybe (List DocumentResponse)
+    }
+
+
 type Route
     = Documents (Maybe Int)
     | Document String (Maybe Int)
     | AddDocuments
     | Settings
+    | Tags
     | Home (Maybe String)
 
 
@@ -88,6 +96,7 @@ type alias State =
     , route : Route
     , documentsState : Maybe DocumentsState
     , tagsResponse : Maybe (List String)
+    , tagsState : Maybe TagsState
     , isUploading : Bool
     , error : Maybe String
     , userTimeZone : Maybe Time.Zone

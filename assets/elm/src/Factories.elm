@@ -6,6 +6,7 @@ import Browser.Navigation as Nav
 import Debounce
 import Models
 import ScrollTo
+import Set
 import Url
 
 
@@ -25,6 +26,7 @@ stateFactory key url route navBarState =
     , scrollTo = ScrollTo.init
     , queueInfo = Nothing
     , navBarState = navBarState
+    , tagsState = Nothing
     }
 
 
@@ -43,4 +45,11 @@ documentsStateFactory =
     { documents = Nothing
     , total = 0
     , length = 40
+    }
+
+
+tagsStateFactory : Models.TagsState
+tagsStateFactory =
+    { selected = Set.empty
+    , documents = Nothing
     }

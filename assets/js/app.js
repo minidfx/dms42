@@ -1,4 +1,4 @@
-import '../css/app.css'
+import '../css/app.less'
 
 import $ from 'jquery'
 import Dropzone from 'dropzone'

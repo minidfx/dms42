@@ -6,6 +6,10 @@ const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = (env, options) => ({
+  watchOptions: {
+    aggregateTimeout: 200,
+    poll: 1000
+  },
   optimization: {
     minimizer: [
       new TerserPlugin({cache: true, parallel: true, sourceMap: false}),
@@ -74,6 +78,24 @@ module.exports = (env, options) => ({
               url: true
             }
           }]
+      },
+      {
+        test: /\.less$/,
+        use: [
+          MiniCssExtractPlugin.loader,
+          {
+            loader: 'css-loader', // translates CSS into CommonJS
+            options: {
+              sourceMap: true
+            }
+          },
+          {
+            loader: 'less-loader', // compiles Less to CSS
+            options: {
+              sourceMap: true
+            }
+          },
+        ],
       },
       {
         test: /\.elm$/,

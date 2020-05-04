@@ -29,8 +29,8 @@ defmodule Dms42Web.Router do
     get("/documents", DocumentsController, :documents)
     post("/documents", DocumentsController, :upload_documents)
 
-    get("/tags", TagController, :index)
-    post("/tags", TagController, :update)
+    get("/tags", TagsController, :index)
+    post("/tags", TagsController, :update)
 
     get("/document-types", DocumentsController, :document_types)
 

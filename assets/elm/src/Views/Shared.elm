@@ -1,4 +1,4 @@
-module Views.Shared exposing (badge, card, flattenTags, getTags, handleTags, pagination, posix2String, tagsinputs)
+module Views.Shared exposing (badge, card, flattenTags, getAndLoadTags, getTags, handleTags, pagination, posix2String, tagsinputs)
 
 import Bootstrap.General.HAlign
 import Bootstrap.Pagination
@@ -124,6 +124,14 @@ pagination total length offset urlFn =
         |> Bootstrap.Pagination.view
 
 
+getAndLoadTags : Cmd Msgs.Main.Msg
+getAndLoadTags =
+    Http.get
+        { url = "/api/tags"
+        , expect = Http.expectJson Msgs.Main.GotAndLoadTags tagsDecoder
+        }
+
+
 getTags : Cmd Msgs.Main.Msg
 getTags =
     Http.get
@@ -132,8 +140,8 @@ getTags =
         }
 
 
-handleTags : Models.State -> Result Http.Error (List String) -> ( Models.State, Cmd Msgs.Main.Msg )
-handleTags state result =
+handleTags : Models.State -> Result Http.Error (List String) -> Bool -> ( Models.State, Cmd Msgs.Main.Msg )
+handleTags state result loadThem =
     let
         { route } =
             state
@@ -173,9 +181,16 @@ handleTags state result =
 
                 Err _ ->
                     []
+
+        commands =
+            if loadThem then
+                Ports.Gates.tags { jQueryPath = "#tags", documentId = documentId, tags = tags, documentTags = documentTags }
+
+            else
+                Cmd.none
     in
     ( { state | tagsResponse = Just tags }
-    , Ports.Gates.tags { jQueryPath = "#tags", documentId = documentId, tags = tags, documentTags = documentTags }
+    , commands
     )
 
 

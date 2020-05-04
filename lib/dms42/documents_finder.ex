@@ -9,10 +9,23 @@ defmodule Dms42.DocumentsFinder do
 
   @max_result 20
 
+  @spec find_by_tags(String.t()) :: list(Dms42.Models.Document.t())
+  def find_by_tags(tag) when is_bitstring(tag), do: find_by_tags([tag])
+  
+  @spec find_by_tags(list(String.t())) :: list(Dms42.Models.Document.t())
+  def find_by_tags([]), do: []
+
+  def find_by_tags(tags) when is_list(tags) do
+    tags
+    |> Enum.uniq()
+    |> Enum.map(fn x -> normalize(x) end)
+    |> find_by_list_tags
+    |> Enum.uniq_by(fn %SearchResult{:document_id => x} -> x end)
+  end
+
   @spec find(String.t()) :: list(Dms42.Models.Document.t())
   def find(""), do: []
 
-  @spec find(String.t()) :: list(Dms42.Models.SearchResult.t())
   def find(query) when is_bitstring(query) do
     {query |> normalize, []}
     |> find_by_exact_tag
@@ -198,6 +211,30 @@ defmodule Dms42.DocumentsFinder do
         |> select([d, o], d)
         |> Dms42.Repo.all()
     end
+  end
+
+  @spec find_by_list_tags(list(String.t())) :: Dms42.Models.SearchResult.t()
+  defp find_by_list_tags(tags) when is_list(tags) do
+    base_query =
+      from(d in Document,
+        left_join: dt in DocumentTag,
+        on: d.document_id == dt.document_id,
+        left_join: t in Tag,
+        on: t.tag_id == dt.tag_id
+      )
+
+    tags_count = Enum.count(tags)
+    
+    tags
+    |> Enum.reduce(base_query, fn x, acc ->
+      acc |> or_where([d, _, t], t.name_normalized == ^x)
+    end)
+    |> group_by([d, _, t], d.id)
+    |> having([d, _, t], count(d.id) == ^tags_count)
+    |> order_by([d, _, t], d.inserted_at)
+    |> select([d, _, t], d)
+    |> Dms42.Repo.all()
+    |> Enum.map(fn x -> to_search_result(x, 1) end)
   end
 
   @spec to_search_result(Dms42.Models.Document.t(), integer) :: Dms42.Models.SearchResult.t()

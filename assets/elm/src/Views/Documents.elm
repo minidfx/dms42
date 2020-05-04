@@ -1,4 +1,4 @@
-module Views.Documents exposing (documentDecoder, init, update, view)
+module Views.Documents exposing (cards, documentDecoder, init, insertedAtOrdering, update, view)
 
 import Bootstrap.Spinner
 import Bootstrap.Text
@@ -212,7 +212,7 @@ internalDocumentsView state documents offset =
     in
     if List.isEmpty documents |> not then
         [ pagination
-        , Html.div [ Html.Attributes.class "cards d-flex justify-content-start flex-wrap" ] (cards state documents)
+        , Html.div [ Html.Attributes.class "cards d-flex justify-content-around flex-wrap" ] (cards state documents)
         , pagination
         ]
 

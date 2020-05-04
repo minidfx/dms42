@@ -9,6 +9,7 @@ import Msgs.Document
 import Msgs.Documents
 import Msgs.Home
 import Msgs.Settings
+import Msgs.Tags
 import ScrollTo
 import Time
 import Url
@@ -25,10 +26,11 @@ type Msg
     | ScrollToMsg ScrollTo.Msg
     | NavbarMsg Bootstrap.Navbar.State
     | GotTags (Result Http.Error (List String))
+    | GotAndLoadTags (Result Http.Error (List String))
     | SettingsMsg Msgs.Settings.Msg
     | HomeMsg Msgs.Home.Msg
     | DocumentsMsg Msgs.Documents.Msg
     | DocumentMsg Msgs.Document.Msg
     | AddDocumentMsg Msgs.AddDocument.Msg
-    | StartUpload
+    | TagsMsg Msgs.Tags.Msg
     | Nop

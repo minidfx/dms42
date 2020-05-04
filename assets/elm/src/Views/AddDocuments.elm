@@ -83,7 +83,7 @@ internalUpdate state msg =
             ( state
             , Cmd.batch
                 [ Ports.Gates.dropZone { jQueryPath = "div.dropzone", jQueryTagsPath = "#tags" }
-                , Views.Shared.getTags
+                , Views.Shared.getAndLoadTags
                 ]
             )
 

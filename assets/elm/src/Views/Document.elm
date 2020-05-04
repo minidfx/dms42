@@ -10,11 +10,9 @@ import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 import Http
-import Json.Decode
 import Models
 import Msgs.Document
 import Msgs.Main
-import Ports.Gates
 import ScrollTo
 import String.Format
 import Time
@@ -128,6 +126,9 @@ handleDocument state result =
         documentsState =
             state.documentsState
                 |> Maybe.withDefault Factories.documentsStateFactory
+
+        commands =
+            Views.Shared.getAndLoadTags
     in
     case result of
         Ok x ->
@@ -136,11 +137,11 @@ handleDocument state result =
                     x
             in
             ( { state | documentsState = Just { documentsState | documents = Just <| Dict.insert id x <| Maybe.withDefault Dict.empty documentsState.documents } }
-            , Views.Shared.getTags
+            , commands
             )
 
         Err _ ->
-            ( state, Cmd.none )
+            ( state, commands )
 
 
 runOcr : Models.DocumentResponse -> Cmd Msgs.Main.Msg
@@ -377,7 +378,7 @@ internalUpdate state msg routeDocumentId =
                                 Nothing ->
                                     []
             in
-            ( state, Cmd.batch <| [ Cmd.map Msgs.Main.ScrollToMsg <| ScrollTo.scrollToTop, Views.Shared.getTags ] ++ commands )
+            ( state, Cmd.batch <| commands ++ [ Cmd.map Msgs.Main.ScrollToMsg <| ScrollTo.scrollToTop ] )
 
         Msgs.Document.GotDocument result ->
             handleDocument state result

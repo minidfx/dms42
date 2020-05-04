@@ -14,6 +14,7 @@ import Msgs.Documents
 import Msgs.Home
 import Msgs.Main
 import Msgs.Settings
+import Msgs.Tags
 import Ports.Gates
 import ScrollTo
 import Task
@@ -27,6 +28,7 @@ import Views.Documents
 import Views.Home
 import Views.Settings
 import Views.Shared
+import Views.Tags
 
 
 
@@ -56,6 +58,7 @@ routes =
         , Url.Parser.map Models.AddDocuments (Url.Parser.s "documents" </> Url.Parser.s "add")
         , Url.Parser.map Models.Document (Url.Parser.s "documents" </> Url.Parser.string <?> Url.Parser.Query.int "offset")
         , Url.Parser.map Models.Settings (Url.Parser.s "settings")
+        , Url.Parser.map Models.Tags (Url.Parser.s "tags")
         , Url.Parser.map Models.Home (Url.Parser.top <?> Url.Parser.Query.string "query")
         ]
 
@@ -92,6 +95,9 @@ init flags url key =
                 Models.Home query ->
                     Views.Home.init initialState query
 
+                Models.Tags ->
+                    Views.Tags.init flags key initialState
+
         newCommands =
             Cmd.batch [ navBarCmd, defaultActions, commands ]
     in
@@ -105,6 +111,9 @@ init flags url key =
 update : Msgs.Main.Msg -> Models.State -> ( Models.State, Cmd Msgs.Main.Msg )
 update msg state =
     case msg of
+        Msgs.Main.TagsMsg tagsMsg ->
+            Views.Tags.update state tagsMsg
+
         Msgs.Main.DocumentsMsg documentsMsg ->
             Views.Documents.update state documentsMsg Nothing
 
@@ -120,8 +129,11 @@ update msg state =
         Msgs.Main.AddDocumentMsg addDocumentMsg ->
             Views.AddDocuments.update state addDocumentMsg
 
+        Msgs.Main.GotAndLoadTags result ->
+            Views.Shared.handleTags state result True
+
         Msgs.Main.GotTags result ->
-            Views.Shared.handleTags state result
+            Views.Shared.handleTags state result False
 
         Msgs.Main.LinkClicked urlRequest ->
             case urlRequest of
@@ -161,6 +173,9 @@ update msg state =
                 Models.Home query ->
                     Views.Home.update newState Msgs.Home.Home query
 
+                Models.Tags ->
+                    Views.Tags.update newState Msgs.Tags.Home
+
         Msgs.Main.GetUserTimeZone zone ->
             ( { state | userTimeZone = Just zone }
             , Cmd.none
@@ -195,9 +210,6 @@ update msg state =
             ( { state | navBarState = navBarState }, Cmd.none )
 
         Msgs.Main.Nop ->
-            ( state, Cmd.none )
-
-        Msgs.Main.StartUpload ->
             ( state, Cmd.none )
 
 
@@ -244,6 +256,7 @@ navbar state =
             ]
         |> Bootstrap.Navbar.items
             [ yieldItem state "/" "Home"
+            , yieldItem state "/tags" "Tags"
             , yieldItem state "/documents" "Documents"
             , yieldItem state "/settings" "Settings"
             ]
@@ -278,6 +291,9 @@ mainView state =
 
                 Models.Document id offset ->
                     Views.Document.view state id offset
+
+                Models.Tags ->
+                    Views.Tags.view state
 
         mainContent =
             case state.error of

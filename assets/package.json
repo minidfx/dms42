@@ -33,6 +33,7 @@
     "expose-loader": "^0.7.5",
     "popper.js": "^1.16.1",
     "select2": "^4.0.13",
-    "lodash": "^4.17.15"
+    "lodash": "^4.17.15",
+    "less-loader": "^6.0.0"
   }
 }

@@ -165,6 +165,23 @@ defmodule Dms42Web.DocumentsController do
     )
   end
 
+  def documents(conn, %{"tags" => tags}) do
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(
+      200,
+      DocumentsFinder.find_by_tags(tags)
+      |> DocumentsManager.transform_to_viewmodels()
+      |> Poison.encode!()
+    )
+  end
+
+  def documents(conn, _) do
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(404, "")
+  end
+
   @doc false
   def document_types(conn, _params) do
     document_types =

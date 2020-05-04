@@ -100,7 +100,7 @@ view state =
             tagsState.documents |> Maybe.withDefault []
     in
     [ Html.div [ Html.Attributes.class "row" ]
-        [ Html.div [ Html.Attributes.class "col tags d-flex justify-content-center" ]
+        [ Html.div [ Html.Attributes.class "col tags d-flex justify-content-center flex-wrap" ]
             (tags
                 |> List.map (\x -> badge state x)
             )

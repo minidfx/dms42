@@ -200,6 +200,14 @@ internalDocumentsView state documents offset =
         documentsState =
             Maybe.withDefault Factories.documentsStateFactory <| state.documentsState
 
+        localOffset =
+            case offset of
+                Just x ->
+                    x
+
+                Nothing ->
+                    documentsState.offset |> Maybe.withDefault 0
+
         { total, length } =
             documentsState
 
@@ -207,7 +215,7 @@ internalDocumentsView state documents offset =
             Views.Shared.pagination
                 total
                 length
-                offset
+                localOffset
                 (\x -> "/documents?offset={{ }}" |> (String.Format.value <| String.fromInt <| (*) x length))
     in
     if List.isEmpty documents |> not then
@@ -235,21 +243,32 @@ internalUpdate state msg offset =
         documentsState =
             Maybe.withDefault Factories.documentsStateFactory <| state.documentsState
 
-        { length } =
-            documentsState
-
         localOffset =
-            Maybe.withDefault 0 <| offset
+            case offset of
+                Just x ->
+                    x
+
+                Nothing ->
+                    documentsState.offset |> Maybe.withDefault 0
+
+        newDocumentsState =
+            { documentsState | offset = Just localOffset }
+
+        { length } =
+            newDocumentsState
+
+        newState =
+            { state | documentsState = Just newDocumentsState }
     in
     case msg of
         Msgs.Documents.Home ->
-            ( { state | isLoading = True }, getDocuments { offset = localOffset, length = length } )
+            ( { newState | isLoading = True }, getDocuments { offset = localOffset, length = length } )
 
         Msgs.Documents.GotDocuments result ->
-            handleDocuments state result
+            handleDocuments newState result
 
         _ ->
-            ( state, Cmd.none )
+            ( newState, Cmd.none )
 
 
 documentDateTimesDecoder : Json.Decode.Decoder Models.DocumentDateTimes

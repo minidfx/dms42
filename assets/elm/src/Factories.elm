@@ -44,7 +44,8 @@ documentsStateFactory : Models.DocumentsState
 documentsStateFactory =
     { documents = Nothing
     , total = 0
-    , length = 40
+    , length = 20
+    , offset = Nothing
     }
 
 
@@ -52,4 +53,5 @@ tagsStateFactory : Models.TagsState
 tagsStateFactory =
     { selected = Set.empty
     , documents = Nothing
+    , tags = Set.empty
     }

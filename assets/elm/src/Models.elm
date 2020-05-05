@@ -58,6 +58,7 @@ type alias DocumentsState =
     { documents : Maybe (Dict String DocumentResponse)
     , length : Int
     , total : Int
+    , offset : Maybe Int
     }
 
 
@@ -78,6 +79,7 @@ type alias QueueInfoResponse =
 type alias TagsState =
     { selected : Set String
     , documents : Maybe (List DocumentResponse)
+    , tags : Set String
     }
 
 

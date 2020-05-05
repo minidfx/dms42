@@ -29,28 +29,30 @@ update : Models.State -> Msgs.Tags.Msg -> ( Models.State, Cmd Msgs.Main.Msg )
 update state msg =
     case msg of
         Msgs.Tags.Home ->
-            ( state, Views.Shared.getTags )
+            let
+                tags =
+                    state.tagsState
+                        |> Maybe.withDefault Factories.tagsStateFactory
+                        |> Helpers.fluentSelect (\x -> x.selected)
+                        |> Set.toList
+            in
+            ( state, Cmd.batch [ Views.Shared.getTags, searchDocuments tags ] )
 
         Msgs.Tags.ToggleTag tag ->
             let
                 tagsState =
                     state.tagsState
                         |> Maybe.withDefault Factories.tagsStateFactory
+                        |> Helpers.fluentUpdate (\x -> { x | selected = Set.intersect x.selected x.tags })
 
-                newState =
+                ( tags, newState ) =
                     if Set.member tag tagsState.selected then
-                        { state | tagsState = Just { tagsState | selected = Set.remove tag tagsState.selected } }
+                        ( Set.remove tag tagsState.selected, { state | tagsState = Just { tagsState | selected = Set.remove tag tagsState.selected } } )
 
                     else
-                        { state | tagsState = Just { tagsState | selected = Set.insert tag tagsState.selected } }
-
-                tags =
-                    newState.tagsState
-                        |> Maybe.withDefault Factories.tagsStateFactory
-                        |> Helpers.fluentSelect (\x -> x.selected)
-                        |> Set.toList
+                        ( Set.insert tag tagsState.selected, { state | tagsState = Just { tagsState | selected = Set.insert tag tagsState.selected } } )
             in
-            ( newState, searchDocuments tags )
+            ( { newState | isLoading = True }, searchDocuments <| Set.toList <| tags )
 
         Msgs.Tags.GotSearchResult result ->
             let
@@ -67,7 +69,7 @@ update state msg =
                         |> Maybe.withDefault Factories.tagsStateFactory
 
                 newState =
-                    { state | tagsState = Just { tagsState | documents = Just documents } }
+                    { state | tagsState = Just { tagsState | documents = Just documents }, isLoading = False }
             in
             ( newState, Cmd.none )
 
@@ -102,6 +104,7 @@ view state =
     [ Html.div [ Html.Attributes.class "row" ]
         [ Html.div [ Html.Attributes.class "col tags d-flex justify-content-center flex-wrap" ]
             (tags
+                |> List.sort
                 |> List.map (\x -> badge state x)
             )
         ]

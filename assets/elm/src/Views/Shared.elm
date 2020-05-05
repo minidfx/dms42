@@ -14,6 +14,7 @@ import Json.Decode
 import Models
 import Msgs.Main
 import Ports.Gates
+import Set
 import String.Format
 import Time
 
@@ -92,12 +93,9 @@ tagsinputs isDisabled =
         ]
 
 
-pagination : Int -> Int -> Maybe Int -> (Int -> String) -> Html Msgs.Main.Msg
+pagination : Int -> Int -> Int -> (Int -> String) -> Html Msgs.Main.Msg
 pagination total length offset urlFn =
     let
-        localOffset =
-            Maybe.withDefault 0 offset
-
         countItems =
             List.range 0 ((//) (total - 1) length) |> List.map (\x -> String.fromInt x)
 
@@ -105,7 +103,7 @@ pagination total length offset urlFn =
             countItems
 
         activeIdx =
-            (//) localOffset length
+            (//) offset length
 
         itemsList =
             { selectedMsg = \_ -> Msgs.Main.Nop
@@ -146,6 +144,20 @@ handleTags state result loadThem =
         { route } =
             state
 
+        tags =
+            case result of
+                Ok x ->
+                    x
+
+                Err _ ->
+                    []
+
+        tagsState =
+            state.tagsState |> Maybe.withDefault Factories.tagsStateFactory
+
+        newStateWithTags =
+            { state | tagsState = Just { tagsState | tags = Set.fromList tags } }
+
         documentId =
             case route of
                 Models.Document id _ ->
@@ -174,14 +186,6 @@ handleTags state result loadThem =
                 Nothing ->
                     []
 
-        tags =
-            case result of
-                Ok x ->
-                    x
-
-                Err _ ->
-                    []
-
         commands =
             if loadThem then
                 Ports.Gates.tags { jQueryPath = "#tags", documentId = documentId, tags = tags, documentTags = documentTags }
@@ -189,7 +193,7 @@ handleTags state result loadThem =
             else
                 Cmd.none
     in
-    ( { state | tagsResponse = Just tags }
+    ( { newStateWithTags | tagsResponse = Just tags }
     , commands
     )
 

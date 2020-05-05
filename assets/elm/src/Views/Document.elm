@@ -338,11 +338,14 @@ pagination { thumbnails, id } offset =
     let
         { countImages } =
             thumbnails
+
+        localOffset =
+            offset |> Maybe.withDefault 0
     in
     Views.Shared.pagination
         countImages
         1
-        offset
+        localOffset
         (\x -> "/documents/{{ documentId }}?offset={{ offset }}" |> String.Format.namedValue "documentId" id |> (String.Format.namedValue "offset" <| String.fromInt x))
 
 
@@ -368,7 +371,7 @@ internalUpdate state msg routeDocumentId =
                 commands =
                     case document of
                         Just _ ->
-                            []
+                            [ Views.Shared.getAndLoadTags ]
 
                         Nothing ->
                             case routeDocumentId of
@@ -378,7 +381,11 @@ internalUpdate state msg routeDocumentId =
                                 Nothing ->
                                     []
             in
-            ( state, Cmd.batch <| commands ++ [ Cmd.map Msgs.Main.ScrollToMsg <| ScrollTo.scrollToTop ] )
+            ( state
+            , Cmd.batch <|
+                commands
+                    ++ [ Cmd.map Msgs.Main.ScrollToMsg <| ScrollTo.scrollToTop ]
+            )
 
         Msgs.Document.GotDocument result ->
             handleDocument state result

@@ -92,8 +92,11 @@ defmodule Dms42.QueueDocuments do
   def info() do
     {queued, processing} = Dms42.States.get_jobs_status()
 
+    queue_max = Application.get_env(:dms42, :queue_documents_concurrency)
+    queue_available = queue_max - processing
+    
     %Dms42.Models.QueueInfo{
-      workers: Application.get_env(:dms42, :queue_documents_concurrency),
+      workers: queue_available,
       pending: queued,
       processing: processing
     }

@@ -26,7 +26,7 @@ view state =
     in
     [ Html.div [ Html.Attributes.class "d-flex empty" ]
         [ Html.dl []
-            [ Html.dt [] [ Html.text "Workers" ]
+            [ Html.dt [] [ Html.text "Workers available" ]
             , Html.dd [] [ Html.text <| String.fromInt cpus ]
             , Html.dt [] [ Html.text "Processing" ]
             , Html.dd [] [ Html.text <| String.fromInt processing ]

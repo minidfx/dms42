@@ -48,7 +48,7 @@ defmodule Dms42Web.DocumentsController do
   def download(conn, %{"document_id" => document_id}) do
     case get_document(conn, document_id) do
       {:error, conn} ->
-        conn |> send_resp(404, "")
+        conn
 
       {:ok, conn, document} ->
         %{:mime_type => mime_type, :original_file_name => filename} = document
@@ -221,8 +221,12 @@ defmodule Dms42Web.DocumentsController do
   ##### Private members
 
   @spec thumbnail_fallback_whether_no_exists(nil, Plug.Conn.t(), String.t()) :: String.t()
-  defp thumbnail_fallback_whether_no_exists(nil, conn, fallback_path),
-    do: Path.absname(fallback_path)
+  defp thumbnail_fallback_whether_no_exists(nil, conn, fallback_path) do
+    conn
+    |> update_resp_header("cache-control", "no-cache", fn _ -> "no-cache" end)
+    |> put_resp_content_type("image/png")
+    |> send_file(404, fallback_path)
+  end
 
   @spec thumbnail_fallback_whether_no_exists(String.t(), Plug.Conn.t(), String.t()) ::
           Plug.Conn.t()

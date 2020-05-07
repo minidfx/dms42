@@ -11,7 +11,7 @@ defmodule Dms42.DocumentsFinder do
 
   @spec find_by_tags(String.t()) :: list(Dms42.Models.Document.t())
   def find_by_tags(tag) when is_bitstring(tag), do: find_by_tags([tag])
-  
+
   @spec find_by_tags(list(String.t())) :: list(Dms42.Models.Document.t())
   def find_by_tags([]), do: []
 
@@ -27,11 +27,12 @@ defmodule Dms42.DocumentsFinder do
   def find(""), do: []
 
   def find(query) when is_bitstring(query) do
-    {query |> normalize, []}
+    {query, []}
     |> find_by_exact_tag
     |> find_by_exact_tags
     |> find_by_exact_comments
     |> find_by_exact_ocr
+    |> find_by_word_ocr
     |> find_by_partial_ocr
     |> to_result
     |> Enum.sort_by(fn %SearchResult{:ranking => x} -> x end)
@@ -132,13 +133,26 @@ defmodule Dms42.DocumentsFinder do
       from(d in Document,
         left_join: o in DocumentOcr,
         on: d.document_id == o.document_id,
-        or_where: ilike(o.ocr_normalized, ^"%#{query}%"),
+        where: ilike(o.ocr_normalized, ^"% #{query} %"),
         order_by: d.inserted_at,
         limit: @max_result,
         select: d
       )
       |> Dms42.Repo.all()
       |> Enum.map(fn x -> to_search_result(x, 4) end)
+
+    {query, result ++ acc}
+  end
+
+  @spec find_by_word_ocr({String.t(), list(Dms42.Models.Document.t())}) ::
+          list(Dms42.Models.SearchResult.t())
+  defp find_by_word_ocr({query, acc}) when length(acc) >= @max_result, do: {query, acc}
+
+  defp find_by_word_ocr({query, acc}) do
+    result =
+      query
+      |> query_find_by_word_ocr
+      |> Enum.map(fn x -> to_search_result(x, 5) end)
 
     {query, result ++ acc}
   end
@@ -151,7 +165,7 @@ defmodule Dms42.DocumentsFinder do
     result =
       query
       |> query_find_by_partial_ocr
-      |> Enum.map(fn x -> to_search_result(x, 5) end)
+      |> Enum.map(fn x -> to_search_result(x, 6) end)
 
     {query, result ++ acc}
   end
@@ -192,17 +206,47 @@ defmodule Dms42.DocumentsFinder do
       |> Enum.uniq()
 
     case terms do
-      [_] ->
+      [] ->
         []
 
-      terms ->
+      x ->
+        query_find_by_ocr_base(x)
+    end
+  end
+
+  @spec query_find_by_word_ocr(String.t()) :: Ecto.Queryable.t()
+  def query_find_by_word_ocr(query) do
+    terms =
+      query
+      |> normalize
+      |> String.split(" ")
+      |> filter_stop_words()
+      |> Enum.uniq()
+      |> Enum.map(fn x -> " #{x} " end)
+
+    case terms do
+      [] ->
+        []
+
+      x ->
+        query_find_by_ocr_base(x)
+    end
+  end
+
+  @spec query_find_by_ocr_base(list(String.t())) :: Ecto.Queryable.t()
+  def query_find_by_ocr_base(terms) when is_list(terms) do
+    case terms do
+      [] ->
+        []
+
+      x ->
         base_query =
           from(d in Document,
             left_join: o in DocumentOcr,
             on: d.document_id == o.document_id
           )
 
-        terms
+        x
         |> Enum.reduce(base_query, fn x, acc ->
           acc |> where([d, o], ilike(o.ocr_normalized, ^"%#{x}%"))
         end)
@@ -224,7 +268,7 @@ defmodule Dms42.DocumentsFinder do
       )
 
     tags_count = Enum.count(tags)
-    
+
     tags
     |> Enum.reduce(base_query, fn x, acc ->
       acc |> or_where([d, _, t], t.name_normalized == ^x)

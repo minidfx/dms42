@@ -213,6 +213,7 @@ internalDocumentsView state documents offset =
 
         pagination =
             Views.Shared.pagination
+                state.viewPort
                 total
                 length
                 localOffset

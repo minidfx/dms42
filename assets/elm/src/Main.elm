@@ -3,6 +3,7 @@ module Main exposing (init, main, subscriptions, update, view)
 import Bootstrap.Modal
 import Bootstrap.Navbar
 import Browser
+import Browser.Dom
 import Browser.Navigation as Nav
 import Factories
 import Html exposing (..)
@@ -67,7 +68,9 @@ init : () -> Url.Url -> Nav.Key -> ( Models.State, Cmd Msgs.Main.Msg )
 init flags url key =
     let
         defaultActions =
-            Task.perform Msgs.Main.GetUserTimeZone Time.here
+            [ Task.perform Msgs.Main.GotUserTimeZone Time.here
+            , Task.perform Msgs.Main.GotViewPort Browser.Dom.getViewport
+            ]
 
         route =
             Url.Parser.parse routes url |> Maybe.withDefault (Models.Home Nothing)
@@ -99,7 +102,7 @@ init flags url key =
                     Views.Tags.init flags key initialState
 
         newCommands =
-            Cmd.batch [ navBarCmd, defaultActions, commands ]
+            Cmd.batch <| defaultActions ++ [ navBarCmd, commands ]
     in
     ( state, newCommands )
 
@@ -176,10 +179,13 @@ update msg state =
                 Models.Tags ->
                     Views.Tags.update newState Msgs.Tags.Home
 
-        Msgs.Main.GetUserTimeZone zone ->
+        Msgs.Main.GotUserTimeZone zone ->
             ( { state | userTimeZone = Just zone }
             , Cmd.none
             )
+
+        Msgs.Main.GotViewPort viewport ->
+            ( { state | viewPort = Just viewport }, Cmd.none )
 
         Msgs.Main.CloseModal ->
             ( { state | modalVisibility = Bootstrap.Modal.hidden }, Cmd.none )

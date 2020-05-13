@@ -2,6 +2,8 @@ module Views.Shared exposing (badge, card, flattenTags, getAndLoadTags, getTags,
 
 import Bootstrap.General.HAlign
 import Bootstrap.Pagination
+import Bootstrap.Pagination.Item
+import Browser.Dom
 import Dict
 import Factories
 import Helpers
@@ -93,33 +95,69 @@ tagsinputs isDisabled =
         ]
 
 
-pagination : Int -> Int -> Int -> (Int -> String) -> Html Msgs.Main.Msg
-pagination total length offset urlFn =
+pagination : Maybe Browser.Dom.Viewport -> Int -> Int -> Int -> (Int -> String) -> Html Msgs.Main.Msg
+pagination viewport total length offset urlFn =
     let
-        countItems =
-            List.range 0 ((//) (total - 1) length) |> List.map (\x -> String.fromInt x)
+        maxItems =
+            case viewport of
+                Just x ->
+                    Basics.min 50 <| Basics.floor <| x.viewport.width * 0.011
 
-        items =
-            countItems
+                Nothing ->
+                    15
 
         activeIdx =
             (//) offset length
 
-        itemsList =
-            { selectedMsg = \_ -> Msgs.Main.Nop
-            , prevItem = Nothing
-            , nextItem = Nothing
-            , activeIdx = activeIdx
-            , data = items
-            , itemFn = itemFn
-            , urlFn = \x y -> baseUrlFn x y urlFn
-            }
+        pagesCount =
+            (//) (total - 1) length
+
+        localItems =
+            if pagesCount > maxItems then
+                let
+                    halfMaxItems =
+                        (//) maxItems 2
+
+                    leftPart =
+                        if activeIdx - halfMaxItems > 0 then
+                            [ First urlFn, Space ]
+
+                        else
+                            []
+
+                    rightPart =
+                        if activeIdx + halfMaxItems < pagesCount then
+                            [ Space, Last pagesCount urlFn ]
+
+                        else
+                            []
+
+                    middlePart =
+                        let
+                            from =
+                                Basics.min (pagesCount - maxItems) <| Basics.max 0 (activeIdx - halfMaxItems)
+
+                            to =
+                                Basics.max (0 + maxItems) <| Basics.min pagesCount (activeIdx + halfMaxItems)
+                        in
+                        List.range from to |> List.map (\x -> Numeric x urlFn)
+                in
+                List.concat [ leftPart, middlePart, rightPart ]
+
+            else
+                List.range 0 pagesCount |> List.map (\x -> Numeric x urlFn)
+
+        items =
+            localItems |> List.map (\x -> yieldPaginationItems x activeIdx)
     in
-    Bootstrap.Pagination.defaultConfig
-        |> Bootstrap.Pagination.align Bootstrap.General.HAlign.centerXs
-        |> Bootstrap.Pagination.ariaLabel "documents-pagination"
-        |> Bootstrap.Pagination.itemsList itemsList
-        |> Bootstrap.Pagination.view
+    Html.div
+        []
+        [ Bootstrap.Pagination.defaultConfig
+            |> Bootstrap.Pagination.align Bootstrap.General.HAlign.centerXs
+            |> Bootstrap.Pagination.ariaLabel "documents-pagination"
+            |> Bootstrap.Pagination.items items
+            |> Bootstrap.Pagination.view
+        ]
 
 
 getAndLoadTags : Cmd Msgs.Main.Msg
@@ -194,18 +232,84 @@ handleTags state result loadThem =
 -- Private members
 
 
+type PaginationContentType
+    = Numeric Int (Int -> String)
+    | Space
+    | First (Int -> String)
+    | Last Int (Int -> String)
+
+
+yieldPaginationItems : PaginationContentType -> Int -> Bootstrap.Pagination.Item.Item Msgs.Main.Msg
+yieldPaginationItems item activeIndex =
+    case item of
+        Numeric x urlFn ->
+            Bootstrap.Pagination.Item.item
+                |> Bootstrap.Pagination.Item.active (x == activeIndex)
+                |> Bootstrap.Pagination.Item.link
+                    [ Html.Attributes.href <| urlFn x ]
+                    (numericPaginationContent <| x + 1)
+
+        Space ->
+            Bootstrap.Pagination.Item.item
+                |> Bootstrap.Pagination.Item.disabled True
+                |> Bootstrap.Pagination.Item.link [] spacePaginationContent
+
+        First urlFn ->
+            Bootstrap.Pagination.Item.item
+                |> Bootstrap.Pagination.Item.disabled False
+                |> Bootstrap.Pagination.Item.link
+                    [ Html.Attributes.href <| urlFn 0 ]
+                    backwardPaginationContent
+
+        Last x urlFn ->
+            Bootstrap.Pagination.Item.item
+                |> Bootstrap.Pagination.Item.disabled False
+                |> Bootstrap.Pagination.Item.link
+                    [ Html.Attributes.href <| urlFn x ]
+                    forwardPaginationContent
+
+
+numericPaginationContent : Int -> List (Html Msgs.Main.Msg)
+numericPaginationContent index =
+    [ Html.span []
+        [ Html.text <| String.fromInt index ]
+    ]
+
+
+spacePaginationContent : List (Html Msgs.Main.Msg)
+spacePaginationContent =
+    [ Html.span []
+        [ Html.text "..." ]
+    ]
+
+
+forwardPaginationContent : List (Html Msgs.Main.Msg)
+forwardPaginationContent =
+    [ Html.span
+        [ Html.Attributes.class "fa fa-forward"
+        , Html.Attributes.attribute "aria-hidden" "true"
+        ]
+        []
+    , Html.span [ Html.Attributes.class "sr-only" ]
+        [ Html.text "Next" ]
+    ]
+
+
+backwardPaginationContent : List (Html Msgs.Main.Msg)
+backwardPaginationContent =
+    [ Html.span
+        [ Html.Attributes.class "fa fa-backward"
+        , Html.Attributes.attribute "aria-hidden" "true"
+        ]
+        []
+    , Html.span [ Html.Attributes.class "sr-only" ]
+        [ Html.text "Previous" ]
+    ]
+
+
 tagsDecoder : Json.Decode.Decoder (List String)
 tagsDecoder =
     Json.Decode.list Json.Decode.string
-
-
-baseUrlFn : Int -> String -> (Int -> String) -> String
-baseUrlFn idx text baseCallback =
-    if String.fromInt idx == text then
-        baseCallback idx
-
-    else
-        "/"
 
 
 itemFn : Int -> String -> Bootstrap.Pagination.ListItem msg

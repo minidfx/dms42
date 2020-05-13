@@ -27,6 +27,7 @@ stateFactory key url route navBarState =
     , queueInfo = Nothing
     , navBarState = navBarState
     , tagsState = Nothing
+    , viewPort = Nothing
     }
 
 

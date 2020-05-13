@@ -2,6 +2,7 @@ module Models exposing (..)
 
 import Bootstrap.Modal
 import Bootstrap.Navbar
+import Browser.Dom
 import Browser.Navigation as Nav
 import Debounce exposing (Debounce)
 import Dict exposing (Dict)
@@ -108,4 +109,5 @@ type alias State =
     , scrollTo : ScrollTo.State
     , queueInfo : Maybe QueueInfoResponse
     , navBarState : Bootstrap.Navbar.State
+    , viewPort : Maybe Browser.Dom.Viewport
     }

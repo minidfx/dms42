@@ -209,7 +209,7 @@ internalView state document offset =
     in
     Html.div [ Html.Attributes.class "document" ]
         [ Html.div [ Html.Attributes.class "row" ]
-            [ Html.div [ Html.Attributes.class "col-md-7" ] (documentView document offset)
+            [ Html.div [ Html.Attributes.class "col-md-7" ] (documentView state document offset)
             , Html.div [ Html.Attributes.class "col-md-5" ]
                 [ Html.div [ Html.Attributes.class "d-flex document-buttons" ]
                     [ Html.div [ Html.Attributes.class "d-none d-md-block ml-auto" ]
@@ -294,8 +294,8 @@ internalView state document offset =
         ]
 
 
-documentView : Models.DocumentResponse -> Maybe Int -> List (Html Msgs.Main.Msg)
-documentView document offset =
+documentView : Models.State -> Models.DocumentResponse -> Maybe Int -> List (Html Msgs.Main.Msg)
+documentView state document offset =
     let
         { original_file_name, id, thumbnails } =
             document
@@ -305,7 +305,7 @@ documentView document offset =
     in
     case countImages > 1 of
         True ->
-            [ pagination document offset
+            [ pagination state document offset
             , Html.img
                 [ Html.Attributes.alt original_file_name
                 , Html.Attributes.src
@@ -316,7 +316,7 @@ documentView document offset =
                 , Html.Attributes.class "img-fluid img-thumbnail"
                 ]
                 []
-            , pagination document offset
+            , pagination state document offset
             ]
 
         False ->
@@ -333,8 +333,8 @@ documentView document offset =
             ]
 
 
-pagination : Models.DocumentResponse -> Maybe Int -> Html Msgs.Main.Msg
-pagination { thumbnails, id } offset =
+pagination : Models.State -> Models.DocumentResponse -> Maybe Int -> Html Msgs.Main.Msg
+pagination { viewPort } { thumbnails, id } offset =
     let
         { countImages } =
             thumbnails
@@ -343,6 +343,7 @@ pagination { thumbnails, id } offset =
             offset |> Maybe.withDefault 0
     in
     Views.Shared.pagination
+        viewPort
         countImages
         1
         localOffset

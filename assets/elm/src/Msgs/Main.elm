@@ -3,6 +3,7 @@ module Msgs.Main exposing (..)
 import Bootstrap.Modal
 import Bootstrap.Navbar
 import Browser
+import Browser.Dom
 import Http
 import Msgs.AddDocument
 import Msgs.Document
@@ -18,7 +19,8 @@ import Url
 type Msg
     = LinkClicked Browser.UrlRequest
     | UrlChanged Url.Url
-    | GetUserTimeZone Time.Zone
+    | GotUserTimeZone Time.Zone
+    | GotViewPort Browser.Dom.Viewport
     | CloseModal
     | ShowModal
     | AnimatedModal Bootstrap.Modal.Visibility

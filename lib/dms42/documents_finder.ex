@@ -133,7 +133,7 @@ defmodule Dms42.DocumentsFinder do
       from(d in Document,
         left_join: o in DocumentOcr,
         on: d.document_id == o.document_id,
-        where: ilike(o.ocr_normalized, ^"% #{query} %"),
+        where: ilike(o.ocr_normalized, ^"%#{query}%"),
         order_by: d.inserted_at,
         limit: @max_result,
         select: d

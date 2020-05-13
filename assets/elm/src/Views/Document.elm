@@ -354,19 +354,11 @@ internalUpdate state msg routeDocumentId =
     case msg of
         Msgs.Document.Home ->
             let
-                documents =
-                    state.documentsState
-                        |> Maybe.withDefault Factories.documentsStateFactory
-                        |> Helpers.fluentSelect (\x -> x.documents)
-                        |> Maybe.withDefault Dict.empty
-
                 document =
-                    case routeDocumentId of
-                        Just x ->
-                            documents |> Dict.get x
-
-                        Nothing ->
-                            Nothing
+                    state.documentsState
+                        |> Maybe.andThen (\x -> x.documents)
+                        |> Maybe.map2 (\id documents -> Dict.get id documents) routeDocumentId
+                        |> Maybe.andThen (\x -> x)
 
                 commands =
                     case document of

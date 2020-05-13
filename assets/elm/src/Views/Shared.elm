@@ -168,23 +168,15 @@ handleTags state result loadThem =
 
         documents =
             state.documentsState
-                |> Maybe.withDefault Factories.documentsStateFactory
-                |> Helpers.fluentSelect (\x -> x.documents)
+                |> Maybe.andThen (\x -> x.documents)
                 |> Maybe.withDefault Dict.empty
 
-        -- FIXME: Don't like this syntax, too many nesting with the case statement.
         documentTags =
-            case documentId of
-                Just id ->
-                    case Dict.get id <| documents of
-                        Just x ->
-                            x.tags
-
-                        Nothing ->
-                            []
-
-                Nothing ->
-                    []
+            documentId
+                |> Maybe.andThen (\x -> Just x)
+                |> Maybe.andThen (\x -> Dict.get x <| documents)
+                |> Maybe.andThen (\x -> Just x.tags)
+                |> Maybe.withDefault []
 
         commands =
             if loadThem then

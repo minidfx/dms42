@@ -26,11 +26,15 @@ import Views.Shared
 view : Models.State -> List (Html Msgs.Main.Msg)
 view state =
     let
-        searchState =
-            Maybe.withDefault Factories.searchStateFactory <| state.searchState
-
         documents =
-            Maybe.withDefault [] searchState.documents
+            state.searchState
+                |> Maybe.andThen (\x -> x.documents)
+                |> Maybe.withDefault []
+
+        query =
+            state.searchState
+                |> Maybe.andThen (\x -> x.query)
+                |> Maybe.withDefault ""
     in
     [ Html.div [ Html.Attributes.class "row" ]
         [ Html.div [ Html.Attributes.class "col home-search" ]
@@ -40,7 +44,7 @@ view state =
                     [ Html.Attributes.type_ "text"
                     , Html.Attributes.class "form-control"
                     , Html.Events.onInput <| \x -> (Msgs.Main.HomeMsg << Msgs.Home.UserTypeSearch) <| x
-                    , Html.Attributes.value <| Maybe.withDefault "" <| searchState.query
+                    , Html.Attributes.value query
                     , Html.Attributes.id "query"
                     ]
                     []

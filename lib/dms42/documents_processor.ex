@@ -33,16 +33,17 @@ defmodule Dms42.DocumentsProcessor do
              mime_type: mime_type
            },
            type: document_type,
-           transaction: Ecto.Multi.new()
+           transaction: Ecto.Multi.new(),
+           tags: tags,
+           content: bytes
          }}
         |> valid_file_type
         |> valid_file_path
         |> valid_document_type
-        |> is_document_exists(bytes)
-        |> save_file(bytes)
+        |> is_document_exists
+        |> save_file
         |> clean_image
         |> insert_to_database
-        |> insert_tags(tags)
         |> commit
         |> thumbnails
         |> ocr
@@ -64,25 +65,52 @@ defmodule Dms42.DocumentsProcessor do
     {:ok, document}
   end
 
-  defp commit(
-         {:ok, %NewDocumentProcessingContext{:transaction => transaction, :document => document}}
-       ) do
+  defp commit({:ok, context}) do
+    %NewDocumentProcessingContext{
+      :transaction => transaction,
+      :document => document,
+      :type => document_type,
+      :content => bytes,
+      :tags => tags
+    } = context
+
+    %Document{
+      :mime_type => mime_type,
+      :original_file_datetime => original_file_datetime,
+      :original_file_name => original_file_name
+    } = document
+
     case Dms42.Repo.transaction(transaction) do
       {:error, table, _, _} ->
         DocumentPath.document_path!(document) |> File.rm!()
-        {:error, "Cannot save the transaction because the table #{table} thrown an error."}
+
+        {:error,
+         "Cannot save the transaction because the table #{table} thrown an error: #{
+           original_file_datetime
+         }"}
 
       {:error, _} ->
-        {:error, "Cannot save the transaction."}
+        DocumentPath.document_path!(document) |> File.rm!()
 
-      {:ok, _} ->
-        {:ok, document}
+        {:error, "Cannot save the transaction: #{original_file_datetime}"}
+
+      {:ok, value} ->
+        %{document: local_document} = value
+        %Document{document_id: document_id} = local_document
+
+        {:ok, document_id_as_string} = Ecto.UUID.load(document_id)
+
+        Logger.info(
+          "The document was successfully saved into the database: #{document_id_as_string}"
+        )
+
+        Dms42.QueueTags.enqueue_new_tags(document_id, tags)
+        {:ok, local_document}
     end
   end
 
-  defp valid_document_type(
-         {:ok, %NewDocumentProcessingContext{:type => document_type_string_id} = context}
-       ) do
+  defp valid_document_type({:ok, context}) do
+    %NewDocumentProcessingContext{:type => document_type_string_id} = context
     {:ok, uuid} = Ecto.UUID.dump(document_type_string_id)
 
     case Dms42.Repo.get_by(DocumentType, type_id: uuid) do
@@ -95,33 +123,9 @@ defmodule Dms42.DocumentsProcessor do
     end
   end
 
-  defp insert_tags(result, []), do: result
+  defp insert_to_database({:ok, context}) do
+    %NewDocumentProcessingContext{:transaction => transaction, :document => document} = context
 
-  defp insert_tags(
-         {:ok,
-          %NewDocumentProcessingContext{
-            :transaction => transaction,
-            :document => %Document{:document_id => document_id}
-          } = context},
-         tags
-       ) do
-    [tag | tail] = tags
-
-    insert_tags(
-      {:ok,
-       %NewDocumentProcessingContext{
-         context
-         | :transaction => transaction |> TagManager.add_or_update(document_id, tag)
-       }},
-      tail
-    )
-  end
-
-  defp insert_to_database(
-         {:ok,
-          %NewDocumentProcessingContext{:transaction => transaction, :document => document} =
-            context}
-       ) do
     {:ok,
      %NewDocumentProcessingContext{
        context
@@ -134,13 +138,12 @@ defmodule Dms42.DocumentsProcessor do
      }}
   end
 
-  defp is_document_exists(
-         {:ok,
-          %NewDocumentProcessingContext{
-            :document => %{:original_file_name => file_name} = document
-          } = context},
-         bytes
-       ) do
+  defp is_document_exists({:ok, context}) do
+    %NewDocumentProcessingContext{
+      :document => %{:original_file_name => file_name} = document,
+      :content => bytes
+    } = context
+
     case DocumentsManager.is_document_exists(bytes) do
       {false, hash} ->
         {:ok, %NewDocumentProcessingContext{context | document: %Document{document | hash: hash}}}
@@ -175,13 +178,12 @@ defmodule Dms42.DocumentsProcessor do
     end
   end
 
-  defp save_file(
-         {:ok,
-          %NewDocumentProcessingContext{
-            :document => %Document{:original_file_name => file_name} = document
-          } = context},
-         bytes
-       ) do
+  defp save_file({:ok, context}) do
+    %NewDocumentProcessingContext{
+      :document => %Document{:original_file_name => file_name} = document,
+      :content => bytes
+    } = context
+
     file_path = DocumentPath.document_path!(document)
 
     if File.exists?(file_path) do
@@ -200,12 +202,11 @@ defmodule Dms42.DocumentsProcessor do
     end
   end
 
-  defp clean_image(
-         {:ok,
-          %NewDocumentProcessingContext{
-            :document => %{:mime_type => mime_type} = document
-          } = context}
-       ) do
+  defp clean_image({:ok, context}) do
+    %NewDocumentProcessingContext{
+      :document => %{:mime_type => mime_type} = document
+    } = context
+
     file_path = DocumentPath.document_path!(document)
 
     case Dms42.External.clean_image(file_path, mime_type) do
@@ -222,11 +223,11 @@ defmodule Dms42.DocumentsProcessor do
     end
   end
 
-  defp valid_file_type(
-         {:ok,
-          %{:document => %Document{:mime_type => mime_type, :original_file_name => file_name}} =
-            context}
-       ) do
+  defp valid_file_type({:ok, context}) do
+    %NewDocumentProcessingContext{
+      :document => %Document{:mime_type => mime_type, :original_file_name => file_name}
+    } = context
+
     allowed_types = ["application/pdf", "image/jpeg", "image/png"]
 
     case Enum.any?(allowed_types, fn x -> x == mime_type end) do

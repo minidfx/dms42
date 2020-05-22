@@ -9,7 +9,7 @@ defmodule Dms42.DocumentPath do
   @doc """
     Ensures that the thumbnails folder of the document exists.
   """
-  @spec ensure_thumbnails_folder_exists!(Dms42.Models.Document) :: :ok
+  @spec ensure_thumbnails_folder_exists!(Dms42.Models.Document.t()) :: :ok
   def ensure_thumbnails_folder_exists!(document) when is_map(document) do
     folder_path = to_path!(:absolute_thumbnail_path, document)
 
@@ -22,7 +22,7 @@ defmodule Dms42.DocumentPath do
   @doc """
     Ensures that the document folder exists.
   """
-  @spec ensure_document_folder_exists!(Dms42.Models.Document) :: :ok
+  @spec ensure_document_folder_exists!(Dms42.Models.Document.t()) :: :ok
   def ensure_document_folder_exists!(document) when is_map(document) do
     folder_path = Path.join([get!(:absolute_document_path), middle_path!(document)])
 
@@ -35,33 +35,33 @@ defmodule Dms42.DocumentPath do
   @doc """
     Returns the path of the document.
   """
-  @spec document_path!(Dms42.Models.Document) :: String.t()
+  @spec document_path!(Dms42.Models.Document.t()) :: String.t()
   def document_path!(document) when is_map(document),
     do: to_path!(:absolute_document_path, document)
 
   @doc """
     Returns the small thumbnail path of the document.
   """
-  @spec small_thumbnail_path!(Dms42.Models.Document) :: String.t()
+  @spec small_thumbnail_path!(Dms42.Models.Document.t()) :: String.t()
   def small_thumbnail_path!(document) when is_map(document),
     do: Path.join([to_path!(:absolute_thumbnail_path, document), "small.png"])
 
   @doc """
     Returns the first big thumbnail path of the document.
   """
-  @spec big_first_thumbnail_path!(Dms42.Models.Document) :: String.t()
+  @spec big_first_thumbnail_path!(Dms42.Models.Document.t()) :: String.t()
   def big_first_thumbnail_path!(document) when is_map(document),
     do: Path.join([to_path!(:absolute_thumbnail_path, document), "big-0.png"])
 
   @doc """
     Returns the big thumbnail paths of the document.
   """
-  @spec big_thumbnail_paths!(Dms42.Models.Document) :: list(String.t())
+  @spec big_thumbnail_paths!(Dms42.Models.Document.t()) :: list(String.t())
   def big_thumbnail_paths!(document) when is_map(document),
     do: to_path!(:absolute_thumbnail_path, document) |> list_big_thumbnails
 
   @doc """
-    Returns the big thumbnail paths pattern for the futures page of the documents passing the document. 
+    Returns the big thumbnail paths pattern for the futures page of the documents passing the document.
   """
   @spec big_thumbnail_paths_pattern!(Dms42.Models.Document) :: String.t()
   def big_thumbnail_paths_pattern!(document) when is_map(document),
@@ -89,7 +89,7 @@ defmodule Dms42.DocumentPath do
   @doc """
     Returns the absolute path of the document folder containing thumbnails.
   """
-  @spec thumbnail_folder_path!(Dms42.Models.Document) :: String.t()
+  @spec thumbnail_folder_path!(Dms42.Models.Document.t()) :: String.t()
   def thumbnail_folder_path!(document), do: to_path!(:absolute_thumbnail_path, document)
 
   @spec list_big_thumbnails(String.t()) :: list(String.t())
@@ -134,7 +134,7 @@ defmodule Dms42.DocumentPath do
     end
   end
 
-  @spec uuid!(Dms42.Models.Document) :: String.t()
+  @spec uuid!(Dms42.Models.Document.t()) :: String.t()
   defp uuid!(document) when is_map(document) do
     %Document{:document_id => document_id} = document
 
@@ -144,7 +144,7 @@ defmodule Dms42.DocumentPath do
     end
   end
 
-  @spec middle_path!(Dms42.Models.Document) :: String.t()
+  @spec middle_path!(Dms42.Models.Document.t()) :: String.t()
   defp middle_path!(document) when is_map(document) do
     %Document{:inserted_at => datetime} = document
     %{:year => year, :month => month, :day => day} = datetime
@@ -156,7 +156,7 @@ defmodule Dms42.DocumentPath do
     ])
   end
 
-  @spec to_path!(atom(), Dms42.Models.Document) :: String.t()
+  @spec to_path!(atom(), Dms42.Models.Document.t()) :: String.t()
   defp to_path!(prefix_key, document) do
     Path.join([
       get!(prefix_key),

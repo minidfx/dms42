@@ -124,7 +124,6 @@ defmodule Dms42.DocumentsManager do
     images = DocumentPath.big_thumbnail_paths!(document)
 
     {:ok, document_id_string} = Ecto.UUID.load(did)
-    {:ok, document_type_id_string} = Ecto.UUID.load(doc_type_id)
 
     datetimes =
       %{
@@ -149,7 +148,7 @@ defmodule Dms42.DocumentsManager do
       |> MapHelper.put_if(
         :ocr,
         fn ->
-          %{:ocr => ocr} = document_ocr
+          %DocumentOcr{:ocr => ocr} = document_ocr
           ocr
         end,
         document_ocr != nil

@@ -9,10 +9,10 @@ defmodule Dms42.DocumentsFinder do
 
   @max_result 20
 
-  @spec find_by_tags(String.t()) :: list(Dms42.Models.Document.t())
+  @spec find_by_tags(String.t()) :: list(Dms42.Models.SearchResult.t())
   def find_by_tags(tag) when is_bitstring(tag), do: find_by_tags([tag])
 
-  @spec find_by_tags(list(String.t())) :: list(Dms42.Models.Document.t())
+  @spec find_by_tags(list(String.t())) :: list(Dms42.Models.SearchResult.t())
   def find_by_tags([]), do: []
 
   def find_by_tags(tags) when is_list(tags) do
@@ -23,7 +23,7 @@ defmodule Dms42.DocumentsFinder do
     |> Enum.uniq_by(fn %SearchResult{:document_id => x} -> x end)
   end
 
-  @spec find(String.t()) :: list(Dms42.Models.Document.t())
+  @spec find(String.t()) :: list(Dms42.Models.SearchResult.t())
   def find(""), do: []
 
   def find(query) when is_bitstring(query) do
@@ -42,7 +42,6 @@ defmodule Dms42.DocumentsFinder do
   @spec normalize(String.t()) :: String.t()
   def normalize(""), do: ""
 
-  @spec normalize(String.t()) :: String.t()
   def normalize(term),
     do:
       term
@@ -52,10 +51,11 @@ defmodule Dms42.DocumentsFinder do
 
   ##### Private members
 
-  @spec to_result({String.t(), list}) :: list
+  @spec to_result({String.t(), list(Dms42.Models.Document.t())}) ::
+          list(Dms42.Models.Document.t())
   defp to_result({_, result}), do: result
 
-  @spec find_by_exact_tag({String.t(), list(String.t())}) ::
+  @spec find_by_exact_tag({String.t(), list(Dms42.Models.Document.t())}) ::
           {String.t(), list(Dms42.Models.Document.t())}
   defp find_by_exact_tag({query, acc}) when length(acc) >= @max_result, do: {query, acc}
 
@@ -70,7 +70,8 @@ defmodule Dms42.DocumentsFinder do
     {query, acc ++ result}
   end
 
-  @spec find_by_exact_tags(String.t()) :: {String.t(), list(Dms42.Models.Document.t())}
+  @spec find_by_exact_tags({String.t(), list(Dms42.Models.Document.t())}) ::
+          {String.t(), list(Dms42.Models.SearchResult.t())}
   defp find_by_exact_tags({query, acc}) when length(acc) >= @max_result, do: {query, acc}
 
   defp find_by_exact_tags({query, acc}) do
@@ -125,7 +126,7 @@ defmodule Dms42.DocumentsFinder do
   end
 
   @spec find_by_exact_ocr({String.t(), list(Dms42.Models.Document.t())}) ::
-          list(Dms42.Models.SearchResult.t())
+          {String.t(), list(Dms42.Models.SearchResult.t())}
   defp find_by_exact_ocr({query, acc}) when length(acc) >= @max_result, do: {query, acc}
 
   defp find_by_exact_ocr({query, acc}) do
@@ -145,7 +146,7 @@ defmodule Dms42.DocumentsFinder do
   end
 
   @spec find_by_word_ocr({String.t(), list(Dms42.Models.Document.t())}) ::
-          list(Dms42.Models.SearchResult.t())
+          {String.t(), list(Dms42.Models.SearchResult.t())}
   defp find_by_word_ocr({query, acc}) when length(acc) >= @max_result, do: {query, acc}
 
   defp find_by_word_ocr({query, acc}) do
@@ -158,7 +159,7 @@ defmodule Dms42.DocumentsFinder do
   end
 
   @spec find_by_partial_ocr({String.t(), list(Dms42.Models.Document.t())}) ::
-          list(Dms42.Models.SearchResult.t())
+          {String.t(), list(Dms42.Models.SearchResult.t())}
   defp find_by_partial_ocr({query, acc}) when length(acc) >= @max_result, do: {query, acc}
 
   defp find_by_partial_ocr({query, acc}) do

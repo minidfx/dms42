@@ -6,7 +6,7 @@ defmodule Dms42.ThumbnailProcessor do
   alias Dms42.DocumentPath
   alias Dms42.Models.Document
 
-  @spec process(Dms42.Models.Document) :: {:ok, Dms42.Models.Document} | {:error, any()}
+  @spec process(Dms42.Models.Document.t()) :: {:ok, Dms42.Models.Document.t()} | {:error, any()}
   def process(document) do
     %Document{:mime_type => mime_type} = document
 
@@ -16,8 +16,8 @@ defmodule Dms42.ThumbnailProcessor do
     end
   end
 
-  @spec create_thumbnails_from_pdf(Dms42.Models.Document) ::
-          {:ok, Dms42.Models.Document} | {:error, any()}
+  @spec create_thumbnails_from_pdf(Dms42.Models.Document.t()) ::
+          {:ok, Dms42.Models.Document.t()} | {:error, any()}
   defp create_thumbnails_from_pdf(document) do
     try do
       file_path = DocumentPath.document_path!(document)
@@ -72,8 +72,8 @@ defmodule Dms42.ThumbnailProcessor do
     end
   end
 
-  @spec create_thumbnails_from_image(Dms42.Models.Document) ::
-          {:ok, Dms42.Models.Document} | {:error, any()}
+  @spec create_thumbnails_from_image(Dms42.Models.Document.t()) ::
+          {:ok, Dms42.Models.Document.t()} | {:error, any()}
   defp create_thumbnails_from_image(document) do
     try do
       file_path = DocumentPath.document_path!(document)

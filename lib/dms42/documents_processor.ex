@@ -7,7 +7,6 @@ defmodule Dms42.DocumentsProcessor do
   alias Dms42.Models.NewDocumentProcessingContext
   alias Dms42.Models.DocumentType
   alias Dms42.DocumentPath
-  alias Dms42.TagManager
   alias Dms42.DocumentsFinder
   alias Dms42.DocumentsManager
 
@@ -52,6 +51,7 @@ defmodule Dms42.DocumentsProcessor do
     case result do
       {:ok, _} -> Logger.info("Document processed successfully.")
       {:error, reason} -> Logger.error(reason)
+      _ -> raise "not supported!"
     end
   end
 
@@ -69,19 +69,15 @@ defmodule Dms42.DocumentsProcessor do
     %NewDocumentProcessingContext{
       :transaction => transaction,
       :document => document,
-      :type => document_type,
-      :content => bytes,
       :tags => tags
     } = context
 
-    %Document{
-      :mime_type => mime_type,
-      :original_file_datetime => original_file_datetime,
-      :original_file_name => original_file_name
-    } = document
-
     case Dms42.Repo.transaction(transaction) do
       {:error, table, _, _} ->
+        %Document{
+          :original_file_datetime => original_file_datetime
+        } = document
+
         DocumentPath.document_path!(document) |> File.rm!()
 
         {:error,
@@ -90,6 +86,10 @@ defmodule Dms42.DocumentsProcessor do
          }"}
 
       {:error, _} ->
+        %Document{
+          :original_file_datetime => original_file_datetime
+        } = document
+
         DocumentPath.document_path!(document) |> File.rm!()
 
         {:error, "Cannot save the transaction: #{original_file_datetime}"}

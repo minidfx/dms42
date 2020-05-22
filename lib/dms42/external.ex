@@ -165,7 +165,7 @@ defmodule Dms42.External do
     end
   end
 
-  @spec replace_broken_file({:ok, String.t(), String.t()}) ::
+  @spec replace_broken_file({:ok, {String.t(), String.t()}}) ::
           {:ok, String.t()} | {:error, String.t()}
   defp replace_broken_file({:ok, {fixed_file, broken_file}}) do
     Logger.debug("Replacing the broken file #{broken_file} by the file #{fixed_file} ...")

@@ -1,5 +1,6 @@
 module Views.Home exposing (init, update, view)
 
+import Bootstrap.Alert
 import Browser.Dom
 import Debounce
 import Factories
@@ -14,6 +15,7 @@ import Msgs.Home
 import Msgs.Main
 import String.Format
 import Task
+import Url
 import Url.Builder
 import Views.Documents
 import Views.Shared
@@ -24,15 +26,14 @@ import Views.Shared
 
 
 view : Models.State -> List (Html Msgs.Main.Msg)
-view state =
+view ({ searchState } as state) =
     let
         documents =
-            state.searchState
+            searchState
                 |> Maybe.andThen (\x -> x.documents)
-                |> Maybe.withDefault []
 
         query =
-            state.searchState
+            searchState
                 |> Maybe.andThen (\x -> x.query)
                 |> Maybe.withDefault ""
 
@@ -71,9 +72,7 @@ view state =
                 ]
             ]
         ]
-    , Html.div [ Html.Attributes.class "row" ]
-        [ Html.div [ Html.Attributes.class "col d-flex flex-wrap cards" ] (cards state documents)
-        ]
+    , Html.div [ Html.Attributes.class "row" ] content
     ]
 
 

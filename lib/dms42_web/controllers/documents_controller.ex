@@ -68,9 +68,8 @@ defmodule Dms42Web.DocumentsController do
         conn
 
       {:ok, conn, document} ->
-        absolute_file_path =
-          DocumentPath.small_thumbnail_path!(document)
-          |> small_thumbnail_fallback_whether_no_exists(conn)
+        DocumentPath.small_thumbnail_path!(document)
+        |> small_thumbnail_fallback_whether_no_exists(conn)
     end
   end
 
@@ -103,10 +102,9 @@ defmodule Dms42Web.DocumentsController do
         conn
 
       {:ok, conn, document} ->
-        path =
-          DocumentPath.big_thumbnail_paths!(document)
-          |> Enum.at(image_id |> String.to_integer())
-          |> big_thumbnail_fallback_whether_no_exists(conn)
+        DocumentPath.big_thumbnail_paths!(document)
+        |> Enum.at(image_id |> String.to_integer())
+        |> big_thumbnail_fallback_whether_no_exists(conn)
     end
   end
 
@@ -117,11 +115,10 @@ defmodule Dms42Web.DocumentsController do
         conn
 
       {:ok, conn, document} ->
-        absolute_file_path =
-          DocumentPath.big_thumbnail_paths!(document)
-          |> Enum.take(1)
-          |> Enum.at(0)
-          |> big_thumbnail_fallback_whether_no_exists(conn)
+        DocumentPath.big_thumbnail_paths!(document)
+        |> Enum.take(1)
+        |> Enum.at(0)
+        |> big_thumbnail_fallback_whether_no_exists(conn)
     end
   end
 

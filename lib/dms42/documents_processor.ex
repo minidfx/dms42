@@ -7,7 +7,6 @@ defmodule Dms42.DocumentsProcessor do
   alias Dms42.Models.NewDocumentProcessingContext
   alias Dms42.Models.DocumentType
   alias Dms42.DocumentPath
-  alias Dms42.TagManager
   alias Dms42.DocumentsFinder
   alias Dms42.DocumentsManager
 
@@ -69,15 +68,11 @@ defmodule Dms42.DocumentsProcessor do
     %NewDocumentProcessingContext{
       :transaction => transaction,
       :document => document,
-      :type => document_type,
-      :content => bytes,
       :tags => tags
     } = context
 
     %Document{
-      :mime_type => mime_type,
-      :original_file_datetime => original_file_datetime,
-      :original_file_name => original_file_name
+      :original_file_datetime => original_file_datetime
     } = document
 
     case Dms42.Repo.transaction(transaction) do

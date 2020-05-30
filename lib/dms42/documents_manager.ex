@@ -113,7 +113,6 @@ defmodule Dms42.DocumentsManager do
     %{
       :comments => comments,
       :document_id => did,
-      :document_type_id => doc_type_id,
       :inserted_at => inserted,
       :updated_at => updated,
       :tags => tags,
@@ -124,7 +123,6 @@ defmodule Dms42.DocumentsManager do
     images = DocumentPath.big_thumbnail_paths!(document)
 
     {:ok, document_id_string} = Ecto.UUID.load(did)
-    {:ok, document_type_id_string} = Ecto.UUID.load(doc_type_id)
 
     datetimes =
       %{

@@ -4,6 +4,7 @@ import Bootstrap.Modal
 import Bootstrap.Navbar
 import Browser.Navigation as Nav
 import Debounce
+import Dict
 import Models
 import ScrollTo
 import Set
@@ -21,7 +22,7 @@ stateFactory key url route navBarState =
     , error = Nothing
     , userTimeZone = Nothing
     , isLoading = False
-    , modalVisibility = Bootstrap.Modal.hidden
+    , modalVisibility = Nothing
     , searchState = Nothing
     , scrollTo = ScrollTo.init
     , queueInfo = Nothing
@@ -29,6 +30,11 @@ stateFactory key url route navBarState =
     , tagsState = Nothing
     , viewPort = Nothing
     }
+
+
+modalFactory : String -> Bootstrap.Modal.Visibility -> Models.Modal
+modalFactory id visibility =
+    Models.Modal id visibility
 
 
 queueInfoFactory : Models.QueueInfoResponse

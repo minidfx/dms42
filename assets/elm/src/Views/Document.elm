@@ -15,6 +15,7 @@ import Msgs.Document
 import Msgs.Main
 import ScrollTo
 import String.Format
+import Task
 import Time
 import Views.Documents
 import Views.Shared
@@ -48,7 +49,8 @@ view state documentId offset =
     in
     case document of
         Just x ->
-            [ deleteConfirmation state x
+            [ deleteConfirmationModal state x
+            , showDocumentAsModal state x offset
             , internalView state x offset
             ]
 
@@ -117,7 +119,12 @@ deleteDocument documentId =
 
 didDeleteDocument : Models.State -> Result Http.Error () -> ( Models.State, Cmd Msgs.Main.Msg )
 didDeleteDocument state _ =
-    ( { state | modalVisibility = Bootstrap.Modal.hidden }, Nav.pushUrl state.key "/documents" )
+    ( state
+    , Cmd.batch
+        [ Task.succeed Msgs.Main.CloseModal |> Task.perform identity
+        , Nav.pushUrl state.key "/documents"
+        ]
+    )
 
 
 handleDocument : Models.State -> Result Http.Error Models.DocumentResponse -> ( Models.State, Cmd Msgs.Main.Msg )
@@ -172,8 +179,21 @@ getDocument documentId =
         }
 
 
-deleteConfirmation : Models.State -> Models.DocumentResponse -> Html Msgs.Main.Msg
-deleteConfirmation { modalVisibility } { id } =
+deleteConfirmationModal : Models.State -> Models.DocumentResponse -> Html Msgs.Main.Msg
+deleteConfirmationModal { modalVisibility } { id } =
+    let
+        visibility =
+            case modalVisibility of
+                Just modal ->
+                    if modal.id == "deleteDialog" then
+                        modal.visibility
+
+                    else
+                        Bootstrap.Modal.hidden
+
+                Nothing ->
+                    Bootstrap.Modal.hidden
+    in
     Bootstrap.Modal.config Msgs.Main.CloseModal
         |> Bootstrap.Modal.small
         |> Bootstrap.Modal.withAnimation (\x -> Msgs.Main.AnimatedModal x)
@@ -192,7 +212,44 @@ deleteConfirmation { modalVisibility } { id } =
                 ]
                 [ Html.text "Delete" ]
             ]
-        |> Bootstrap.Modal.view modalVisibility
+        |> Bootstrap.Modal.view visibility
+
+
+showDocumentAsModal : Models.State -> Models.DocumentResponse -> Maybe Int -> Html Msgs.Main.Msg
+showDocumentAsModal { modalVisibility, viewPort } { id, original_file_name } offset =
+    let
+        visibility =
+            case modalVisibility of
+                Just modal ->
+                    if modal.id == "showDocumentAsModal" then
+                        modal.visibility
+
+                    else
+                        Bootstrap.Modal.hidden
+
+                Nothing ->
+                    Bootstrap.Modal.hidden
+    in
+    Bootstrap.Modal.config Msgs.Main.CloseModal
+        |> Bootstrap.Modal.withAnimation (\x -> Msgs.Main.AnimatedModal x)
+        |> Bootstrap.Modal.hideOnBackdropClick True
+        |> Bootstrap.Modal.body []
+            [ Html.img
+                [ Html.Attributes.alt original_file_name
+                , Html.Attributes.src
+                    ("/documents/{{ id }}/images/{{ image_id }}"
+                        |> String.Format.namedValue "id" id
+                        |> (String.Format.namedValue "image_id" <| String.fromInt <| Maybe.withDefault 0 offset)
+                    )
+                , Html.Attributes.class "img-fluid img-thumbnail"
+                , Html.Events.onClick <| Msgs.Main.AnimatedModal Bootstrap.Modal.hiddenAnimated
+                ]
+                []
+            ]
+        |> Bootstrap.Modal.scrollableBody True
+        |> Bootstrap.Modal.centered False
+        |> Bootstrap.Modal.attrs [ Html.Attributes.class "showDocumentAsModal" ]
+        |> Bootstrap.Modal.view visibility
 
 
 internalView : Models.State -> Models.DocumentResponse -> Maybe Int -> Html Msgs.Main.Msg
@@ -215,7 +272,7 @@ internalView state document offset =
                     [ Html.div [ Html.Attributes.class "d-none d-md-block ml-auto" ]
                         [ Bootstrap.Button.button
                             [ Bootstrap.Button.danger
-                            , Bootstrap.Button.onClick Msgs.Main.ShowModal
+                            , Bootstrap.Button.onClick <| Msgs.Main.ShowModal "deleteDialog"
                             ]
                             [ Html.text "Delete" ]
                         , Bootstrap.Button.linkButton
@@ -314,6 +371,7 @@ documentView state document offset =
                         |> (String.Format.namedValue "image_id" <| String.fromInt <| Maybe.withDefault 0 offset)
                     )
                 , Html.Attributes.class "img-fluid img-thumbnail"
+                , Html.Events.onClick <| Msgs.Main.ShowModal "showDocumentAsModal"
                 ]
                 []
             , pagination state document offset
@@ -328,6 +386,7 @@ documentView state document offset =
                         |> (String.Format.namedValue "image_id" <| String.fromInt <| Maybe.withDefault 0 offset)
                     )
                 , Html.Attributes.class "img-fluid img-thumbnail"
+                , Html.Events.onClick <| Msgs.Main.ShowModal "showDocumentAsModal"
                 ]
                 []
             ]
@@ -353,6 +412,9 @@ pagination { viewPort } { thumbnails, id } offset =
 internalUpdate : Models.State -> Msgs.Document.Msg -> Maybe String -> ( Models.State, Cmd Msgs.Main.Msg )
 internalUpdate state msg routeDocumentId =
     case msg of
+        Msgs.Document.ShowDocumentAsModal ->
+            ( state, Cmd.none )
+
         Msgs.Document.Home ->
             let
                 document =

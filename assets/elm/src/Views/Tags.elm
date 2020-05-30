@@ -2,6 +2,9 @@ module Views.Tags exposing (init, update, view)
 
 -- Public members
 
+import Bootstrap.Alert
+import Bootstrap.Spinner
+import Bootstrap.Text
 import Browser.Navigation as Nav
 import Factories
 import Helpers
@@ -79,27 +82,54 @@ update state msg =
                     state.tagsState
                         |> Maybe.withDefault Factories.tagsStateFactory
             in
-            ( { state | tagsState = Just { tagsState | documents = Nothing } }, Cmd.none )
+            ( { state | tagsState = Just { tagsState | documents = Nothing }, isLoading = False }, Cmd.none )
 
         Msgs.Tags.Nop ->
             ( state, Cmd.none )
 
 
 view : Models.State -> List (Html Msgs.Main.Msg)
-view state =
+view ({ tagsState, tagsResponse, isLoading } as state) =
     let
-        { tagsResponse } =
-            state
-
         tags =
             tagsResponse |> Maybe.withDefault []
 
-        tagsState =
-            state.tagsState
+        localTagsState =
+            tagsState
                 |> Maybe.withDefault Factories.tagsStateFactory
 
         documents =
-            tagsState.documents |> Maybe.withDefault []
+            localTagsState.documents |> Maybe.withDefault []
+
+        content =
+            case ( List.isEmpty documents, isLoading ) of
+                ( True, True ) ->
+                    [ Html.div [ Html.Attributes.class "col" ]
+                        [ Html.div [ Html.Attributes.class "d-flex" ]
+                            [ Bootstrap.Spinner.spinner
+                                [ Bootstrap.Spinner.large
+                                , Bootstrap.Spinner.color Bootstrap.Text.primary
+                                , Bootstrap.Spinner.attrs [ Html.Attributes.class "mx-auto" ]
+                                ]
+                                [ Bootstrap.Spinner.srMessage "Loading ..." ]
+                            ]
+                        ]
+                    ]
+
+                ( False, False ) ->
+                    [ Html.div [ Html.Attributes.class "col d-flex justify-content-around flex-wrap cards" ]
+                        (Views.Documents.cards state documents)
+                    ]
+
+                ( True, False ) ->
+                    [ Html.div [ Html.Attributes.class "col" ]
+                        [ Bootstrap.Alert.simpleInfo [ Html.Attributes.class "text-center" ] [ Html.text "Select any tags above." ] ]
+                    ]
+
+                ( False, True ) ->
+                    [ Html.div [ Html.Attributes.class "col d-flex justify-content-around flex-wrap cards" ]
+                        (Views.Documents.cards state documents)
+                    ]
     in
     [ Html.div [ Html.Attributes.class "row" ]
         [ Html.div [ Html.Attributes.class "col tags d-flex justify-content-center flex-wrap" ]
@@ -109,11 +139,7 @@ view state =
             )
         ]
     , Html.hr [ Html.Attributes.style "margin-top" "0.3em" ] []
-    , Html.div [ Html.Attributes.class "row documents" ]
-        [ Html.div [ Html.Attributes.class "col" ]
-            [ Html.div [ Html.Attributes.class "cards d-flex justify-content-around flex-wrap" ] (Views.Documents.cards state documents)
-            ]
-        ]
+    , Html.div [ Html.Attributes.class "row documents" ] content
     ]
 
 
@@ -122,24 +148,32 @@ view state =
 
 
 badge : Models.State -> String -> Html Msgs.Main.Msg
-badge state tag =
-    let
-        tagsState =
-            state.tagsState
-                |> Maybe.withDefault Factories.tagsStateFactory
+badge { isLoading, tagsState } tag =
+    case isLoading of
+        True ->
+            Html.span
+                [ Html.Attributes.class "badge badge-light badge-pointer-not-allowed user-select-none"
+                ]
+                [ Html.text tag ]
 
-        badgeStyles =
-            if Set.member tag tagsState.selected then
-                "badge badge-success"
+        False ->
+            let
+                localTagsState =
+                    tagsState
+                        |> Maybe.withDefault Factories.tagsStateFactory
 
-            else
-                "badge badge-secondary"
-    in
-    Html.span
-        [ Html.Attributes.class badgeStyles
-        , Html.Events.onClick <| (Msgs.Main.TagsMsg << Msgs.Tags.ToggleTag) <| tag
-        ]
-        [ Html.text tag ]
+                badgeStyles =
+                    if Set.member tag localTagsState.selected then
+                        "badge badge-success badge-pointer user-select-none"
+
+                    else
+                        "badge badge-secondary badge-pointer user-select-none"
+            in
+            Html.span
+                [ Html.Attributes.class badgeStyles
+                , Html.Events.onClick <| (Msgs.Main.TagsMsg << Msgs.Tags.ToggleTag) <| tag
+                ]
+                [ Html.text tag ]
 
 
 searchDocuments : List String -> Cmd Msgs.Main.Msg

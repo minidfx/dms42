@@ -2,11 +2,14 @@ module Main exposing (init, main, subscriptions, update, view)
 
 import Bootstrap.Modal
 import Bootstrap.Navbar
+import Bootstrap.Spinner
+import Bootstrap.Text
 import Browser
 import Browser.Dom
 import Browser.Navigation as Nav
 import Dict
 import Factories
+import Helpers
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Models
@@ -257,11 +260,7 @@ subscriptions { modalVisibility, scrollTo, navBarState } =
 
 
 navbar : Models.State -> Html Msgs.Main.Msg
-navbar state =
-    let
-        { navBarState } =
-            state
-    in
+navbar ({ navBarState, isLoading } as state) =
     Bootstrap.Navbar.config Msgs.Main.NavbarMsg
         |> Bootstrap.Navbar.withAnimation
         |> Bootstrap.Navbar.dark
@@ -283,6 +282,24 @@ navbar state =
             , yieldItem state "/documents" "Documents"
             , yieldItem state "/settings" "Settings"
             ]
+        |> Helpers.fluentUpdate
+            (\x ->
+                if isLoading then
+                    Bootstrap.Navbar.customItems
+                        [ Bootstrap.Navbar.customItem <|
+                            Html.span [ Html.Attributes.class "mt-1" ]
+                                [ Bootstrap.Spinner.spinner
+                                    [ Bootstrap.Spinner.small
+                                    , Bootstrap.Spinner.color Bootstrap.Text.primary
+                                    ]
+                                    [ Bootstrap.Spinner.srMessage "Loading ..." ]
+                                ]
+                        ]
+                        x
+
+                else
+                    x
+            )
         |> Bootstrap.Navbar.view navBarState
 
 

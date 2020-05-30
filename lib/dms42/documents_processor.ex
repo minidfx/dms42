@@ -72,10 +72,6 @@ defmodule Dms42.DocumentsProcessor do
       :tags => tags
     } = context
 
-    %Document{
-      :original_file_datetime => original_file_datetime
-    } = document
-
     case Dms42.Repo.transaction(transaction) do
       {:error, table, _, _} ->
         %Document{

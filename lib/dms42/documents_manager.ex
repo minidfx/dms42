@@ -113,7 +113,6 @@ defmodule Dms42.DocumentsManager do
     %{
       :comments => comments,
       :document_id => did,
-      :document_type_id => doc_type_id,
       :inserted_at => inserted,
       :updated_at => updated,
       :tags => tags,

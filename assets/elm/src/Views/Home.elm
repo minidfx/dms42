@@ -1,4 +1,4 @@
-module Views.Home exposing (init, parseQuery, update, view)
+module Views.Home exposing (init, update, view)
 
 import Browser.Dom
 import Debounce
@@ -35,6 +35,21 @@ view state =
             state.searchState
                 |> Maybe.andThen (\x -> x.query)
                 |> Maybe.withDefault ""
+
+        content =
+            case documents of
+                Just x ->
+                    if List.isEmpty x then
+                        [ Html.div [ Html.Attributes.class "col" ]
+                            [ Bootstrap.Alert.simpleWarning [ Html.Attributes.class "text-center" ] [ Html.text "No results found." ] ]
+                        ]
+
+                    else
+                        [ Html.div [ Html.Attributes.class "col d-flex flex-wrap justify-content-around cards" ] (cards state x)
+                        ]
+
+                Nothing ->
+                    []
     in
     [ Html.div [ Html.Attributes.class "row" ]
         [ Html.div [ Html.Attributes.class "col home-search" ]
@@ -84,7 +99,7 @@ handleSearchResult state result =
                 Err _ ->
                     []
     in
-    ( { state | searchState = Just { searchState | documents = Just documents } }, Cmd.none )
+    ( { state | searchState = Just { searchState | documents = Just documents }, isLoading = False }, Cmd.none )
 
 
 init : Models.State -> Maybe String -> ( Models.State, Cmd Msgs.Main.Msg )
@@ -120,39 +135,11 @@ update state msg query =
     internalUpdate newState msg
 
 
-cleanQuery : String -> String
-cleanQuery query =
-    query |> String.trim
-
-
-parseQuery : String -> Maybe String
-parseQuery query =
-    if (query |> cleanQuery |> String.length) > 2 then
-        Just <| cleanQuery query
-
-    else
-        Nothing
-
-
-
--- Private members
-
-
 debounceConfig : (Debounce.Msg -> Msgs.Main.Msg) -> Debounce.Config Msgs.Main.Msg
 debounceConfig debounceMsg =
     { strategy = Debounce.later 500
     , transform = debounceMsg
     }
-
-
-parseMaybeQuery : Maybe String -> Maybe String
-parseMaybeQuery query =
-    case query of
-        Just x ->
-            parseQuery x
-
-        Nothing ->
-            Nothing
 
 
 rankingOrdering : Models.DocumentResponse -> Models.DocumentResponse -> Basics.Order
@@ -206,15 +193,15 @@ internalUpdate state msg =
                 searchState =
                     Maybe.withDefault Factories.searchStateFactory <| state.searchState
 
-                newCommands =
-                    case searchState.query |> parseMaybeQuery of
+                ( newState, newCommands ) =
+                    case searchState.query of
                         Just x ->
-                            [ searchDocuments x ]
+                            ( { state | isLoading = True }, [ searchDocuments x ] )
 
                         Nothing ->
-                            [ Task.attempt (\_ -> Msgs.Main.Nop) (Browser.Dom.focus "query") ]
+                            ( state, [ Task.attempt (\_ -> Msgs.Main.Nop) (Browser.Dom.focus "query") ] )
             in
-            ( state, Cmd.batch newCommands )
+            ( newState, Cmd.batch newCommands )
 
         _ ->
             ( state, Cmd.none )
@@ -222,9 +209,4 @@ internalUpdate state msg =
 
 searchTo : Models.State -> String -> Cmd Msgs.Main.Msg
 searchTo state query =
-    case query |> parseQuery of
-        Just x ->
-            Task.perform Msgs.Main.LinkClicked (Task.succeed <| Helpers.navTo state [] [ Url.Builder.string "query" x ])
-
-        Nothing ->
-            Task.perform Msgs.Main.LinkClicked (Task.succeed <| Helpers.navTo state [] [])
+    Task.perform Msgs.Main.LinkClicked (Task.succeed <| Helpers.navTo state [] [ Url.Builder.string "query" query ])

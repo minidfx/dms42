@@ -2,7 +2,6 @@ import '../css/app.less'
 
 import $ from 'jquery'
 import Dropzone from 'dropzone'
-import 'bootstrap4-tagsinput-douglasanpa/tagsinput.js'
 import 'bootstrap/js/dist'
 import 'bootstrap/dist/js/bootstrap.min.js'
 import '@fortawesome/fontawesome-free'
@@ -104,7 +103,7 @@ app.ports.upload.subscribe(request => {
     const {jQueryPath, jQueryTagsPath} = request
     const localDropZone = $(jQueryPath)[0].dropzone
     const newFiles = localDropZone.files.filter(x => x.status !== 'success')
-    
+
     if (newFiles.length < 1) {
         app.ports.uploadCompleted.send(null)
         $(jQueryTagsPath).val(null).trigger('change')

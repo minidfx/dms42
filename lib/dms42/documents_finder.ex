@@ -27,16 +27,22 @@ defmodule Dms42.DocumentsFinder do
   def find(""), do: []
 
   def find(query) when is_bitstring(query) do
-    {query, []}
-    |> find_by_exact_tag
-    |> find_by_exact_tags
-    |> find_by_exact_comments
-    |> find_by_exact_ocr
-    |> find_by_word_ocr
-    |> find_by_partial_ocr
-    |> to_result
-    |> Enum.sort_by(fn %SearchResult{:ranking => x} -> x end)
-    |> Enum.uniq_by(fn %SearchResult{:document_id => x} -> x end)
+    case is_valid(query) do
+      {:ok, query} ->
+        {query |> normalize(), []}
+        |> find_by_exact_tag
+        |> find_by_exact_tags
+        |> find_by_exact_comments
+        |> find_by_exact_ocr
+        |> find_by_word_ocr
+        |> find_by_partial_ocr
+        |> to_result
+        |> Enum.sort_by(fn %SearchResult{:ranking => x} -> x end)
+        |> Enum.uniq_by(fn %SearchResult{:document_id => x} -> x end)
+
+      _ ->
+        []
+    end
   end
 
   @spec normalize(String.t()) :: String.t()
@@ -52,6 +58,16 @@ defmodule Dms42.DocumentsFinder do
 
   ##### Private members
 
+  defp is_valid(query) do
+    query_normalized = query |> normalize
+
+    if query_normalized |> String.length() > 2 do
+      {:ok, query_normalized}
+    else
+      {:too_short, query_normalized}
+    end
+  end
+
   @spec to_result({String.t(), list}) :: list
   defp to_result({_, result}), do: result
 
@@ -62,7 +78,6 @@ defmodule Dms42.DocumentsFinder do
   defp find_by_exact_tag({query, acc}) do
     result =
       query
-      |> normalize
       |> query_find_by_exact_tag
       |> Dms42.Repo.all()
       |> Enum.map(fn x -> to_search_result(x, 1) end)
@@ -84,7 +99,6 @@ defmodule Dms42.DocumentsFinder do
 
     terms =
       query
-      |> normalize
       |> String.split(" ")
       |> Enum.uniq()
 
@@ -200,7 +214,6 @@ defmodule Dms42.DocumentsFinder do
   def query_find_by_partial_ocr(query) do
     terms =
       query
-      |> normalize
       |> String.split(" ")
       |> filter_stop_words()
       |> Enum.uniq()
@@ -218,7 +231,6 @@ defmodule Dms42.DocumentsFinder do
   def query_find_by_word_ocr(query) do
     terms =
       query
-      |> normalize
       |> String.split(" ")
       |> filter_stop_words()
       |> Enum.uniq()

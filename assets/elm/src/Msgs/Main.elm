@@ -22,7 +22,7 @@ type Msg
     | GotUserTimeZone Time.Zone
     | GotViewPort Browser.Dom.Viewport
     | CloseModal
-    | ShowModal
+    | ShowModal String
     | AnimatedModal Bootstrap.Modal.Visibility
     | ScrollToTop
     | ScrollToMsg ScrollTo.Msg

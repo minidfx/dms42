@@ -7,6 +7,7 @@ import Ports.Models
 
 type Msg
     = Home
+    | ShowDocumentAsModal
     | DeleteDocument String
     | DidDeleteDocument (Result Http.Error ())
     | RunOcr Models.DocumentResponse

@@ -84,6 +84,12 @@ type alias TagsState =
     }
 
 
+type alias Modal =
+    { id : String
+    , visibility : Bootstrap.Modal.Visibility
+    }
+
+
 type Route
     = Documents (Maybe Int)
     | Document String (Maybe Int)
@@ -104,7 +110,7 @@ type alias State =
     , error : Maybe String
     , userTimeZone : Maybe Time.Zone
     , isLoading : Bool
-    , modalVisibility : Bootstrap.Modal.Visibility
+    , modalVisibility : Maybe Modal
     , searchState : Maybe SearchState
     , scrollTo : ScrollTo.State
     , queueInfo : Maybe QueueInfoResponse

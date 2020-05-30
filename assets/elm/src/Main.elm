@@ -5,6 +5,7 @@ import Bootstrap.Navbar
 import Browser
 import Browser.Dom
 import Browser.Navigation as Nav
+import Dict
 import Factories
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -188,13 +189,18 @@ update msg state =
             ( { state | viewPort = Just viewport }, Cmd.none )
 
         Msgs.Main.CloseModal ->
-            ( { state | modalVisibility = Bootstrap.Modal.hidden }, Cmd.none )
+            ( { state | modalVisibility = Nothing }, Cmd.none )
 
-        Msgs.Main.ShowModal ->
-            ( { state | modalVisibility = Bootstrap.Modal.shown }, Cmd.none )
+        Msgs.Main.ShowModal id ->
+            ( { state | modalVisibility = Just <| Factories.modalFactory id Bootstrap.Modal.shown }, Cmd.none )
 
         Msgs.Main.AnimatedModal visibility ->
-            ( { state | modalVisibility = visibility }, Cmd.none )
+            case state.modalVisibility of
+                Just modal ->
+                    ( { state | modalVisibility = Just <| { modal | visibility = visibility } }, Cmd.none )
+
+                Nothing ->
+                    ( state, Cmd.none )
 
         Msgs.Main.ScrollToTop ->
             ( state
@@ -225,14 +231,25 @@ update msg state =
 
 subscriptions : Models.State -> Sub Msgs.Main.Msg
 subscriptions { modalVisibility, scrollTo, navBarState } =
-    Sub.batch
-        [ Ports.Gates.uploadCompleted (always <| Msgs.Main.AddDocumentMsg Msgs.AddDocument.UploadCompleted)
-        , Ports.Gates.addTags <| Msgs.Main.DocumentMsg << Msgs.Document.AddTags
-        , Ports.Gates.removeTags <| Msgs.Main.DocumentMsg << Msgs.Document.RemoveTags
-        , Bootstrap.Modal.subscriptions modalVisibility Msgs.Main.AnimatedModal
-        , Sub.map Msgs.Main.ScrollToMsg <| ScrollTo.subscriptions scrollTo
-        , Bootstrap.Navbar.subscriptions navBarState Msgs.Main.NavbarMsg
-        ]
+    case modalVisibility of
+        Just modal ->
+            Sub.batch
+                [ Ports.Gates.uploadCompleted (always <| Msgs.Main.AddDocumentMsg Msgs.AddDocument.UploadCompleted)
+                , Ports.Gates.addTags <| Msgs.Main.DocumentMsg << Msgs.Document.AddTags
+                , Ports.Gates.removeTags <| Msgs.Main.DocumentMsg << Msgs.Document.RemoveTags
+                , Bootstrap.Modal.subscriptions modal.visibility Msgs.Main.AnimatedModal
+                , Sub.map Msgs.Main.ScrollToMsg <| ScrollTo.subscriptions scrollTo
+                , Bootstrap.Navbar.subscriptions navBarState Msgs.Main.NavbarMsg
+                ]
+
+        Nothing ->
+            Sub.batch
+                [ Ports.Gates.uploadCompleted (always <| Msgs.Main.AddDocumentMsg Msgs.AddDocument.UploadCompleted)
+                , Ports.Gates.addTags <| Msgs.Main.DocumentMsg << Msgs.Document.AddTags
+                , Ports.Gates.removeTags <| Msgs.Main.DocumentMsg << Msgs.Document.RemoveTags
+                , Sub.map Msgs.Main.ScrollToMsg <| ScrollTo.subscriptions scrollTo
+                , Bootstrap.Navbar.subscriptions navBarState Msgs.Main.NavbarMsg
+                ]
 
 
 

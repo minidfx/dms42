@@ -22,7 +22,7 @@ const maxRetry = 100
 const waitForNode = (jQueryPath, callback, retry) => {
   const localRetry = retry || 0
   if (localRetry > maxRetry) {
-    throw new Error(`Was not able to find the node after ${maxRetry}.`)
+    throw new Error(`This is not an error with ELM! Was not able to find the node after ${maxRetry}.`)
   }
 
   let htmlTag = $(jQueryPath)
@@ -84,6 +84,23 @@ app.ports.dropZone.subscribe(request => {
           })
     })
 })
+app.ports.unloadTags.subscribe(request => {
+  const {
+    jQueryPath,
+    documentId
+  } = request
+
+  waitForNode(jQueryPath,
+    x => {
+      if (!x.hasClass("select2-hidden-accessible")) {
+        console.warn('The select2 was not loaded on the DOM element.')
+        return
+      }
+
+      x.select2('close')
+      x.select2('destroy')
+    })
+})
 app.ports.tags.subscribe(request => {
   const {
     jQueryPath,
@@ -91,6 +108,7 @@ app.ports.tags.subscribe(request => {
     tags,
     documentTags
   } = request
+
   const localTags = tags.sort()
     .map((x, i) => {
       return {

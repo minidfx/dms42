@@ -1,4 +1,4 @@
-module Views.Shared exposing (badge, card, flattenTags, getAndLoadTags, getTags, handleTags, pagination, posix2String, tagsinputs)
+module Views.Shared exposing (badge, card, flattenTags, getAndLoadTags, getTags, handleTags, pagination, posix2String, refreshDocumentTags, tagsinputs)
 
 import Bootstrap.General.HAlign
 import Bootstrap.Pagination
@@ -18,6 +18,7 @@ import Msgs.Main
 import Ports.Gates
 import Set
 import String.Format
+import Task
 import Time
 
 
@@ -190,41 +191,53 @@ handleTags state result loadThem =
                 Err _ ->
                     []
 
-        tagsState =
-            state.tagsState |> Maybe.withDefault Factories.tagsStateFactory
-
-        newStateWithTags =
-            { state | tagsState = Just { tagsState | tags = Set.fromList tags } }
-
-        documentId =
-            case route of
-                Models.Document id _ ->
-                    Just id
-
-                _ ->
-                    Nothing
-
-        documents =
-            state.documentsState
-                |> Maybe.andThen (\x -> x.documents)
-                |> Maybe.withDefault Dict.empty
-
-        documentTags =
-            documentId
-                |> Maybe.andThen (\x -> Just x)
-                |> Maybe.andThen (\x -> Dict.get x <| documents)
-                |> Maybe.andThen (\x -> Just x.tags)
-                |> Maybe.withDefault []
-
         commands =
             if loadThem then
-                Ports.Gates.tags { jQueryPath = "#tags", documentId = documentId, tags = tags, documentTags = documentTags }
+                case route of
+                    Models.Document id _ ->
+                        let
+                            documents =
+                                state.documentsState
+                                    |> Maybe.andThen (\x -> x.documents)
+                                    |> Maybe.withDefault Dict.empty
+
+                            documentTags =
+                                Dict.get id documents
+                                    |> Maybe.andThen (\x -> Just x.tags)
+                                    |> Maybe.withDefault []
+                        in
+                        Ports.Gates.tags { jQueryPath = "#tags", documentId = Just id, tags = tags, documentTags = documentTags }
+
+                    _ ->
+                        Ports.Gates.tags { jQueryPath = "#tags", documentId = Nothing, tags = tags, documentTags = [] }
 
             else
                 Cmd.none
     in
-    ( { newStateWithTags | tagsResponse = Just tags }
+    ( { state | tagsResponse = Just tags, tagsLoaded = True }
     , commands
+    )
+
+
+refreshDocumentTags : Models.State -> String -> ( Models.State, Cmd Msgs.Main.Msg )
+refreshDocumentTags ({ documentsState, tagsResponse } as state) documentId =
+    let
+        tags =
+            tagsResponse
+                |> Maybe.withDefault []
+
+        documents =
+            documentsState
+                |> Maybe.andThen (\x -> x.documents)
+                |> Maybe.withDefault Dict.empty
+
+        documentTags =
+            Dict.get documentId documents
+                |> Maybe.andThen (\x -> Just x.tags)
+                |> Maybe.withDefault []
+    in
+    ( { state | tagsLoaded = True }
+    , Ports.Gates.tags { jQueryPath = "#tags", documentId = Just <| documentId, tags = tags, documentTags = documentTags }
     )
 
 

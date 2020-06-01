@@ -29,6 +29,7 @@ stateFactory key url route navBarState =
     , navBarState = navBarState
     , tagsState = Nothing
     , viewPort = Nothing
+    , tagsLoaded = False
     }
 
 
@@ -60,5 +61,4 @@ tagsStateFactory : Models.TagsState
 tagsStateFactory =
     { selected = Set.empty
     , documents = Nothing
-    , tags = Set.empty
     }

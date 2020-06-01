@@ -80,7 +80,6 @@ type alias QueueInfoResponse =
 type alias TagsState =
     { selected : Set String
     , documents : Maybe (List DocumentResponse)
-    , tags : Set String
     }
 
 
@@ -116,4 +115,5 @@ type alias State =
     , queueInfo : Maybe QueueInfoResponse
     , navBarState : Bootstrap.Navbar.State
     , viewPort : Maybe Browser.Dom.Viewport
+    , tagsLoaded : Bool
     }

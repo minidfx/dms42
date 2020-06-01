@@ -151,37 +151,7 @@ update msg state =
                     ( state, Nav.load href )
 
         Msgs.Main.UrlChanged url ->
-            let
-                route =
-                    Url.Parser.parse routes url |> Maybe.withDefault (Models.Home Nothing)
-
-                newState =
-                    { state | url = url, route = route, error = Nothing }
-            in
-            case route of
-                Models.AddDocuments ->
-                    Views.AddDocuments.update newState Msgs.AddDocument.Home
-
-                Models.Documents offset ->
-                    Views.Documents.update
-                        newState
-                        Msgs.Documents.Home
-                        offset
-
-                Models.Document documentId _ ->
-                    Views.Document.update
-                        newState
-                        Msgs.Document.Home
-                        (Just documentId)
-
-                Models.Settings ->
-                    Views.Settings.update newState Msgs.Settings.Home
-
-                Models.Home query ->
-                    Views.Home.update newState Msgs.Home.Home query
-
-                Models.Tags ->
-                    Views.Tags.update newState Msgs.Tags.Home
+            updateUrlChanged state url
 
         Msgs.Main.GotUserTimeZone zone ->
             ( { state | userTimeZone = Just zone }
@@ -226,6 +196,51 @@ update msg state =
 
         Msgs.Main.Nop ->
             ( state, Cmd.none )
+
+
+updateUrlChanged : Models.State -> Url.Url -> ( Models.State, Cmd Msgs.Main.Msg )
+updateUrlChanged state url =
+    -- INFO: Make sure to clear the previous DOM element loaded with the tags.
+    if state.tagsLoaded then
+        ( { state | tagsLoaded = False }
+        , Cmd.batch
+            [ Ports.Gates.unloadTags { jQueryPath = "#tags" }
+            , Task.perform identity <| Task.succeed <| Msgs.Main.UrlChanged url
+            ]
+        )
+
+    else
+        let
+            route =
+                Url.Parser.parse routes url |> Maybe.withDefault (Models.Home Nothing)
+
+            newState =
+                { state | url = url, route = route, error = Nothing }
+        in
+        case route of
+            Models.AddDocuments ->
+                Views.AddDocuments.update newState Msgs.AddDocument.Home
+
+            Models.Documents offset ->
+                Views.Documents.update
+                    newState
+                    Msgs.Documents.Home
+                    offset
+
+            Models.Document documentId _ ->
+                Views.Document.update
+                    newState
+                    Msgs.Document.Home
+                    (Just documentId)
+
+            Models.Settings ->
+                Views.Settings.update newState Msgs.Settings.Home
+
+            Models.Home query ->
+                Views.Home.update newState Msgs.Home.Home query
+
+            Models.Tags ->
+                Views.Tags.update newState Msgs.Tags.Home
 
 
 

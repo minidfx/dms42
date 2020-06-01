@@ -9,6 +9,9 @@ port dropZone : Ports.Models.DropZoneRequest -> Cmd msg
 port tags : Ports.Models.TagsRequest -> Cmd msg
 
 
+port unloadTags : Ports.Models.UnloadTagsRequest -> Cmd msg
+
+
 port upload : Ports.Models.UploadRequest -> Cmd msg
 
 

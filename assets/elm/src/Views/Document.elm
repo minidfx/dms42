@@ -128,27 +128,39 @@ didDeleteDocument state _ =
 
 
 handleDocument : Models.State -> Result Http.Error Models.DocumentResponse -> ( Models.State, Cmd Msgs.Main.Msg )
-handleDocument state result =
+handleDocument ({ documentsState } as state) result =
     let
-        documentsState =
-            state.documentsState
-                |> Maybe.withDefault Factories.documentsStateFactory
+        localState =
+            { state | isLoading = False }
 
-        commands =
-            Views.Shared.getAndLoadTags
+        localDocumentsState =
+            documentsState
+                |> Maybe.withDefault Factories.documentsStateFactory
     in
     case result of
-        Ok x ->
+        Ok ({ id, tags } as x) ->
             let
-                { id, tags } =
-                    x
+                documents =
+                    localDocumentsState.documents
+                        |> Maybe.withDefault Dict.empty
+                        |> Dict.insert id x
+
+                document =
+                    documents
+                        |> Dict.get id
+
+                newState =
+                    { localState | documentsState = Just { localDocumentsState | documents = Just documents } }
             in
-            ( { state | documentsState = Just { documentsState | documents = Just <| Dict.insert id x <| Maybe.withDefault Dict.empty documentsState.documents } }
-            , commands
-            )
+            case document of
+                Just d ->
+                    ( newState, Views.Shared.getAndLoadTags )
+
+                Nothing ->
+                    ( newState, Cmd.none )
 
         Err _ ->
-            ( state, commands )
+            ( { localState | isLoading = False }, Cmd.none )
 
 
 runOcr : Models.DocumentResponse -> Cmd Msgs.Main.Msg
@@ -423,23 +435,21 @@ internalUpdate state msg routeDocumentId =
                         |> Maybe.map2 (\id documents -> Dict.get id documents) routeDocumentId
                         |> Maybe.andThen (\x -> x)
 
-                commands =
+                ( newState, commands ) =
                     case document of
-                        Just _ ->
-                            [ Views.Shared.getAndLoadTags ]
+                        Just { id } ->
+                            ( { state | isLoading = True }, [ getDocument id ] )
 
                         Nothing ->
                             case routeDocumentId of
                                 Just x ->
-                                    [ getDocument x ]
+                                    ( { state | isLoading = True }, [ getDocument x ] )
 
                                 Nothing ->
-                                    []
+                                    ( state, [] )
             in
-            ( state
-            , Cmd.batch <|
-                commands
-                    ++ [ Cmd.map Msgs.Main.ScrollToMsg <| ScrollTo.scrollToTop ]
+            ( newState
+            , Cmd.batch <| commands ++ [ Cmd.map Msgs.Main.ScrollToMsg <| ScrollTo.scrollToTop ]
             )
 
         Msgs.Document.GotDocument result ->

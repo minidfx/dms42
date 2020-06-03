@@ -199,48 +199,64 @@ update msg state =
 
 
 updateUrlChanged : Models.State -> Url.Url -> ( Models.State, Cmd Msgs.Main.Msg )
-updateUrlChanged state url =
-    -- INFO: Make sure to clear the previous DOM element loaded with the tags.
-    if state.tagsLoaded then
-        ( { state | tagsLoaded = False }
-        , Cmd.batch
-            [ Ports.Gates.unloadTags { jQueryPath = "#tags" }
-            , Task.perform identity <| Task.succeed <| Msgs.Main.UrlChanged url
-            ]
-        )
+updateUrlChanged ({ tagsLoaded, modalVisibility } as state) url =
+    case modalVisibility of
+        Just x ->
+            if x.visibility /= Bootstrap.Modal.hidden then
+                ( state
+                , Cmd.batch
+                    [ Msgs.Main.CloseModal |> Task.succeed |> Task.perform identity
+                    , Msgs.Main.UrlChanged url |> Task.succeed |> Task.perform identity
+                    ]
+                )
 
-    else
-        let
-            route =
-                Url.Parser.parse routes url |> Maybe.withDefault (Models.Home Nothing)
+            else
+                ( state
+                , Msgs.Main.UrlChanged url |> Task.succeed |> Task.perform identity
+                )
 
-            newState =
-                { state | url = url, route = route, error = Nothing }
-        in
-        case route of
-            Models.AddDocuments ->
-                Views.AddDocuments.update newState Msgs.AddDocument.Home
+        Nothing ->
+            -- INFO: Make sure to clear the previous DOM element loaded with the tags.
+            if tagsLoaded then
+                ( { state | tagsLoaded = False }
+                , Cmd.batch
+                    [ Ports.Gates.unloadTags { jQueryPath = "#tags" }
+                    , Msgs.Main.UrlChanged url |> Task.succeed |> Task.perform identity
+                    ]
+                )
 
-            Models.Documents offset ->
-                Views.Documents.update
-                    newState
-                    Msgs.Documents.Home
-                    offset
+            else
+                let
+                    route =
+                        Url.Parser.parse routes url |> Maybe.withDefault (Models.Home Nothing)
 
-            Models.Document documentId _ ->
-                Views.Document.update
-                    newState
-                    Msgs.Document.Home
-                    (Just documentId)
+                    newState =
+                        { state | url = url, route = route, error = Nothing }
+                in
+                case route of
+                    Models.AddDocuments ->
+                        Views.AddDocuments.update newState Msgs.AddDocument.Home
 
-            Models.Settings ->
-                Views.Settings.update newState Msgs.Settings.Home
+                    Models.Documents offset ->
+                        Views.Documents.update
+                            newState
+                            Msgs.Documents.Home
+                            offset
 
-            Models.Home query ->
-                Views.Home.update newState Msgs.Home.Home query
+                    Models.Document documentId _ ->
+                        Views.Document.update
+                            newState
+                            Msgs.Document.Home
+                            (Just documentId)
 
-            Models.Tags ->
-                Views.Tags.update newState Msgs.Tags.Home
+                    Models.Settings ->
+                        Views.Settings.update newState Msgs.Settings.Home
+
+                    Models.Home query ->
+                        Views.Home.update newState Msgs.Home.Home query
+
+                    Models.Tags ->
+                        Views.Tags.update newState Msgs.Tags.Home
 
 
 
@@ -249,25 +265,24 @@ updateUrlChanged state url =
 
 subscriptions : Models.State -> Sub Msgs.Main.Msg
 subscriptions { modalVisibility, scrollTo, navBarState } =
-    case modalVisibility of
-        Just modal ->
-            Sub.batch
-                [ Ports.Gates.uploadCompleted (always <| Msgs.Main.AddDocumentMsg Msgs.AddDocument.UploadCompleted)
-                , Ports.Gates.addTags <| Msgs.Main.DocumentMsg << Msgs.Document.AddTags
-                , Ports.Gates.removeTags <| Msgs.Main.DocumentMsg << Msgs.Document.RemoveTags
-                , Bootstrap.Modal.subscriptions modal.visibility Msgs.Main.AnimatedModal
-                , Sub.map Msgs.Main.ScrollToMsg <| ScrollTo.subscriptions scrollTo
-                , Bootstrap.Navbar.subscriptions navBarState Msgs.Main.NavbarMsg
-                ]
+    let
+        baseCommands =
+            [ Ports.Gates.uploadCompleted (always <| Msgs.Main.AddDocumentMsg Msgs.AddDocument.UploadCompleted)
+            , Ports.Gates.addTags <| Msgs.Main.DocumentMsg << Msgs.Document.AddTags
+            , Ports.Gates.removeTags <| Msgs.Main.DocumentMsg << Msgs.Document.RemoveTags
+            , Sub.map Msgs.Main.ScrollToMsg <| ScrollTo.subscriptions scrollTo
+            , Bootstrap.Navbar.subscriptions navBarState Msgs.Main.NavbarMsg
+            ]
 
-        Nothing ->
-            Sub.batch
-                [ Ports.Gates.uploadCompleted (always <| Msgs.Main.AddDocumentMsg Msgs.AddDocument.UploadCompleted)
-                , Ports.Gates.addTags <| Msgs.Main.DocumentMsg << Msgs.Document.AddTags
-                , Ports.Gates.removeTags <| Msgs.Main.DocumentMsg << Msgs.Document.RemoveTags
-                , Sub.map Msgs.Main.ScrollToMsg <| ScrollTo.subscriptions scrollTo
-                , Bootstrap.Navbar.subscriptions navBarState Msgs.Main.NavbarMsg
-                ]
+        commands =
+            case modalVisibility of
+                Just modal ->
+                    baseCommands ++ [ Bootstrap.Modal.subscriptions modal.visibility Msgs.Main.AnimatedModal ]
+
+                Nothing ->
+                    baseCommands
+    in
+    Sub.batch commands
 
 
 

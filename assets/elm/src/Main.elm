@@ -334,12 +334,12 @@ navbar ({ navBarState, isLoading } as state) =
 
 
 yieldItem : Models.State -> String -> String -> Bootstrap.Navbar.Item Msgs.Main.Msg
-yieldItem { url } path name =
-    if url.path == path then
-        Bootstrap.Navbar.itemLinkActive [ Html.Attributes.href path ] [ Html.text name ]
+yieldItem { url } startWithPath name =
+    if String.startsWith startWithPath url.path then
+        Bootstrap.Navbar.itemLinkActive [ Html.Attributes.href startWithPath ] [ Html.text name ]
 
     else
-        Bootstrap.Navbar.itemLink [ Html.Attributes.href path ] [ Html.text name ]
+        Bootstrap.Navbar.itemLink [ Html.Attributes.href startWithPath ] [ Html.text name ]
 
 
 mainView : Models.State -> List (Html Msgs.Main.Msg)

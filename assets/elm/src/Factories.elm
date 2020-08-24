@@ -15,6 +15,7 @@ stateFactory : Nav.Key -> Url.Url -> Models.Route -> Bootstrap.Navbar.State -> M
 stateFactory key url route navBarState =
     { key = key
     , url = url
+    , history = []
     , route = route
     , documentsState = Nothing
     , tagsResponse = Nothing

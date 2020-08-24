@@ -1,4 +1,12 @@
-module Helpers exposing (basePath, fluentSelect, fluentUpdate, httpErrorToString, navTo, protocol2String)
+module Helpers exposing
+    ( basePath
+    , fluentSelect
+    , fluentUpdate
+    , httpErrorToString
+    , isSamePage
+    , navTo
+    , protocol2String
+    )
 
 import Browser
 import Http
@@ -69,3 +77,8 @@ basePath { protocol, host, port_ } =
 navTo : Models.State -> List String -> List Url.Builder.QueryParameter -> Browser.UrlRequest
 navTo { url } path arguments =
     Browser.Internal <| Maybe.withDefault url <| Url.fromString <| Url.Builder.crossOrigin (basePath url) path arguments
+
+
+isSamePage : Url.Url -> Url.Url -> Bool
+isSamePage url url2 =
+    url.host == url2.host && url.path == url2.path

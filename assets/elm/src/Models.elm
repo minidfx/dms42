@@ -101,6 +101,7 @@ type Route
 type alias State =
     { key : Nav.Key
     , url : Url.Url
+    , history : List Url.Url
     , route : Route
     , documentsState : Maybe DocumentsState
     , tagsResponse : Maybe (List String)

@@ -7,9 +7,8 @@ import Bootstrap.Text
 import Browser
 import Browser.Dom
 import Browser.Navigation as Nav
-import Dict
 import Factories
-import Helpers
+import Helpers exposing (isSamePage)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Models
@@ -199,26 +198,44 @@ update msg state =
 
 
 updateUrlChanged : Models.State -> Url.Url -> ( Models.State, Cmd Msgs.Main.Msg )
-updateUrlChanged ({ tagsLoaded, modalVisibility } as state) url =
+updateUrlChanged ({ tagsLoaded, modalVisibility, history } as state) url =
+    let
+        newHistory =
+            url
+                :: history
+                |> List.take 10
+
+        baseNewState =
+            { state | history = newHistory }
+    in
     case modalVisibility of
         Just x ->
             if x.visibility /= Bootstrap.Modal.hidden then
-                ( state
-                , Cmd.batch
-                    [ Msgs.Main.CloseModal |> Task.succeed |> Task.perform identity
-                    , Msgs.Main.UrlChanged url |> Task.succeed |> Task.perform identity
-                    ]
+                ( baseNewState
+                  -- INFO: Close the modal and then navigate to the URL.
+                , (Msgs.Main.CloseModal |> Task.succeed)
+                    |> Task.andThen (\_ -> Msgs.Main.UrlChanged url |> Task.succeed)
+                    |> Task.perform identity
                 )
 
             else
-                ( state
+                ( baseNewState
                 , Msgs.Main.UrlChanged url |> Task.succeed |> Task.perform identity
                 )
 
         Nothing ->
+            let
+                previousUrl =
+                    List.head history
+
+                localIsSamePage =
+                    previousUrl
+                        |> Maybe.andThen (\u -> Just <| isSamePage u url)
+                        |> Maybe.withDefault True
+            in
             -- INFO: Make sure to clear the previous DOM element loaded with the tags.
-            if tagsLoaded then
-                ( { state | tagsLoaded = False }
+            if not localIsSamePage && tagsLoaded then
+                ( { baseNewState | tagsLoaded = False }
                 , Cmd.batch
                     [ Ports.Gates.unloadTags { jQueryPath = "#tags" }
                     , Msgs.Main.UrlChanged url |> Task.succeed |> Task.perform identity
@@ -231,7 +248,7 @@ updateUrlChanged ({ tagsLoaded, modalVisibility } as state) url =
                         Url.Parser.parse routes url |> Maybe.withDefault (Models.Home Nothing)
 
                     newState =
-                        { state | url = url, route = route, error = Nothing }
+                        { baseNewState | url = url, route = route, error = Nothing }
                 in
                 case route of
                     Models.AddDocuments ->

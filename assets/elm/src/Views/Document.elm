@@ -13,6 +13,7 @@ import Http
 import Models
 import Msgs.Document
 import Msgs.Main
+import Ports.Gates
 import ScrollTo
 import String.Format
 import Task
@@ -153,7 +154,7 @@ handleDocument ({ documentsState } as state) result =
                     { localState | documentsState = Just { localDocumentsState | documents = Just documents } }
             in
             case document of
-                Just d ->
+                Just _ ->
                     ( newState, Views.Shared.getAndLoadTags )
 
                 Nothing ->
@@ -343,7 +344,7 @@ internalView state document offset =
                         , Html.dd [] [ Html.text original_file_name ]
                         ]
                     ]
-                , Views.Shared.tagsinputs False
+                , Views.Shared.tagsInputs False
                 ]
             ]
         , Html.div [ Html.Attributes.class "row" ]
@@ -435,10 +436,17 @@ internalUpdate state msg routeDocumentId =
                         |> Maybe.map2 (\id documents -> Dict.get id documents) routeDocumentId
                         |> Maybe.andThen (\x -> x)
 
+                { tagsLoaded } =
+                    state
+
                 ( newState, commands ) =
                     case document of
                         Just { id } ->
-                            ( { state | isLoading = True }, [ getDocument id ] )
+                            if tagsLoaded then
+                                ( state, [] )
+
+                            else
+                                ( state, [ Views.Shared.getAndLoadTags ] )
 
                         Nothing ->
                             case routeDocumentId of

@@ -1,4 +1,4 @@
-module Views.Shared exposing (badge, card, flattenTags, getAndLoadTags, getTags, handleTags, pagination, posix2String, refreshDocumentTags, tagsinputs)
+module Views.Shared exposing (badge, card, flattenTags, getAndLoadTags, getTags, handleTags, pagination, posix2String, refreshDocumentTags, tagsInputs)
 
 import Bootstrap.General.HAlign
 import Bootstrap.Pagination
@@ -79,8 +79,8 @@ flattenTags tags =
     Html.div [ Html.Attributes.class "dms42-card-tags d-flex flex-wrap justify-content-center my-1" ] (List.map (\x -> badge x) tags)
 
 
-tagsinputs : Bool -> Html Msgs.Main.Msg
-tagsinputs isDisabled =
+tagsInputs : Bool -> Html Msgs.Main.Msg
+tagsInputs isDisabled =
     Html.Keyed.node "tags"
         []
         [ ( "tags_input"
@@ -90,6 +90,7 @@ tagsinputs isDisabled =
                 , Html.Attributes.class "form-control"
                 , Html.Attributes.multiple True
                 , Html.Attributes.attribute "data-placeholder" "Insert your tags"
+                , Html.Attributes.style "border-width" "0"
                 ]
                 []
           )
@@ -178,7 +179,7 @@ getTags =
 
 
 handleTags : Models.State -> Result Http.Error (List String) -> Bool -> ( Models.State, Cmd Msgs.Main.Msg )
-handleTags state result loadThem =
+handleTags state result thenLoad =
     let
         { route } =
             state
@@ -191,8 +192,15 @@ handleTags state result loadThem =
                 Err _ ->
                     []
 
+        newState =
+            if thenLoad then
+                { state | tagsResponse = Just tags, tagsLoaded = True }
+
+            else
+                { state | tagsResponse = Just tags, tagsLoaded = False }
+
         commands =
-            if loadThem then
+            if thenLoad then
                 case route of
                     Models.Document id _ ->
                         let
@@ -214,7 +222,7 @@ handleTags state result loadThem =
             else
                 Cmd.none
     in
-    ( { state | tagsResponse = Just tags, tagsLoaded = True }
+    ( newState
     , commands
     )
 

@@ -62,11 +62,11 @@ app.ports.dropZone.subscribe(async request => {
     const localDropZone = node.dropzone({
         url: "/api/documents",
         params: (file) => {
+            const tags = $(jQueryTagsPath).select2('data').map(x => x.text).join(',') 
+            console.debug(tags)
             const localFile = file[0]
             return {
-                tags: $(jQueryTagsPath)
-                    .select2('data')
-                    .map(x => x.text),
+                tags: tags,
                 fileUnixTimestamp: localFile.lastModified
             }
         },
@@ -109,7 +109,7 @@ app.ports.unloadTags.subscribe(async request => {
 
     const node = await waitForNodeAsync(jQueryPath)
     if (!node.hasClass("select2-hidden-accessible")) {
-        console.debug('The select2 was not loaded on the DOM element, skipping !')
+        console.warn('The select2 was not loaded on the DOM element, skipping !')
         return
     }
 
@@ -157,12 +157,6 @@ app.ports.tags.subscribe(async request => {
 
         localControl.on('select2:select', handlerToAddTag)
         localControl.on('select2:unselect', handlerToRemoveTag)
-
-        localControl.on('unload', _ => {
-            console.debug('Removing handlers ...')
-            localControl.off('select2:select', handlerToAddTag)
-            localControl.off('select2:unselect', handlerToRemoveTag)
-        })
     }
 })
 app.ports.upload.subscribe(request => {

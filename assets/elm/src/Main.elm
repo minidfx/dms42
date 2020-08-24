@@ -8,30 +8,32 @@ import Browser
 import Browser.Dom
 import Browser.Navigation as Nav
 import Factories
-import Helpers exposing (isSamePage)
+import Helpers
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Middlewares.Fallback
+import Middlewares.History
+import Middlewares.LinkClicked
+import Middlewares.Main
+import Middlewares.Modal
+import Middlewares.Tags
+import Middlewares.Views exposing (routes)
 import Models
 import Msgs.AddDocument
 import Msgs.Document
 import Msgs.Documents
-import Msgs.Home
-import Msgs.Main
-import Msgs.Settings
-import Msgs.Tags
+import Msgs.Main exposing (MiddlewareContext(..))
 import Ports.Gates
 import ScrollTo
 import Task
 import Time
 import Url exposing (Url)
 import Url.Parser exposing (..)
-import Url.Parser.Query
 import Views.AddDocuments
 import Views.Document
 import Views.Documents
 import Views.Home
 import Views.Settings
-import Views.Shared
 import Views.Tags
 
 
@@ -53,18 +55,6 @@ main =
 
 
 -- MODEL
-
-
-routes : Url.Parser.Parser (Models.Route -> a) a
-routes =
-    Url.Parser.oneOf
-        [ Url.Parser.map Models.Documents (Url.Parser.s "documents" <?> Url.Parser.Query.int "offset")
-        , Url.Parser.map Models.AddDocuments (Url.Parser.s "documents" </> Url.Parser.s "add")
-        , Url.Parser.map Models.Document (Url.Parser.s "documents" </> Url.Parser.string <?> Url.Parser.Query.int "offset")
-        , Url.Parser.map Models.Settings (Url.Parser.s "settings")
-        , Url.Parser.map Models.Tags (Url.Parser.s "tags")
-        , Url.Parser.map Models.Home (Url.Parser.top <?> Url.Parser.Query.string "query")
-        ]
 
 
 init : () -> Url.Url -> Nav.Key -> ( Models.State, Cmd Msgs.Main.Msg )
@@ -114,166 +104,51 @@ init flags url key =
 -- UPDATE
 
 
+middlewares : List (Msgs.Main.Msg -> Models.State -> MiddlewareContext)
+middlewares =
+    [ Middlewares.LinkClicked.update
+    , Middlewares.Modal.update
+    , Middlewares.Tags.update
+    , Middlewares.Views.update
+    , Middlewares.Main.update
+    , Middlewares.History.update
+    , Middlewares.Fallback.update
+    ]
+
+
+middlewareReducer :
+    Msgs.Main.Msg
+    -> (Msgs.Main.Msg -> Models.State -> MiddlewareContext)
+    -> MiddlewareContext
+    -> MiddlewareContext
+middlewareReducer msg func context =
+    case context of
+        Continue ( state, msgs ) ->
+            case func msg state of
+                Continue ( newState, newMsgs ) ->
+                    Continue ( newState, Cmd.batch [ msgs, newMsgs ] )
+
+                Break ( newState, newMsgs ) ->
+                    Break ( newState, Cmd.batch [ msgs, newMsgs ] )
+
+        Break x ->
+            Break x
+
+
 update : Msgs.Main.Msg -> Models.State -> ( Models.State, Cmd Msgs.Main.Msg )
 update msg state =
-    case msg of
-        Msgs.Main.TagsMsg tagsMsg ->
-            Views.Tags.update state tagsMsg
-
-        Msgs.Main.DocumentsMsg documentsMsg ->
-            Views.Documents.update state documentsMsg Nothing
-
-        Msgs.Main.HomeMsg homeMsg ->
-            Views.Home.update state homeMsg Nothing
-
-        Msgs.Main.SettingsMsg settingsMsg ->
-            Views.Settings.update state settingsMsg
-
-        Msgs.Main.DocumentMsg documentMsg ->
-            Views.Document.update state documentMsg Nothing
-
-        Msgs.Main.AddDocumentMsg addDocumentMsg ->
-            Views.AddDocuments.update state addDocumentMsg
-
-        Msgs.Main.GotAndLoadTags result ->
-            Views.Shared.handleTags state result True
-
-        Msgs.Main.GotTags result ->
-            Views.Shared.handleTags state result False
-
-        Msgs.Main.LinkClicked urlRequest ->
-            case urlRequest of
-                Browser.Internal url ->
-                    ( state, Nav.pushUrl state.key (Url.toString url) )
-
-                Browser.External href ->
-                    ( state, Nav.load href )
-
-        Msgs.Main.UrlChanged url ->
-            updateUrlChanged state url
-
-        Msgs.Main.GotUserTimeZone zone ->
-            ( { state | userTimeZone = Just zone }
-            , Cmd.none
-            )
-
-        Msgs.Main.GotViewPort viewport ->
-            ( { state | viewPort = Just viewport }, Cmd.none )
-
-        Msgs.Main.CloseModal ->
-            ( { state | modalVisibility = Nothing }, Cmd.none )
-
-        Msgs.Main.ShowModal id ->
-            ( { state | modalVisibility = Just <| Factories.modalFactory id Bootstrap.Modal.shown }, Cmd.none )
-
-        Msgs.Main.AnimatedModal visibility ->
-            case state.modalVisibility of
-                Just modal ->
-                    ( { state | modalVisibility = Just <| { modal | visibility = visibility } }, Cmd.none )
-
-                Nothing ->
-                    ( state, Cmd.none )
-
-        Msgs.Main.ScrollToTop ->
-            ( state
-            , Cmd.map Msgs.Main.ScrollToMsg <| ScrollTo.scrollToTop
-            )
-
-        Msgs.Main.ScrollToMsg scrollToMsg ->
-            let
-                ( scrollToModel, scrollToCmds ) =
-                    ScrollTo.update
-                        scrollToMsg
-                        state.scrollTo
-            in
-            ( { state | scrollTo = scrollToModel }
-            , Cmd.map Msgs.Main.ScrollToMsg scrollToCmds
-            )
-
-        Msgs.Main.NavbarMsg navBarState ->
-            ( { state | navBarState = navBarState }, Cmd.none )
-
-        Msgs.Main.Nop ->
-            ( state, Cmd.none )
-
-
-updateUrlChanged : Models.State -> Url.Url -> ( Models.State, Cmd Msgs.Main.Msg )
-updateUrlChanged ({ tagsLoaded, modalVisibility, history } as state) url =
     let
-        newHistory =
-            url
-                :: history
-                |> List.take 10
-
-        baseNewState =
-            { state | history = newHistory }
+        context =
+            List.foldl (\x acc -> middlewareReducer msg x acc)
+                (Continue ( state, Cmd.none ))
+                middlewares
     in
-    case modalVisibility of
-        Just x ->
-            if x.visibility /= Bootstrap.Modal.hidden then
-                ( baseNewState
-                  -- INFO: Close the modal and then navigate to the URL.
-                , (Msgs.Main.CloseModal |> Task.succeed)
-                    |> Task.andThen (\_ -> Msgs.Main.UrlChanged url |> Task.succeed)
-                    |> Task.perform identity
-                )
+    case context of
+        Continue x ->
+            x
 
-            else
-                ( baseNewState
-                , Msgs.Main.UrlChanged url |> Task.succeed |> Task.perform identity
-                )
-
-        Nothing ->
-            let
-                previousUrl =
-                    List.head history
-
-                localIsSamePage =
-                    previousUrl
-                        |> Maybe.andThen (\u -> Just <| isSamePage u url)
-                        |> Maybe.withDefault True
-            in
-            -- INFO: Make sure to clear the previous DOM element loaded with the tags.
-            if not localIsSamePage && tagsLoaded then
-                ( { baseNewState | tagsLoaded = False }
-                , Cmd.batch
-                    [ Ports.Gates.unloadTags { jQueryPath = "#tags" }
-                    , Msgs.Main.UrlChanged url |> Task.succeed |> Task.perform identity
-                    ]
-                )
-
-            else
-                let
-                    route =
-                        Url.Parser.parse routes url |> Maybe.withDefault (Models.Home Nothing)
-
-                    newState =
-                        { baseNewState | url = url, route = route, error = Nothing }
-                in
-                case route of
-                    Models.AddDocuments ->
-                        Views.AddDocuments.update newState Msgs.AddDocument.Home
-
-                    Models.Documents offset ->
-                        Views.Documents.update
-                            newState
-                            Msgs.Documents.Home
-                            offset
-
-                    Models.Document documentId _ ->
-                        Views.Document.update
-                            newState
-                            Msgs.Document.Home
-                            (Just documentId)
-
-                    Models.Settings ->
-                        Views.Settings.update newState Msgs.Settings.Home
-
-                    Models.Home query ->
-                        Views.Home.update newState Msgs.Home.Home query
-
-                    Models.Tags ->
-                        Views.Tags.update newState Msgs.Tags.Home
+        Break x ->
+            x
 
 
 

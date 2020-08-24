@@ -13,7 +13,6 @@ import Http
 import Models
 import Msgs.Document
 import Msgs.Main
-import Ports.Gates
 import ScrollTo
 import String.Format
 import Task

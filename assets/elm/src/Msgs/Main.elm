@@ -5,6 +5,7 @@ import Bootstrap.Navbar
 import Browser
 import Browser.Dom
 import Http
+import Models
 import Msgs.AddDocument
 import Msgs.Document
 import Msgs.Documents
@@ -36,3 +37,8 @@ type Msg
     | AddDocumentMsg Msgs.AddDocument.Msg
     | TagsMsg Msgs.Tags.Msg
     | Nop
+
+
+type MiddlewareContext
+    = Continue ( Models.State, Cmd Msg )
+    | Break ( Models.State, Cmd Msg )

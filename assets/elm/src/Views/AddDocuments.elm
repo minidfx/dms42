@@ -6,7 +6,6 @@ import Html.Attributes
 import Html.Events
 import Models
 import Msgs.AddDocument
-import Msgs.Home
 import Msgs.Main
 import Ports.Gates
 import Views.Shared

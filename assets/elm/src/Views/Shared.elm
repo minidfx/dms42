@@ -5,7 +5,6 @@ import Bootstrap.Pagination
 import Bootstrap.Pagination.Item
 import Browser.Dom
 import Dict
-import Factories
 import Helpers
 import Html exposing (Html)
 import Html.Attributes
@@ -16,9 +15,7 @@ import Json.Decode
 import Models
 import Msgs.Main
 import Ports.Gates
-import Set
 import String.Format
-import Task
 import Time
 
 

@@ -31,3 +31,8 @@ type alias TagsAdded =
     { tags : List String
     , documentId : String
     }
+
+
+type alias UnloadTagsRequest =
+    { jQueryPath : String
+    }

@@ -4,7 +4,6 @@ import Bootstrap.Modal
 import Bootstrap.Navbar
 import Browser.Navigation as Nav
 import Debounce
-import Dict
 import Models
 import ScrollTo
 import Set
@@ -15,6 +14,7 @@ stateFactory : Nav.Key -> Url.Url -> Models.Route -> Bootstrap.Navbar.State -> M
 stateFactory key url route navBarState =
     { key = key
     , url = url
+    , history = []
     , route = route
     , documentsState = Nothing
     , tagsResponse = Nothing
@@ -29,6 +29,7 @@ stateFactory key url route navBarState =
     , navBarState = navBarState
     , tagsState = Nothing
     , viewPort = Nothing
+    , tagsLoaded = False
     }
 
 
@@ -60,5 +61,4 @@ tagsStateFactory : Models.TagsState
 tagsStateFactory =
     { selected = Set.empty
     , documents = Nothing
-    , tags = Set.empty
     }

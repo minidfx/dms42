@@ -6,7 +6,6 @@ import Html.Attributes
 import Html.Events
 import Models
 import Msgs.AddDocument
-import Msgs.Home
 import Msgs.Main
 import Ports.Gates
 import Views.Shared
@@ -45,7 +44,7 @@ view state =
     , Html.div [ Html.Attributes.class "row", Html.Attributes.style "margin-bottom" "20px" ]
         [ Html.div [ Html.Attributes.class "col" ]
             [ Html.h4 [] [ Html.text "Tags" ]
-            , Views.Shared.tagsinputs isUploading
+            , Views.Shared.tagsInputs isUploading
             ]
         ]
     , Html.div [ Html.Attributes.class "row" ]

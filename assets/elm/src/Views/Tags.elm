@@ -43,19 +43,32 @@ update state msg =
 
         Msgs.Tags.ToggleTag tag ->
             let
+                tags =
+                    state.tagsResponse
+                        |> Maybe.withDefault []
+                        |> Set.fromList
+
                 tagsState =
                     state.tagsState
                         |> Maybe.withDefault Factories.tagsStateFactory
-                        |> Helpers.fluentUpdate (\x -> { x | selected = Set.intersect x.selected x.tags })
+                        |> Helpers.fluentUpdate (\x -> { x | selected = Set.intersect x.selected tags })
 
-                ( tags, newState ) =
+                ( tagsSelected, newState ) =
                     if Set.member tag tagsState.selected then
-                        ( Set.remove tag tagsState.selected, { state | tagsState = Just { tagsState | selected = Set.remove tag tagsState.selected } } )
+                        ( Set.remove tag tagsState.selected
+                        , { state | tagsState = Just { tagsState | selected = Set.remove tag tagsState.selected } }
+                        )
 
                     else
-                        ( Set.insert tag tagsState.selected, { state | tagsState = Just { tagsState | selected = Set.insert tag tagsState.selected } } )
+                        ( Set.insert tag tagsState.selected
+                        , { state | tagsState = Just { tagsState | selected = Set.insert tag tagsState.selected } }
+                        )
             in
-            ( { newState | isLoading = True }, searchDocuments <| Set.toList <| tags )
+            ( { newState | isLoading = True }
+            , tagsSelected
+                |> Set.toList
+                |> searchDocuments
+            )
 
         Msgs.Tags.GotSearchResult result ->
             let

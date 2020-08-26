@@ -38,14 +38,11 @@ module.exports = (env, options) => ({
         ]
       },
       {
-        test: /jquery.+\.js$/,
-        use: [{
-          loader: 'expose-loader',
-          options: 'jQuery'
-        }, {
-          loader: 'expose-loader',
-          options: '$'
-        }]
+        test: require.resolve('jquery'),
+        loader: 'expose-loader',
+        options: {
+          exposes: ['$', 'jQuery'],
+        },
       },
       {
         test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
@@ -116,6 +113,10 @@ module.exports = (env, options) => ({
   },
   plugins: [
     new MiniCssExtractPlugin({filename: '../css/app.css'}),
-    new CopyWebpackPlugin([{from: 'static/', to: '../'}])
+    new CopyWebpackPlugin({
+      patterns: [
+        {from: 'static/', to: '../'}     
+      ]
+    })
   ]
 });

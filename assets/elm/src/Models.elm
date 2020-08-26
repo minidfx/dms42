@@ -80,7 +80,6 @@ type alias QueueInfoResponse =
 type alias TagsState =
     { selected : Set String
     , documents : Maybe (List DocumentResponse)
-    , tags : Set String
     }
 
 
@@ -102,6 +101,7 @@ type Route
 type alias State =
     { key : Nav.Key
     , url : Url.Url
+    , history : List Url.Url
     , route : Route
     , documentsState : Maybe DocumentsState
     , tagsResponse : Maybe (List String)
@@ -116,4 +116,5 @@ type alias State =
     , queueInfo : Maybe QueueInfoResponse
     , navBarState : Bootstrap.Navbar.State
     , viewPort : Maybe Browser.Dom.Viewport
+    , tagsLoaded : Bool
     }

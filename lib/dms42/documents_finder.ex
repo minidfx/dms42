@@ -20,6 +20,7 @@ defmodule Dms42.DocumentsFinder do
     |> Enum.uniq()
     |> Enum.map(fn x -> normalize(x) end)
     |> find_by_list_tags
+    |> Enum.sort_by(fn %SearchResult{:ranking => x, :datetime => dt} -> {x, dt} end, :asc)
     |> Enum.uniq_by(fn %SearchResult{:document_id => x} -> x end)
   end
 
@@ -37,7 +38,7 @@ defmodule Dms42.DocumentsFinder do
         |> find_by_word_ocr
         |> find_by_partial_ocr
         |> to_result
-        |> Enum.sort_by(fn %SearchResult{:ranking => x} -> x end)
+        |> Enum.sort_by(fn %SearchResult{:ranking => x, :datetime => dt} -> {x, dt} end, :asc)
         |> Enum.uniq_by(fn %SearchResult{:document_id => x} -> x end)
 
       _ ->
@@ -295,8 +296,11 @@ defmodule Dms42.DocumentsFinder do
   end
 
   @spec to_search_result(Dms42.Models.Document.t(), integer) :: Dms42.Models.SearchResult.t()
-  defp to_search_result(%Document{:document_id => did} = document, ranking) do
-    %SearchResult{document_id: did, document: document, ranking: ranking}
+  defp to_search_result(
+         %Document{:document_id => did, :original_file_datetime => datetime} = document,
+         ranking
+       ) do
+    %SearchResult{document_id: did, document: document, ranking: ranking, datetime: datetime}
   end
 
   @spec filter_stop_words(list(String.t())) :: list(String.t())

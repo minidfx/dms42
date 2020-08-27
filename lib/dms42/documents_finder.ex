@@ -54,6 +54,7 @@ defmodule Dms42.DocumentsFinder do
       |> :unicode.characters_to_nfd_binary()
       |> String.replace(~r/[^A-Za-z0-9_\s]/u, "")
       |> String.trim()
+      |> String.upcase()
 
   ##### Private members
 

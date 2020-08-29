@@ -1,4 +1,4 @@
-module Middlewares.Views exposing (..)
+module Middlewares.Router exposing (..)
 
 import Models
 import Msgs.AddDocument

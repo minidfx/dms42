@@ -1,9 +1,10 @@
-module Middlewares.Tags exposing (update)
+module Middlewares.UnloadSelect2Control exposing (update)
 
 import Helpers exposing (isSamePage)
 import Models
 import Msgs.Main exposing (MiddlewareContext(..))
 import Ports.Gates
+import Task
 
 
 update : Msgs.Main.Msg -> Models.State -> MiddlewareContext
@@ -22,9 +23,12 @@ update msg ({ tagsLoaded, history } as state) =
             -- INFO: Make sure to clear the previous DOM element loaded with the tags.
             case not localIsSamePage && tagsLoaded of
                 True ->
-                    Continue
+                    Break
                         ( { state | tagsLoaded = False }
-                        , Cmd.batch [ Ports.Gates.unloadTags { jQueryPath = "#tags" } ]
+                        , Cmd.batch
+                            [ Ports.Gates.unloadTags { jQueryPath = "#tags" }
+                            , Msgs.Main.UrlChanged url |> Task.succeed |> Task.perform identity
+                            ]
                         )
 
                 _ ->

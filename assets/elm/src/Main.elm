@@ -11,13 +11,14 @@ import Factories
 import Helpers
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Middlewares.CloseModal
 import Middlewares.Fallback
+import Middlewares.Global
 import Middlewares.History
 import Middlewares.LinkClicked
-import Middlewares.Main
-import Middlewares.Modal
-import Middlewares.Tags
-import Middlewares.Views exposing (routes)
+import Middlewares.Router exposing (routes)
+import Middlewares.UnloadSelect2Control
+import Middlewares.Updates
 import Models
 import Msgs.AddDocument
 import Msgs.Document
@@ -106,11 +107,13 @@ init flags url key =
 
 middlewares : List (Msgs.Main.Msg -> Models.State -> MiddlewareContext)
 middlewares =
-    [ Middlewares.LinkClicked.update
-    , Middlewares.Modal.update
-    , Middlewares.Tags.update
-    , Middlewares.Views.update
-    , Middlewares.Main.update
+    -- WARN: The middleware order is IMPORTANT.
+    [ Middlewares.Global.update
+    , Middlewares.CloseModal.update
+    , Middlewares.UnloadSelect2Control.update
+    , Middlewares.LinkClicked.update
+    , Middlewares.Router.update
+    , Middlewares.Updates.update
     , Middlewares.History.update
     , Middlewares.Fallback.update
     ]

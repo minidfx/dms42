@@ -10,4 +10,5 @@ type Msg
     | UserTypeSearch String
     | ThrottleSearchDocuments Debounce.Msg
     | GotSearchResult (Result Http.Error (List Models.DocumentResponse))
+    | Clear
     | Nop

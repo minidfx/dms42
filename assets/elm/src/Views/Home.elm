@@ -56,11 +56,17 @@ view ({ searchState } as state) =
             [ Html.div
                 [ Html.Attributes.class "input-group mb-3" ]
                 [ Html.input
-                    [ Html.Attributes.type_ "text"
+                    [ Html.Attributes.type_ "search"
                     , Html.Attributes.class "form-control"
                     , Html.Events.onInput <| \x -> (Msgs.Main.HomeMsg << Msgs.Home.UserTypeSearch) <| x
                     , Html.Attributes.value query
                     , Html.Attributes.id "query"
+                    ]
+                    []
+                , Html.span
+                    [ Html.Attributes.hidden (searchState == Maybe.Nothing)
+                    , Html.Attributes.class "home-search-clear d-flex align-items-center fas fa-times"
+                    , Html.Events.onClick <| Msgs.Main.HomeMsg Msgs.Home.Clear
                     ]
                     []
                 , Html.div [ Html.Attributes.class "input-group-append" ]
@@ -200,6 +206,9 @@ internalUpdate state msg =
                             ( state, [ Task.attempt (\_ -> Msgs.Main.Nop) (Browser.Dom.focus "query") ] )
             in
             ( newState, Cmd.batch newCommands )
+
+        Msgs.Home.Clear ->
+            ( { state | searchState = Nothing }, Cmd.none )
 
         _ ->
             ( state, Cmd.none )

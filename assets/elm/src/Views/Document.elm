@@ -309,7 +309,7 @@ internalView state document offset =
                                 ]
                                 [ Html.text "Options" ]
                             , Html.div
-                                [ Html.Attributes.class "dropdown-menu"
+                                [ Html.Attributes.class "dropdown-menu dropdown-menu-right"
                                 , Html.Attributes.attribute "aria-labelledby" "optionsBtn"
                                 ]
                                 [ Html.button

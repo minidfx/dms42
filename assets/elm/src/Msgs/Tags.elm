@@ -9,4 +9,6 @@ type Msg
     | ToggleTag String
     | GotSearchResult (Result Http.Error (List Models.DocumentResponse))
     | CleanResult
+    | UserTypeFilter String
+    | Clear
     | Nop

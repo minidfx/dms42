@@ -61,4 +61,5 @@ tagsStateFactory : Models.TagsState
 tagsStateFactory =
     { selected = Set.empty
     , documents = Nothing
+    , filter = Nothing
     }

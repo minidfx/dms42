@@ -17,6 +17,7 @@ import Models
 import Msgs.Main
 import Msgs.Tags
 import Set
+import Simple.Fuzzy
 import String.Format
 import Task
 import Views.Documents
@@ -97,6 +98,22 @@ update state msg =
             in
             ( { state | tagsState = Just { tagsState | documents = Nothing }, isLoading = False }, Cmd.none )
 
+        Msgs.Tags.UserTypeFilter filter ->
+            let
+                tagsState =
+                    state.tagsState
+                        |> Maybe.withDefault Factories.tagsStateFactory
+            in
+            ( { state | tagsState = Just { tagsState | filter = Just filter } }, Cmd.none )
+
+        Msgs.Tags.Clear ->
+            let
+                tagsState =
+                    state.tagsState
+                        |> Maybe.withDefault Factories.tagsStateFactory
+            in
+            ( { state | tagsState = Just { tagsState | filter = Nothing } }, Cmd.none )
+
         Msgs.Tags.Nop ->
             ( state, Cmd.none )
 
@@ -104,17 +121,21 @@ update state msg =
 view : Models.State -> List (Html Msgs.Main.Msg)
 view ({ tagsState, tagsResponse, isLoading } as state) =
     let
-        tags =
-            tagsResponse |> Maybe.withDefault []
-
         localTagsState =
             tagsState
                 |> Maybe.withDefault Factories.tagsStateFactory
+
+        tagsFilter =
+            localTagsState
+                |> Helpers.fluentSelect (\x -> x.filter)
+                |> Maybe.withDefault ""
+                |> String.trim
 
         documents =
             localTagsState.documents |> Maybe.withDefault []
 
         content =
+            -- (isEmpty, isLoading)
             case ( List.isEmpty documents, isLoading ) of
                 ( True, True ) ->
                     [ Html.div [ Html.Attributes.class "col" ]
@@ -136,7 +157,15 @@ view ({ tagsState, tagsResponse, isLoading } as state) =
 
                 ( True, False ) ->
                     [ Html.div [ Html.Attributes.class "col" ]
-                        [ Bootstrap.Alert.simpleInfo [ Html.Attributes.class "text-center" ] [ Html.text "Select any tags above." ] ]
+                        [ Bootstrap.Alert.simpleInfo [ Html.Attributes.class "text-center" ]
+                            [ Html.text "Select a tag"
+                            , Html.i
+                                [ Html.Attributes.class "fas fa-hand-point-up"
+                                , Html.Attributes.class "ml-2"
+                                ]
+                                []
+                            ]
+                        ]
                     ]
 
                 ( False, True ) ->
@@ -145,12 +174,34 @@ view ({ tagsState, tagsResponse, isLoading } as state) =
                     ]
     in
     [ Html.div [ Html.Attributes.class "row" ]
-        [ Html.div [ Html.Attributes.class "col tags d-flex justify-content-center flex-wrap" ]
-            (tags
-                |> List.sort
-                |> List.map (\x -> badge state x)
-            )
+        [ Html.div [ Html.Attributes.class "col d-flex flex-row-reverse query-text" ]
+            [ Html.div
+                [ Html.Attributes.class "input-group mb-3 w-25"
+                ]
+                [ Html.input
+                    [ Html.Attributes.type_ "search"
+                    , Html.Attributes.class "form-control"
+                    , Html.Attributes.id "tags-query"
+                    , Html.Attributes.placeholder "filter"
+                    , Html.Attributes.value tagsFilter
+                    , Html.Events.onInput <| \x -> (Msgs.Main.TagsMsg << Msgs.Tags.UserTypeFilter) <| x
+                    ]
+                    []
+                , Html.span
+                    [ Html.Attributes.hidden (tagsFilter |> String.isEmpty)
+                    , Html.Attributes.class "query-clear d-flex align-items-center fas fa-times"
+                    , Html.Events.onClick <| Msgs.Main.TagsMsg Msgs.Tags.Clear
+                    ]
+                    []
+                , Html.div [ Html.Attributes.class "input-group-append" ]
+                    [ Html.span [ Html.Attributes.class "input-group-text" ]
+                        [ Html.i [ Html.Attributes.class "fas fa-filter" ] []
+                        ]
+                    ]
+                ]
+            ]
         ]
+    , filterTags state
     , Html.hr [ Html.Attributes.style "margin-top" "0.3em" ] []
     , Html.div [ Html.Attributes.class "row documents" ] content
     ]
@@ -158,6 +209,36 @@ view ({ tagsState, tagsResponse, isLoading } as state) =
 
 
 -- Private members
+
+
+filterTags : Models.State -> Html Msgs.Main.Msg
+filterTags ({ tagsResponse, tagsState } as state) =
+    let
+        allTags =
+            tagsResponse |> Maybe.withDefault []
+
+        tags =
+            if String.isEmpty tagsFilter then
+                allTags
+
+            else
+                allTags
+                    |> Simple.Fuzzy.filter (\x -> x) tagsFilter
+
+        localTagsState =
+            tagsState
+                |> Maybe.withDefault Factories.tagsStateFactory
+
+        tagsFilter =
+            localTagsState |> Helpers.fluentSelect (\x -> x.filter) |> Maybe.withDefault ""
+    in
+    Html.div [ Html.Attributes.class "row" ]
+        [ Html.div [ Html.Attributes.class "col tags d-flex justify-content-center flex-wrap" ]
+            (tags
+                |> List.sort
+                |> List.map (\x -> badge state x)
+            )
+        ]
 
 
 badge : Models.State -> String -> Html Msgs.Main.Msg

@@ -35,6 +35,7 @@ view ({ searchState } as state) =
             searchState
                 |> Maybe.andThen (\x -> x.query)
                 |> Maybe.withDefault ""
+                |> String.trim
 
         content =
             case documents of
@@ -52,7 +53,7 @@ view ({ searchState } as state) =
                     []
     in
     [ Html.div [ Html.Attributes.class "row" ]
-        [ Html.div [ Html.Attributes.class "col home-search" ]
+        [ Html.div [ Html.Attributes.class "col query-text" ]
             [ Html.div
                 [ Html.Attributes.class "input-group mb-3" ]
                 [ Html.input
@@ -64,8 +65,8 @@ view ({ searchState } as state) =
                     ]
                     []
                 , Html.span
-                    [ Html.Attributes.hidden (searchState == Maybe.Nothing)
-                    , Html.Attributes.class "home-search-clear d-flex align-items-center fas fa-times"
+                    [ Html.Attributes.hidden (query |> String.isEmpty)
+                    , Html.Attributes.class "query-clear d-flex align-items-center fas fa-times"
                     , Html.Events.onClick <| Msgs.Main.HomeMsg Msgs.Home.Clear
                     ]
                     []

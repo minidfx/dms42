@@ -80,6 +80,7 @@ type alias QueueInfoResponse =
 type alias TagsState =
     { selected : Set String
     , documents : Maybe (List DocumentResponse)
+    , filter : Maybe String
     }
 
 

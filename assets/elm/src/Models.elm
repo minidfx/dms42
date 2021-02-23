@@ -77,10 +77,22 @@ type alias QueueInfoResponse =
     }
 
 
+type alias UpdateTagRequest =
+    { newTag : String
+    , oldTag : String
+    }
+
+
+type alias UpdateTagResponse =
+    { newTag : String
+    }
+
+
 type alias TagsState =
     { selected : Set String
     , documents : Maybe (List DocumentResponse)
     , filter : Maybe String
+    , updateTagRequest : Maybe UpdateTagRequest
     }
 
 

@@ -1,7 +1,7 @@
 module Msgs.Tags exposing (..)
 
 import Http
-import Models
+import Models exposing (UpdateTagRequest)
 
 
 type Msg
@@ -11,4 +11,10 @@ type Msg
     | CleanResult
     | UserTypeFilter String
     | Clear
+    | OnInputEditTag String
+    | OnKeyPressEditTag Int
+    | EditTag String
+    | UpdateTag UpdateTagRequest
+    | DidUpdateTag (Result Http.Error Models.UpdateTagResponse)
+    | DidRefreshTags
     | Nop

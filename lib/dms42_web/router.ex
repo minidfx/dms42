@@ -30,7 +30,7 @@ defmodule Dms42Web.Router do
     post("/documents", DocumentsController, :upload_documents)
 
     get("/tags", TagsController, :index)
-    post("/tags", TagsController, :update)
+    put("/tags", TagsController, :update)
 
     get("/document-types", DocumentsController, :document_types)
 

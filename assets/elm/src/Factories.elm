@@ -4,7 +4,7 @@ import Bootstrap.Modal
 import Bootstrap.Navbar
 import Browser.Navigation as Nav
 import Debounce
-import Models
+import Models exposing (UpdateTagRequest)
 import ScrollTo
 import Set
 import Url
@@ -57,9 +57,15 @@ documentsStateFactory =
     }
 
 
+updateTagRequestFactory : String -> UpdateTagRequest
+updateTagRequestFactory tag =
+    { oldTag = tag, newTag = tag }
+
+
 tagsStateFactory : Models.TagsState
 tagsStateFactory =
     { selected = Set.empty
     , documents = Nothing
     , filter = Nothing
+    , updateTagRequest = Nothing
     }

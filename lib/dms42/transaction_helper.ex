@@ -1,7 +1,7 @@
 defmodule Dms42.TransactionHelper do
   require Logger
 
-  @spec commit!(Ecto.Multi.t()) :: :ok
+  @spec commit!(Ecto.Multi.t()) :: :ok | {:error, String.t()}
   def commit!(transaction) do
     case Dms42.Repo.transaction(transaction) do
       {:error, table, _, _} ->

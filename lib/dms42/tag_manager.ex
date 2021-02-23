@@ -7,12 +7,18 @@ defmodule Dms42.TagManager do
   alias Dms42.DocumentsFinder
 
   @doc """
-    Updates the existing tag and thrown an error if the update failed.
+    Updates the existing tag or thrown an error if the update failed.
   """
+  def update!(oldTag, newTag) when oldTag == newTag, do: :ok
+  def update!("", _newTag), do: raise("Cannot found a tag with an text.")
+  def update!(_oldTag, ""), do: raise("Cannot update a tag with an empty text.")
+  def update!(_oldTag, newTag) when length(newTag) < 3, do: raise("The text tag should have minimum 3 characters")
+
   def update!(old_tag_name, new_tag_name) do
-    Ecto.Multi.new()
-    |> update(old_tag_name, new_tag_name)
-    |> TransactionHelper.commit!()
+    case Ecto.Multi.new() |> update(old_tag_name, new_tag_name) do
+      {:error, reason} -> raise(reason)
+      x -> TransactionHelper.commit!(x)
+    end
   end
 
   @doc """
@@ -20,19 +26,20 @@ defmodule Dms42.TagManager do
   """
   def update(transaction, old_tag_name, new_tag_name) do
     new_tag_name_normalized = new_tag_name |> DocumentsFinder.normalize()
-    new_tag = Tag |> Dms42.Repo.get_by(name_normalized: new_tag_name_normalized)
-    existing_tag = Tag |> Dms42.Repo.get_by(name_normalized: old_tag_name)
+    old_tag_name_normalized = old_tag_name |> DocumentsFinder.normalize()
+    new_tag = Dms42.Repo.get_by(Tag, name_normalized: new_tag_name_normalized)
+    existing_tag = Dms42.Repo.get_by(Tag, name_normalized: old_tag_name_normalized)
 
     case {new_tag, existing_tag} do
       {_, nil} ->
         {:error, "The tag with given name #{old_tag_name} to rename is not found."}
 
-      {nil, tag} ->
+      {nil, x} ->
         transaction
         |> Ecto.Multi.update(
-          "add_tag_#{new_tag_name_normalized}",
+          "update_tag_#{new_tag_name_normalized}",
           Tag.changeset(
-            tag,
+            x,
             %{name: new_tag_name, name_normalized: new_tag_name_normalized}
           )
         )

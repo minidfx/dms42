@@ -14,8 +14,8 @@ defmodule Dms42Web.TagsController do
     )
   end
 
-  def update(conn, %{"old_tag_name" => old_name, "new_tag_name" => new_name}) do
+  def update(conn, %{"oldTag" => old_name, "newTag" => new_name}) do
     TagManager.update!(old_name, new_name)
-    conn |> put_status(200)
+    conn |> send_resp(200, %{newTag: new_name} |> Poison.encode!())
   end
 end

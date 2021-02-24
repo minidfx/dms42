@@ -15,6 +15,7 @@ import Msgs.Home
 import Msgs.Main
 import String.Format
 import Task
+import Url
 import Url.Builder
 import Views.Documents
 import Views.Shared
@@ -29,13 +30,12 @@ view ({ searchState } as state) =
     let
         documents =
             searchState
-                |> Maybe.andThen (\x -> x.documents)
+                |> Maybe.andThen .documents
 
         query =
             searchState
-                |> Maybe.andThen (\x -> x.query)
+                |> Maybe.andThen .query
                 |> Maybe.withDefault ""
-                |> String.trim
 
         content =
             case documents of
@@ -85,7 +85,7 @@ view ({ searchState } as state) =
 searchDocuments : String -> Cmd Msgs.Main.Msg
 searchDocuments query =
     Http.get
-        { url = "/api/documents?query={{ }}" |> String.Format.value query
+        { url = "/api/documents?query={{ }}" |> String.Format.value (Url.percentEncode query)
         , expect = Http.expectJson (Msgs.Main.HomeMsg << Msgs.Home.GotSearchResult) (Json.Decode.list Views.Documents.documentDecoder)
         }
 
@@ -167,7 +167,8 @@ internalUpdate state msg =
         Msgs.Home.UserTypeSearch query ->
             let
                 searchState =
-                    Maybe.withDefault Factories.searchStateFactory <| state.searchState
+                    state.searchState
+                        |> Maybe.withDefault Factories.searchStateFactory
 
                 ( newDebouncer, cmd ) =
                     Debounce.push
@@ -182,7 +183,8 @@ internalUpdate state msg =
         Msgs.Home.ThrottleSearchDocuments msg_ ->
             let
                 searchState =
-                    Maybe.withDefault Factories.searchStateFactory <| state.searchState
+                    state.searchState
+                        |> Maybe.withDefault Factories.searchStateFactory
 
                 ( newDebouncer, cmd ) =
                     Debounce.update
@@ -195,11 +197,14 @@ internalUpdate state msg =
 
         Msgs.Home.Home ->
             let
-                searchState =
-                    Maybe.withDefault Factories.searchStateFactory <| state.searchState
+                query =
+                    state
+                        |> Helpers.fluentSelect .searchState
+                        |> Maybe.withDefault Factories.searchStateFactory
+                        |> Helpers.fluentSelect .query
 
                 ( newState, newCommands ) =
-                    case searchState.query of
+                    case query of
                         Just x ->
                             ( { state | isLoading = True }, [ searchDocuments x ] )
 
@@ -211,7 +216,7 @@ internalUpdate state msg =
         Msgs.Home.Clear ->
             ( { state | searchState = Nothing }, Cmd.none )
 
-        _ ->
+        Msgs.Home.Nop ->
             ( state, Cmd.none )
 
 

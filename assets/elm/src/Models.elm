@@ -37,6 +37,11 @@ type alias DocumentResponse =
     }
 
 
+type alias DidDeleteDocumentResponse =
+    { documentId : String
+    }
+
+
 type alias DocumentsResponse =
     { documents : List DocumentResponse
     , total : Int

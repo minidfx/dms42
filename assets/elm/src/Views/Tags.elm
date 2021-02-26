@@ -13,7 +13,6 @@ import Html.Events exposing (keyCode)
 import Http
 import Json.Decode
 import Json.Encode
-import Middlewares.Alerts
 import Models exposing (AlertKind(..))
 import Msgs.Main
 import Msgs.Tags
@@ -171,7 +170,7 @@ update state msg =
                     [ Views.Alerts.publish <|
                         { kind = Models.Danger
                         , message = "The new text should have at least 3 characters."
-                        , timeout = Just 10
+                        , timeout = Just 5
                         }
                     ]
                 )
@@ -225,6 +224,11 @@ update state msg =
                             |> Msgs.Main.TagsMsg
                             |> Task.succeed
                             |> Task.perform identity
+                        , Views.Alerts.publish
+                            { kind = Models.Information
+                            , message = "Successfuly updated the tag."
+                            , timeout = Just 5
+                            }
                         ]
                     )
 

@@ -11,7 +11,6 @@ import Html.Attributes
 import Http
 import Iso8601
 import Json.Decode
-import Middlewares.Alerts
 import Models exposing (AlertKind(..))
 import Msgs.Documents
 import Msgs.Main

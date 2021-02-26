@@ -212,7 +212,7 @@ defmodule Dms42Web.DocumentsController do
   def delete_document(conn, %{"document_id" => document_id}) do
     {:ok, binary_document_id} = document_id |> Ecto.UUID.dump()
     DocumentsManager.remove!(binary_document_id)
-    conn |> send_resp(200, %{document_id: document_id} |> Poison.encode!())
+    conn |> send_resp(200, %{documentId: document_id} |> Poison.encode!())
   end
 
   ##### Private members

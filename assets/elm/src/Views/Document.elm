@@ -10,6 +10,7 @@ import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 import Http
+import Json.Decode
 import Models
 import Msgs.Document
 import Msgs.Main
@@ -17,6 +18,7 @@ import ScrollTo
 import String.Format
 import Task
 import Time
+import Views.Alerts
 import Views.Documents
 import Views.Shared
 
@@ -111,17 +113,27 @@ deleteDocument documentId =
             "/api/documents/{{ documentId }}"
                 |> String.Format.namedValue "documentId" documentId
         , body = Http.emptyBody
-        , expect = Http.expectWhatever (Msgs.Main.DocumentMsg << Msgs.Document.DidDeleteDocument)
+        , expect = Http.expectJson (Msgs.Main.DocumentMsg << Msgs.Document.DidDeleteDocument) didDeleteDocumentDecoder
         , timeout = Nothing
         , tracker = Nothing
         }
 
 
-didDeleteDocument : Models.State -> Result Http.Error () -> ( Models.State, Cmd Msgs.Main.Msg )
-didDeleteDocument state _ =
+didDeleteDocument : Models.State -> Result Http.Error Models.DidDeleteDocumentResponse -> ( Models.State, Cmd Msgs.Main.Msg )
+didDeleteDocument state response =
+    let
+        message =
+            case response of
+                Ok { documentId } ->
+                    String.Format.value documentId <| "Successfully deleted the document {{ }}."
+
+                Err _ ->
+                    "Successfully deleted the document."
+    in
     ( state
     , Cmd.batch
-        [ Task.succeed Msgs.Main.CloseModal |> Task.perform identity
+        [ Views.Alerts.publish { kind = Models.Information, message = message, timeout = Just 5 }
+        , Task.succeed Msgs.Main.CloseModal |> Task.perform identity
         , Nav.pushUrl state.key "/documents"
         ]
     )
@@ -486,11 +498,53 @@ internalUpdate state msg routeDocumentId =
         Msgs.Document.RunUpdateThumbnails document ->
             ( state, runUpdateThumbnails document )
 
-        Msgs.Document.DidRunOcr _ ->
-            ( state, Cmd.none )
+        Msgs.Document.DidRunOcr result ->
+            case result of
+                Ok _ ->
+                    ( state
+                    , Cmd.batch
+                        [ Views.Alerts.publish
+                            { kind = Models.Information
+                            , message = "The OCR update on the document was successfully ran."
+                            , timeout = Just 5
+                            }
+                        ]
+                    )
 
-        Msgs.Document.DidRunUpdateThumbnails _ ->
-            ( state, Cmd.none )
+                Err _ ->
+                    ( state, Cmd.none )
+
+        Msgs.Document.DidRunUpdateThumbnails result ->
+            case result of
+                Ok _ ->
+                    ( state
+                    , Cmd.batch
+                        [ Views.Alerts.publish
+                            { kind = Models.Information
+                            , message = "The thumbnails update on the document was successfully ran."
+                            , timeout = Just 5
+                            }
+                        ]
+                    )
+
+                Err _ ->
+                    ( state, Cmd.none )
 
         Msgs.Document.RunUpdateAll document ->
-            ( state, Cmd.batch [ runOcr document, runUpdateThumbnails document ] )
+            ( state
+            , Cmd.batch
+                [ runOcr document
+                , runUpdateThumbnails document
+                , Views.Alerts.publish
+                    { kind = Models.Information
+                    , message = "The thumbnails and ORC update on the document was successfully ran."
+                    , timeout = Just 5
+                    }
+                ]
+            )
+
+
+didDeleteDocumentDecoder : Json.Decode.Decoder Models.DidDeleteDocumentResponse
+didDeleteDocumentDecoder =
+    Json.Decode.map Models.DidDeleteDocumentResponse
+        (Json.Decode.field "documentId" Json.Decode.string)

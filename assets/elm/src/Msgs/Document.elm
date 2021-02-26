@@ -9,7 +9,7 @@ type Msg
     = Home
     | ShowDocumentAsModal
     | DeleteDocument String
-    | DidDeleteDocument (Result Http.Error ())
+    | DidDeleteDocument (Result Http.Error Models.DidDeleteDocumentResponse)
     | RunOcr Models.DocumentResponse
     | RunUpdateThumbnails Models.DocumentResponse
     | RunUpdateAll Models.DocumentResponse

@@ -135,7 +135,7 @@ app.ports.tags.subscribe(async request => {
     const data = localTags.map(x => _.indexOf(documentTags, x.text) !== -1 ? _.set(x, 'selected', true) : x)
     const localControl = node.select2({
         tags: true,
-        tokenSeparators: [',', ' '],
+        tokenSeparators: [','],
         minimumInputLength: 2,
         multiple: true,
         data: data

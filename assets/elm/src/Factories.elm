@@ -4,7 +4,7 @@ import Bootstrap.Modal
 import Bootstrap.Navbar
 import Browser.Navigation as Nav
 import Debounce
-import Models exposing (UpdateTagRequest)
+import Models exposing (AlertKind(..), UpdateTagRequest)
 import ScrollTo
 import Set
 import Url
@@ -19,7 +19,7 @@ stateFactory key url route navBarState =
     , documentsState = Nothing
     , tagsResponse = Nothing
     , isUploading = False
-    , error = Nothing
+    , alerts = []
     , userTimeZone = Nothing
     , isLoading = False
     , modalVisibility = Nothing

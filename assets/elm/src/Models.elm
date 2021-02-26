@@ -102,6 +102,26 @@ type alias Modal =
     }
 
 
+type AlertKind
+    = Danger
+    | Warning
+    | Information
+
+
+type alias AlertRequest =
+    { kind : AlertKind
+    , timeout : Maybe Int
+    , message : String
+    }
+
+
+type alias Alert =
+    { kind : AlertKind
+    , message : String
+    , id : Int
+    }
+
+
 type Route
     = Documents (Maybe Int)
     | Document String (Maybe Int)
@@ -120,7 +140,7 @@ type alias State =
     , tagsResponse : Maybe (List String)
     , tagsState : Maybe TagsState
     , isUploading : Bool
-    , error : Maybe String
+    , alerts : List Alert
     , userTimeZone : Maybe Time.Zone
     , isLoading : Bool
     , modalVisibility : Maybe Modal

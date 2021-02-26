@@ -39,7 +39,7 @@ update msg ({ tagsLoaded, history } as state) =
                     Url.Parser.parse routes url |> Maybe.withDefault (Models.Home Nothing)
 
                 newState =
-                    { state | url = url, route = route, error = Nothing }
+                    { state | url = url, route = route }
             in
             case route of
                 Models.AddDocuments ->

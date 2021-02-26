@@ -11,6 +11,8 @@ import Factories
 import Helpers
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Html.Events
+import Middlewares.Alerts
 import Middlewares.CloseModal
 import Middlewares.Fallback
 import Middlewares.Global
@@ -21,16 +23,19 @@ import Middlewares.UnloadSelect2Control
 import Middlewares.Updates
 import Models
 import Msgs.AddDocument
+import Msgs.Alerts
 import Msgs.Document
 import Msgs.Documents
 import Msgs.Main exposing (MiddlewareContext(..))
 import Ports.Gates
 import ScrollTo
+import String.Format
 import Task
 import Time
 import Url exposing (Url)
 import Url.Parser exposing (..)
 import Views.AddDocuments
+import Views.Alerts
 import Views.Document
 import Views.Documents
 import Views.Home
@@ -115,6 +120,7 @@ middlewares =
     , Middlewares.Router.update
     , Middlewares.Updates.update
     , Middlewares.History.update
+    , Middlewares.Alerts.update
     , Middlewares.Fallback.update
     ]
 
@@ -237,6 +243,52 @@ yieldItem { url } startWithPath name =
         Bootstrap.Navbar.itemLink [ Html.Attributes.href startWithPath ] [ Html.text name ]
 
 
+alertNode : Models.Alert -> Int -> Html Msgs.Main.Msg
+alertNode { kind, id, message } topPosition =
+    let
+        alertClass =
+            case kind of
+                Models.Danger ->
+                    "alert-danger"
+
+                Models.Warning ->
+                    "alert-warning"
+
+                Models.Information ->
+                    "alert-info"
+    in
+    Html.div
+        [ Html.Attributes.class "dms42-alert d-flex flex-row-reverse w-30"
+        , Html.Attributes.style "top" <| (String.Format.value <| String.fromInt <| topPosition) <| "{{ }}em"
+        , Html.Attributes.style "right" "1em"
+        , Html.Attributes.style "z-index" "1080"
+        ]
+        [ Html.div
+            [ Html.Attributes.class <| "alert alert-dismissible fade show " ++ alertClass ]
+            [ Html.text message
+            , Html.button
+                [ Html.Attributes.type_ "button"
+                , Html.Attributes.class "close"
+                , Html.Attributes.attribute "index" <| String.fromInt <| id
+                , Html.Events.onClick <| (Msgs.Main.AlertMsg << Msgs.Alerts.Close) <| id
+                ]
+                [ Html.span
+                    [ Html.Attributes.attribute "aria-label" "true" ]
+                    [ Html.text <| String.fromChar <| Char.fromCode 215 ]
+                ]
+            ]
+        ]
+
+
+alertNodes : Models.State -> List (Html Msgs.Main.Msg)
+alertNodes { alerts } =
+    let
+        topPosition index =
+            index * 4 + 1
+    in
+    alerts |> List.indexedMap (\i x -> alertNode x <| topPosition i)
+
+
 mainView : Models.State -> List (Html Msgs.Main.Msg)
 mainView state =
     let
@@ -261,16 +313,9 @@ mainView state =
                     Views.Tags.view state
 
         mainContent =
-            case state.error of
-                Just x ->
-                    [ Html.div []
-                        [ Html.div [ Html.Attributes.class "error alert alert-danger" ] [ Html.text x ]
-                        ]
-                    , Html.div [] content
-                    ]
-
-                Nothing ->
-                    content
+            [ Html.div [] <| alertNodes state
+            , Html.div [] content
+            ]
     in
     [ navbar state
     , Html.main_

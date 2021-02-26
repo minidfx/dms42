@@ -7,6 +7,7 @@ import Browser.Dom
 import Http
 import Models
 import Msgs.AddDocument
+import Msgs.Alerts
 import Msgs.Document
 import Msgs.Documents
 import Msgs.Home
@@ -36,6 +37,7 @@ type Msg
     | DocumentMsg Msgs.Document.Msg
     | AddDocumentMsg Msgs.AddDocument.Msg
     | TagsMsg Msgs.Tags.Msg
+    | AlertMsg Msgs.Alerts.Msg
     | Nop
 
 

@@ -6,9 +6,11 @@ import Html exposing (Html)
 import Html.Attributes
 import Http
 import Json.Decode
-import Models
+import Middlewares.Alerts
+import Models exposing (AlertKind(..))
 import Msgs.Main
 import Msgs.Settings
+import Views.Alerts
 
 
 
@@ -49,12 +51,24 @@ update state msg =
 
 handleQueueInfo : Models.State -> Result Http.Error Models.QueueInfoResponse -> ( Models.State, Cmd Msgs.Main.Msg )
 handleQueueInfo state result =
+    let
+        newState =
+            { state | isLoading = False }
+    in
     case result of
-        Ok x ->
-            ( { state | queueInfo = Just x, isLoading = False }, Cmd.none )
+        Ok _ ->
+            ( newState, Cmd.none )
 
         Err message ->
-            ( { state | error = Just <| Helpers.httpErrorToString message, isLoading = False }, Cmd.none )
+            ( newState
+            , Cmd.batch
+                [ Views.Alerts.publish <|
+                    { kind = Models.Danger
+                    , message = Helpers.httpErrorToString message
+                    , timeout = Nothing
+                    }
+                ]
+            )
 
 
 

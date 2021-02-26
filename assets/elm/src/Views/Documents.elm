@@ -11,11 +11,13 @@ import Html.Attributes
 import Http
 import Iso8601
 import Json.Decode
-import Models
+import Middlewares.Alerts
+import Models exposing (AlertKind(..))
 import Msgs.Documents
 import Msgs.Main
 import String.Format
 import Time
+import Views.Alerts
 import Views.Shared
 
 
@@ -135,8 +137,12 @@ documentDecoder =
 handleDocuments : Models.State -> Result Http.Error Models.DocumentsResponse -> ( Models.State, Cmd Msgs.Main.Msg )
 handleDocuments state result =
     let
-        stateWithoutLoading =
+        newState =
             { state | isLoading = False }
+
+        alerts =
+            newState
+                |> Helpers.fluentSelect .alerts
     in
     case result of
         Ok response ->
@@ -144,18 +150,26 @@ handleDocuments state result =
                 { total, documents } =
                     response
 
-                documentsDictionarized =
+                documentsById =
                     documents |> List.map (\x -> ( x.id, x )) |> Dict.fromList
 
                 documentsState =
-                    stateWithoutLoading.documentsState
+                    newState.documentsState
                         |> Maybe.withDefault Factories.documentsStateFactory
-                        |> Helpers.fluentUpdate (\x -> { x | documents = Just documentsDictionarized, total = total })
+                        |> Helpers.fluentUpdate (\x -> { x | documents = Just documentsById, total = total })
             in
-            ( { stateWithoutLoading | documentsState = Just documentsState }, Cmd.none )
+            ( { newState | documentsState = Just documentsState }, Cmd.none )
 
         Err message ->
-            ( { stateWithoutLoading | error = Just <| Helpers.httpErrorToString message, documentsState = Nothing }, Cmd.none )
+            ( { newState | documentsState = Nothing }
+            , Cmd.batch
+                [ Views.Alerts.publish <|
+                    { kind = Models.Danger
+                    , message = Helpers.httpErrorToString message
+                    , timeout = Nothing
+                    }
+                ]
+            )
 
 
 getDocuments : Models.DocumentsRequest -> Cmd Msgs.Main.Msg

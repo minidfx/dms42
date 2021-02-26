@@ -13,13 +13,15 @@ import Html.Events exposing (keyCode)
 import Http
 import Json.Decode
 import Json.Encode
-import Models
+import Middlewares.Alerts
+import Models exposing (AlertKind(..))
 import Msgs.Main
 import Msgs.Tags
 import Set
 import Simple.Fuzzy
 import String.Format
 import Task
+import Views.Alerts
 import Views.Documents
 import Views.Shared
 
@@ -149,6 +151,11 @@ update state msg =
             )
 
         Msgs.Tags.UpdateTag { oldTag, newTag } ->
+            let
+                alerts =
+                    state
+                        |> Helpers.fluentSelect .alerts
+            in
             if oldTag == newTag then
                 let
                     localTagsState =
@@ -159,7 +166,15 @@ update state msg =
                 ( { state | tagsState = Just localTagsState }, Cmd.none )
 
             else if String.length newTag < 3 then
-                ( { state | error = Just "The new text should have at least 3 characters." }, Cmd.none )
+                ( state
+                , Cmd.batch
+                    [ Views.Alerts.publish <|
+                        { kind = Models.Danger
+                        , message = "The new text should have at least 3 characters."
+                        , timeout = Just 10
+                        }
+                    ]
+                )
 
             else
                 ( { state | isLoading = True }
@@ -214,7 +229,15 @@ update state msg =
                     )
 
                 Err x ->
-                    ( { state | isLoading = False, error = Just <| Helpers.httpErrorToString x }, Cmd.none )
+                    ( { state | isLoading = False }
+                    , Cmd.batch
+                        [ Views.Alerts.publish <|
+                            { kind = Models.Danger
+                            , message = Helpers.httpErrorToString x
+                            , timeout = Nothing
+                            }
+                        ]
+                    )
 
         Msgs.Tags.DidRefreshTags ->
             let

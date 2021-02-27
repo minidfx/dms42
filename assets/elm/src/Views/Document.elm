@@ -535,11 +535,6 @@ internalUpdate state msg routeDocumentId =
             , Cmd.batch
                 [ runOcr document
                 , runUpdateThumbnails document
-                , Views.Alerts.publish
-                    { kind = Models.Information
-                    , message = "The thumbnails and ORC update on the document was successfully ran."
-                    , timeout = Just 5
-                    }
                 ]
             )
 

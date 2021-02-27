@@ -296,11 +296,29 @@ filterTags ({ tagsResponse, tagsState } as state) =
                 |> Maybe.withDefault Factories.tagsStateFactory
 
         tagsFilter =
-            localTagsState |> Helpers.fluentSelect (\x -> x.filter) |> Maybe.withDefault ""
+            localTagsState
+                |> Helpers.fluentSelect (\x -> x.filter)
+                |> Maybe.withDefault ""
+
+        selectedTags =
+            localTagsState
+                |> Helpers.fluentSelect .selected
+
+        isSelected : String -> ( Int, String )
+        isSelected tag =
+            ( if Set.member tag selectedTags then
+                0
+
+              else
+                1
+            , tag
+            )
 
         tagNodes =
             tags
-                |> List.sort
+                |> List.map isSelected
+                |> List.sortBy Tuple.first
+                |> List.map Tuple.second
                 |> List.map (\x -> badge state x)
     in
     [ Html.div [ Html.Attributes.class "query-text" ]

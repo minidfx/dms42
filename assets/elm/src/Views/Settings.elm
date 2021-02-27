@@ -1,15 +1,19 @@
 module Views.Settings exposing (handleQueueInfo, init, update, view)
 
+import Bootstrap.Card
+import Bootstrap.Card.Block
+import Bootstrap.Grid
+import Bootstrap.Grid.Col
+import Bootstrap.Grid.Row
 import Factories
 import Helpers
 import Html exposing (Html)
-import Html.Attributes
 import Http
 import Json.Decode
-import Middlewares.Alerts
 import Models exposing (AlertKind(..))
 import Msgs.Main
 import Msgs.Settings
+import String.Format
 import Views.Alerts
 
 
@@ -26,14 +30,17 @@ view state =
         { processing, pending, cpus } =
             queueInfo
     in
-    [ Html.div [ Html.Attributes.class "d-flex empty" ]
-        [ Html.dl []
-            [ Html.dt [] [ Html.text "Workers available" ]
-            , Html.dd [] [ Html.text <| String.fromInt cpus ]
-            , Html.dt [] [ Html.text "Processing" ]
-            , Html.dd [] [ Html.text <| String.fromInt processing ]
-            , Html.dt [] [ Html.text "Pending" ]
-            , Html.dd [] [ Html.text <| String.fromInt pending ]
+    [ Bootstrap.Grid.row [ Bootstrap.Grid.Row.leftMd ]
+        [ Bootstrap.Grid.col
+            [ Bootstrap.Grid.Col.xs5, Bootstrap.Grid.Col.sm4, Bootstrap.Grid.Col.md3, Bootstrap.Grid.Col.lg2 ]
+            [ Bootstrap.Card.config [ Bootstrap.Card.outlineInfo ]
+                |> Bootstrap.Card.headerH5 [] [ Html.text "Workers" ]
+                |> Bootstrap.Card.block []
+                    [ Bootstrap.Card.Block.text [] [ Html.text <| String.Format.value (String.fromInt cpus) <| "Available: {{ }}" ]
+                    , Bootstrap.Card.Block.text [] [ Html.text <| String.Format.value (String.fromInt processing) <| "Processing: {{ }}" ]
+                    , Bootstrap.Card.Block.text [] [ Html.text <| String.Format.value (String.fromInt pending) <| "Pending: {{ }}" ]
+                    ]
+                |> Bootstrap.Card.view
             ]
         ]
     ]
@@ -56,8 +63,8 @@ handleQueueInfo state result =
             { state | isLoading = False }
     in
     case result of
-        Ok _ ->
-            ( newState, Cmd.none )
+        Ok x ->
+            ( { newState | queueInfo = Just x }, Cmd.none )
 
         Err message ->
             ( newState

@@ -207,10 +207,10 @@ navbar ({ navBarState, isLoading } as state) =
             , Html.text "DMS42"
             ]
         |> Bootstrap.Navbar.items
-            [ yieldItem state "/" "Home"
-            , yieldItem state "/tags" "Tags"
-            , yieldItem state "/documents" "Documents"
-            , yieldItem state "/settings" "Settings"
+            [ yieldItem state "Home" <| Nothing
+            , yieldItem state "Tags" <| Just "/tags"
+            , yieldItem state "Documents" <| Just "/documents"
+            , yieldItem state "Settings" <| Just "/settings"
             ]
         |> Helpers.fluentUpdate
             (\x ->
@@ -233,13 +233,26 @@ navbar ({ navBarState, isLoading } as state) =
         |> Bootstrap.Navbar.view navBarState
 
 
-yieldItem : Models.State -> String -> String -> Bootstrap.Navbar.Item Msgs.Main.Msg
-yieldItem { url } startWithPath name =
-    if String.startsWith startWithPath url.path then
-        Bootstrap.Navbar.itemLinkActive [ Html.Attributes.href startWithPath ] [ Html.text name ]
+yieldItem : Models.State -> String -> Maybe String -> Bootstrap.Navbar.Item Msgs.Main.Msg
+yieldItem { url } name startsWith =
+    let
+        { path } =
+            url
+    in
+    case startsWith of
+        Nothing ->
+            if path == "/" then
+                Bootstrap.Navbar.itemLinkActive [ Html.Attributes.href "/" ] [ Html.text name ]
 
-    else
-        Bootstrap.Navbar.itemLink [ Html.Attributes.href startWithPath ] [ Html.text name ]
+            else
+                Bootstrap.Navbar.itemLink [ Html.Attributes.href "/" ] [ Html.text name ]
+
+        Just x ->
+            if String.startsWith x path then
+                Bootstrap.Navbar.itemLinkActive [ Html.Attributes.href x ] [ Html.text name ]
+
+            else
+                Bootstrap.Navbar.itemLink [ Html.Attributes.href x ] [ Html.text name ]
 
 
 alertNode : Models.Alert -> Int -> Html Msgs.Main.Msg

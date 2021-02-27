@@ -35,7 +35,6 @@ import Time
 import Url exposing (Url)
 import Url.Parser exposing (..)
 import Views.AddDocuments
-import Views.Alerts
 import Views.Document
 import Views.Documents
 import Views.Home
@@ -118,9 +117,9 @@ middlewares =
     , Middlewares.UnloadSelect2Control.update
     , Middlewares.LinkClicked.update
     , Middlewares.Router.update
+    , Middlewares.Alerts.update
     , Middlewares.Updates.update
     , Middlewares.History.update
-    , Middlewares.Alerts.update
     , Middlewares.Fallback.update
     ]
 

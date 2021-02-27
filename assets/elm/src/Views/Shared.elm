@@ -1,4 +1,4 @@
-module Views.Shared exposing (badge, card, flattenTags, getAndLoadTags, getTags, handleTags, pagination, posix2String, refreshDocumentTags, tagsInputs)
+module Views.Shared exposing (badge, card, flattenTags, getAndLoadTags, getTags, handleTags, pagination, posix2String, tagsInputs)
 
 import Bootstrap.General.HAlign
 import Bootstrap.Pagination
@@ -50,16 +50,21 @@ card state { datetimes, id, tags, thumbnails } =
     in
     Html.div [ Html.Attributes.class "dms42-card" ]
         [ Html.div
-            [ Html.Attributes.class "dms42-card-img d-flex align-items-center" ]
+            [ Html.Attributes.class "dms42-card-img align-middle" ]
             [ Html.img
                 [ Html.Attributes.src <| ("/documents/thumbnail/{{ }}" |> String.Format.value id)
                 , Html.Events.onClick <| Msgs.Main.LinkClicked <| Helpers.navTo state [ "documents", id ] []
+                , Html.Attributes.class "img-fluid m-auto d-block"
                 ]
                 []
-            , Html.div [ Html.Attributes.class "dms42-card-count px-1 py-0 border rounded-left text-light bg-dark" ] [ Html.text <| String.fromInt countImages ]
+            , Html.div
+                [ Html.Attributes.class "dms42-card-count px-1 py-0 border rounded-left text-light bg-dark" ]
+                [ Html.text <| String.fromInt countImages ]
             ]
-        , Html.div [ Html.Attributes.class "dms42-card-body" ]
-            [ Html.div [ Html.Attributes.class "dms42-card-datetime d-flex justify-content-center" ]
+        , Html.div
+            [ Html.Attributes.class "dms42-card-body" ]
+            [ Html.div
+                [ Html.Attributes.class "dms42-card-datetime d-flex justify-content-center" ]
                 [ Html.text <| posix2String timeZone inserted_datetime ]
             , flattenTags tags
             ]
@@ -224,28 +229,6 @@ handleTags state result thenLoad =
     )
 
 
-refreshDocumentTags : Models.State -> String -> ( Models.State, Cmd Msgs.Main.Msg )
-refreshDocumentTags ({ documentsState, tagsResponse } as state) documentId =
-    let
-        tags =
-            tagsResponse
-                |> Maybe.withDefault []
-
-        documents =
-            documentsState
-                |> Maybe.andThen (\x -> x.documents)
-                |> Maybe.withDefault Dict.empty
-
-        documentTags =
-            Dict.get documentId documents
-                |> Maybe.andThen (\x -> Just x.tags)
-                |> Maybe.withDefault []
-    in
-    ( { state | tagsLoaded = True }
-    , Ports.Gates.tags { jQueryPath = "#tags", documentId = Just <| documentId, tags = tags, documentTags = documentTags }
-    )
-
-
 
 -- Private members
 
@@ -328,15 +311,6 @@ backwardPaginationContent =
 tagsDecoder : Json.Decode.Decoder (List String)
 tagsDecoder =
     Json.Decode.list Json.Decode.string
-
-
-itemFn : Int -> String -> Bootstrap.Pagination.ListItem msg
-itemFn idx text =
-    if String.fromInt idx == text then
-        Bootstrap.Pagination.ListItem [] [ Html.text <| String.fromInt <| (+) idx 1 ]
-
-    else
-        Bootstrap.Pagination.ListItem [] [ Html.text text ]
 
 
 month2String : Time.Month -> String

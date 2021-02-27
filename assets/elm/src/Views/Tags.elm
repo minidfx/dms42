@@ -150,11 +150,6 @@ update state msg =
             )
 
         Msgs.Tags.UpdateTag { oldTag, newTag } ->
-            let
-                alerts =
-                    state
-                        |> Helpers.fluentSelect .alerts
-            in
             if oldTag == newTag then
                 let
                     localTagsState =
@@ -226,7 +221,7 @@ update state msg =
                             |> Task.perform identity
                         , Views.Alerts.publish
                             { kind = Models.Information
-                            , message = "Successfuly updated the tag."
+                            , message = "Successfully updated the tag."
                             , timeout = Just 5
                             }
                         ]
@@ -260,7 +255,7 @@ view : Models.State -> List (Html Msgs.Main.Msg)
 view ({ tagsState, tagsResponse, isLoading } as state) =
     [ Html.div [ Html.Attributes.class "row" ]
         [ Html.div [ Html.Attributes.class "col-6 col-xs-6 col-sm-5 col-md-4 col-lg-3 col-xl-2 col-xxl-1" ] <| filterTags state
-        , Html.div [ Html.Attributes.class "col d-flex justify-content-around flex-wrap cards" ] <| filterDocuments state
+        , Html.div [ Html.Attributes.class "col cards d-flex flex-wrap align-content-start" ] <| filterDocuments state
         ]
     ]
 
@@ -346,35 +341,28 @@ filterTags ({ tagsResponse, tagsState } as state) =
 
 badge : Models.State -> String -> Html Msgs.Main.Msg
 badge ({ isLoading, tagsState } as state) tag =
-    case isLoading of
-        True ->
-            Html.span
-                [ Html.Attributes.class "badge badge-light badge-pointer-not-allowed user-select-none" ]
-                [ Html.text tag ]
+    let
+        updateTagRequest =
+            tagsState
+                |> Maybe.withDefault Factories.tagsStateFactory
+                |> Helpers.fluentSelect .updateTagRequest
+                |> Maybe.map
+                    (\({ oldTag } as request) ->
+                        if oldTag == tag then
+                            Just request
 
-        False ->
-            let
-                updateTagRequest =
-                    tagsState
-                        |> Maybe.withDefault Factories.tagsStateFactory
-                        |> Helpers.fluentSelect .updateTagRequest
-                        |> Maybe.map
-                            (\({ oldTag } as request) ->
-                                if oldTag == tag then
-                                    Just request
+                        else
+                            Nothing
+                    )
+                |> Maybe.andThen (\x -> x)
+    in
+    Html.div [ Html.Attributes.class "row" ] <|
+        case updateTagRequest of
+            Just x ->
+                badgeEdit state x
 
-                                else
-                                    Nothing
-                            )
-                        |> Maybe.andThen (\x -> x)
-            in
-            Html.div [ Html.Attributes.class "row" ] <|
-                case updateTagRequest of
-                    Just x ->
-                        badgeEdit state x
-
-                    Nothing ->
-                        badgeReadOnly state tag
+            Nothing ->
+                badgeReadOnly state tag
 
 
 badgeEdit : Models.State -> Models.UpdateTagRequest -> List (Html Msgs.Main.Msg)
@@ -407,26 +395,52 @@ badgeEdit { isLoading } updateTagRequest =
 
 
 badgeReadOnly : Models.State -> String -> List (Html Msgs.Main.Msg)
-badgeReadOnly { tagsState } tag =
+badgeReadOnly { tagsState, isLoading } tag =
     let
         localTagsState =
             tagsState
                 |> Maybe.withDefault Factories.tagsStateFactory
 
+        isDisabled =
+            localTagsState
+                |> Helpers.fluentSelect .updateTagRequest
+                |> Maybe.andThen (\{ oldTag } -> Just oldTag)
+                |> Helpers.fluentSelect
+                    (\x ->
+                        case x of
+                            Just _ ->
+                                True
+
+                            Nothing ->
+                                isLoading
+                    )
+
         badgeStyles =
-            if Set.member tag localTagsState.selected then
+            if isDisabled then
+                "badge user-select-none"
+
+            else if Set.member tag localTagsState.selected then
                 "badge badge-success badge-pointer user-select-none"
 
             else
                 "badge badge-secondary badge-pointer user-select-none"
+
+        badgeAttributes =
+            if isDisabled then
+                [ Html.Attributes.class badgeStyles
+                , Html.Attributes.title tag
+                ]
+
+            else
+                [ Html.Attributes.class badgeStyles
+                , Html.Events.onClick <| (Msgs.Main.TagsMsg << Msgs.Tags.ToggleTag) <| tag
+                , Html.Attributes.title tag
+                ]
     in
     [ Html.div
         [ Html.Attributes.class "col d-flex align-items-center" ]
         [ Html.span
-            [ Html.Attributes.class badgeStyles
-            , Html.Events.onClick <| (Msgs.Main.TagsMsg << Msgs.Tags.ToggleTag) <| tag
-            , Html.Attributes.title tag
-            ]
+            badgeAttributes
             [ Html.text <| truncateTag <| tag ]
         ]
     , Html.div
@@ -435,6 +449,7 @@ badgeReadOnly { tagsState } tag =
             [ Html.Events.onClick <| (Msgs.Main.TagsMsg << Msgs.Tags.EditTag) <| tag
             , Html.Attributes.type_ "button"
             , Html.Attributes.class "btn btn-link flex-fill px-0"
+            , Html.Attributes.disabled isDisabled
             ]
             [ Html.i
                 [ Html.Attributes.class "fas fa-pen"

@@ -302,7 +302,7 @@ alertNodes { alerts } =
 
 
 mainView : Models.State -> List (Html Msgs.Main.Msg)
-mainView state =
+mainView ({ alerts } as state) =
     let
         content =
             case state.route of
@@ -325,16 +325,23 @@ mainView state =
                     Views.Tags.view state
 
         mainContent =
-            [ Html.div [] <| alertNodes state
-            , Html.div [] content
-            ]
+            if List.length alerts > 0 then
+                [ Html.div [] <| alertNodes state
+                , Html.div [] content
+                ]
+
+            else
+                content
     in
     [ navbar state
     , Html.main_
         [ Html.Attributes.class "container-fluid"
         , Html.Attributes.attribute "role" "main"
         ]
-        [ Html.div [ Html.Attributes.class "pt-5" ] mainContent ]
+        [ Html.div
+            [ Html.Attributes.class "pt-5" ]
+            mainContent
+        ]
     ]
 
 

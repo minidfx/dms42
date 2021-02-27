@@ -3,6 +3,8 @@ module Views.Tags exposing (init, update, view)
 -- Public members
 
 import Bootstrap.Form.Input
+import Bootstrap.Spinner
+import Bootstrap.Text
 import Browser.Dom
 import Browser.Navigation as Nav
 import Factories
@@ -253,7 +255,8 @@ update state msg =
 
 view : Models.State -> List (Html Msgs.Main.Msg)
 view ({ tagsState, tagsResponse, isLoading } as state) =
-    [ Html.div [ Html.Attributes.class "row" ]
+    [ Html.div
+        [ Html.Attributes.class "row" ]
         [ Html.div [ Html.Attributes.class "col-6 col-xs-6 col-sm-5 col-md-4 col-lg-3 col-xl-2 col-xxl-1" ] <| filterTags state
         , Html.div [ Html.Attributes.class "col cards d-flex flex-wrap align-content-start" ] <| filterDocuments state
         ]
@@ -265,7 +268,7 @@ view ({ tagsState, tagsResponse, isLoading } as state) =
 
 
 filterDocuments : Models.State -> List (Html Msgs.Main.Msg)
-filterDocuments ({ tagsState } as state) =
+filterDocuments ({ tagsState, isLoading } as state) =
     let
         localTagsState =
             tagsState
@@ -273,8 +276,23 @@ filterDocuments ({ tagsState } as state) =
 
         documents =
             localTagsState.documents |> Maybe.withDefault []
+
+        isLocalLoading =
+            isLoading && List.length documents < 1
     in
-    Views.Documents.cards state documents
+    if isLocalLoading then
+        [ Html.div [ Html.Attributes.class "ml-auto mr-auto" ]
+            [ Bootstrap.Spinner.spinner
+                [ Bootstrap.Spinner.large
+                , Bootstrap.Spinner.color Bootstrap.Text.primary
+                , Bootstrap.Spinner.attrs [ Html.Attributes.class "m-5" ]
+                ]
+                [ Bootstrap.Spinner.srMessage "Loading ..." ]
+            ]
+        ]
+
+    else
+        Views.Documents.cards state documents
 
 
 filterTags : Models.State -> List (Html Msgs.Main.Msg)

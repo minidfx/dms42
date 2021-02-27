@@ -212,7 +212,7 @@ update state msg =
         Msgs.Tags.DidUpdateTag result ->
             case result of
                 Ok _ ->
-                    ( state
+                    ( { state | tagsState = Nothing }
                     , Cmd.batch
                         [ Views.Shared.getTags
                         , Msgs.Tags.DidRefreshTags
@@ -230,7 +230,7 @@ update state msg =
                 Err x ->
                     ( { state | isLoading = False }
                     , Cmd.batch
-                        [ Views.Alerts.publish <|
+                        [ Views.Alerts.publish
                             { kind = Models.Danger
                             , message = Helpers.httpErrorToString x
                             , timeout = Nothing
@@ -303,11 +303,11 @@ filterTags ({ tagsResponse, tagsState } as state) =
                 |> List.sort
                 |> List.map (\x -> badge state x)
     in
-    [ Html.div []
+    [ Html.div [ Html.Attributes.class "query-text" ]
         [ Html.div
             [ Html.Attributes.class "input-group mb-3" ]
             [ Html.input
-                [ Html.Attributes.type_ "text"
+                [ Html.Attributes.type_ "search"
                 , Html.Attributes.class "form-control"
                 , Html.Attributes.id "tags-query"
                 , Html.Attributes.placeholder "Tags"
@@ -321,7 +321,8 @@ filterTags ({ tagsResponse, tagsState } as state) =
                 , Html.Events.onClick <| Msgs.Main.TagsMsg Msgs.Tags.Clear
                 ]
                 []
-            , Html.div [ Html.Attributes.class "input-group-append" ]
+            , Html.div
+                [ Html.Attributes.class "input-group-append" ]
                 [ Html.span
                     [ Html.Attributes.class "input-group-text"
                     , Html.Attributes.attribute "aria-describedby" "filterTags"
@@ -334,7 +335,9 @@ filterTags ({ tagsResponse, tagsState } as state) =
                     ]
                 ]
             ]
-        , Html.div [ Html.Attributes.class "tags" ] tagNodes
+        , Html.div
+            [ Html.Attributes.class "tags" ]
+            tagNodes
         ]
     ]
 

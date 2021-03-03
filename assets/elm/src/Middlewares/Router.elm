@@ -48,8 +48,8 @@ update msg ({ tagsLoaded, history } as state) =
                 Models.Documents offset ->
                     Continue <| Views.Documents.update newState Msgs.Documents.Home offset
 
-                Models.Document documentId _ ->
-                    Continue <| Views.Document.update newState Msgs.Document.Home (Just documentId)
+                Models.Document documentId offset ->
+                    Continue <| Views.Document.update newState Msgs.Document.Home (Just documentId) offset
 
                 Models.Settings ->
                     Continue <| Views.Settings.update newState Msgs.Settings.Home

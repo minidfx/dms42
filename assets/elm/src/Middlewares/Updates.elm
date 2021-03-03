@@ -36,7 +36,7 @@ update msg ({ history } as state) =
             Continue <| Views.Documents.update state documentsMsg Nothing
 
         Msgs.Main.DocumentMsg documentMsg ->
-            Continue <| Views.Document.update state documentMsg Nothing
+            Continue <| Views.Document.update state documentMsg Nothing Nothing
 
         _ ->
             Continue ( state, Cmd.none )

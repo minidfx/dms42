@@ -1,7 +1,11 @@
 module Views.Document exposing (init, update, view)
 
 import Bootstrap.Button
+import Bootstrap.Carousel
+import Bootstrap.Carousel.Slide
 import Bootstrap.Modal
+import Bootstrap.Utilities.Flex
+import Bootstrap.Utilities.Spacing
 import Browser.Navigation as Nav
 import Dict
 import Factories
@@ -27,21 +31,22 @@ import Views.Shared
 -- Public members
 
 
-init : () -> Nav.Key -> Models.State -> Msgs.Document.Msg -> Maybe String -> ( Models.State, Cmd Msgs.Main.Msg )
-init _ _ state msg documentId =
-    internalUpdate state msg documentId
+init : () -> Nav.Key -> Models.State -> Msgs.Document.Msg -> Maybe String -> Maybe Int -> ( Models.State, Cmd Msgs.Main.Msg )
+init _ _ state msg documentId offset =
+    internalUpdate state msg documentId offset
 
 
-update : Models.State -> Msgs.Document.Msg -> Maybe String -> ( Models.State, Cmd Msgs.Main.Msg )
-update state msg documentId =
-    internalUpdate state msg documentId
+update : Models.State -> Msgs.Document.Msg -> Maybe String -> Maybe Int -> ( Models.State, Cmd Msgs.Main.Msg )
+update state msg documentId offset =
+    internalUpdate state msg documentId offset
 
 
 view : Models.State -> String -> Maybe Int -> List (Html Msgs.Main.Msg)
 view state documentId offset =
     let
         documents =
-            state.documentsState
+            state
+                |> Helpers.fluentSelect .documentsState
                 |> Maybe.withDefault Factories.documentsStateFactory
                 |> Helpers.fluentSelect (\x -> x.documents)
                 |> Maybe.withDefault Dict.empty
@@ -240,7 +245,7 @@ deleteConfirmationModal { modalVisibility } { id } =
 
 
 showDocumentAsModal : Models.State -> Models.DocumentResponse -> Maybe Int -> Html Msgs.Main.Msg
-showDocumentAsModal { modalVisibility, viewPort } { id, original_file_name } offset =
+showDocumentAsModal { modalVisibility, viewPort, carouselState } { id, original_file_name, thumbnails } offset =
     let
         visibility =
             case modalVisibility of
@@ -253,23 +258,75 @@ showDocumentAsModal { modalVisibility, viewPort } { id, original_file_name } off
 
                 Nothing ->
                     Bootstrap.Modal.hidden
+
+        documentImageUrl : String -> String
+        documentImageUrl imageId =
+            "/documents/{{ id }}/images/{{ image_id }}"
+                |> String.Format.namedValue "id" id
+                |> String.Format.namedValue "image_id" imageId
+
+        slide : String -> Bootstrap.Carousel.Slide.Config Msgs.Main.Msg
+        slide imageId =
+            Bootstrap.Carousel.Slide.config [] <| Bootstrap.Carousel.Slide.image [] <| documentImageUrl imageId
+
+        slides : List (Bootstrap.Carousel.Slide.Config Msgs.Main.Msg)
+        slides =
+            thumbnails
+                |> Helpers.fluentSelect (\{ countImages } -> countImages - 1)
+                |> List.range 0
+                |> List.map String.fromInt
+                |> List.map slide
+
+        imageContent =
+            if List.length slides < 2 then
+                [ Html.img
+                    [ Html.Attributes.src <| documentImageUrl <| String.fromInt 0
+                    , Html.Attributes.class "img-fluid img-thumbnail"
+                    ]
+                    []
+                ]
+
+            else
+                case carouselState of
+                    Just x ->
+                        [ Bootstrap.Carousel.config
+                            (Msgs.Main.DocumentMsg << Msgs.Document.CarouselMsg)
+                            [ Html.Attributes.alt original_file_name
+                            ]
+                            |> Bootstrap.Carousel.withIndicators
+                            |> Bootstrap.Carousel.withControls
+                            |> Bootstrap.Carousel.slides slides
+                            |> Bootstrap.Carousel.view x
+                        ]
+
+                    Nothing ->
+                        [ Html.text "The carousel was not initialized" ]
+
+        modalContent =
+            [ Html.div
+                [ Bootstrap.Utilities.Flex.block
+                , Bootstrap.Utilities.Flex.rowReverse
+                , Bootstrap.Utilities.Spacing.mb1
+                ]
+                [ Bootstrap.Button.button
+                    [ Bootstrap.Button.attrs
+                        [ Html.Attributes.attribute "aria-label" "Close"
+                        ]
+                    , Bootstrap.Button.onClick <| Msgs.Main.AnimatedModal Bootstrap.Modal.hiddenAnimated
+                    , Bootstrap.Button.outlineDark
+                    ]
+                    [ Html.i
+                        [ Html.Attributes.class "fas fa-times" ]
+                        []
+                    ]
+                ]
+            ]
+                ++ imageContent
     in
     Bootstrap.Modal.config Msgs.Main.CloseModal
         |> Bootstrap.Modal.withAnimation (\x -> Msgs.Main.AnimatedModal x)
         |> Bootstrap.Modal.hideOnBackdropClick True
-        |> Bootstrap.Modal.body []
-            [ Html.img
-                [ Html.Attributes.alt original_file_name
-                , Html.Attributes.src
-                    ("/documents/{{ id }}/images/{{ image_id }}"
-                        |> String.Format.namedValue "id" id
-                        |> (String.Format.namedValue "image_id" <| String.fromInt <| Maybe.withDefault 0 offset)
-                    )
-                , Html.Attributes.class "img-fluid img-thumbnail"
-                , Html.Events.onClick <| Msgs.Main.AnimatedModal Bootstrap.Modal.hiddenAnimated
-                ]
-                []
-            ]
+        |> Bootstrap.Modal.body [] modalContent
         |> Bootstrap.Modal.scrollableBody True
         |> Bootstrap.Modal.centered False
         |> Bootstrap.Modal.attrs [ Html.Attributes.class "showDocumentAsModal" ]
@@ -294,20 +351,7 @@ internalView state document offset =
             , Html.div [ Html.Attributes.class "col-md-5" ]
                 [ Html.div [ Html.Attributes.class "d-flex document-buttons" ]
                     [ Html.div [ Html.Attributes.class "d-none d-md-block ml-auto" ]
-                        [ Bootstrap.Button.button
-                            [ Bootstrap.Button.danger
-                            , Bootstrap.Button.onClick <| Msgs.Main.ShowModal "deleteDialog"
-                            ]
-                            [ Html.text "Delete" ]
-                        , Bootstrap.Button.linkButton
-                            [ Bootstrap.Button.outlinePrimary
-                            , Bootstrap.Button.attrs
-                                [ Html.Attributes.href <| ("/api/documents/{{ }}/download" |> String.Format.value id)
-                                , Html.Attributes.download ""
-                                ]
-                            ]
-                            [ Html.text "Download" ]
-                        , Html.div
+                        [ Html.div
                             [ Html.Attributes.class "btn-group"
                             , Html.Attributes.attribute "role" "group"
                             ]
@@ -341,6 +385,19 @@ internalView state document offset =
                                     [ Html.text "Update all" ]
                                 ]
                             ]
+                        , Bootstrap.Button.button
+                            [ Bootstrap.Button.danger
+                            , Bootstrap.Button.onClick <| Msgs.Main.ShowModal "deleteDialog"
+                            ]
+                            [ Html.text "Delete" ]
+                        , Bootstrap.Button.linkButton
+                            [ Bootstrap.Button.outlinePrimary
+                            , Bootstrap.Button.attrs
+                                [ Html.Attributes.href <| ("/api/documents/{{ }}/download" |> String.Format.value id)
+                                , Html.Attributes.download ""
+                                ]
+                            ]
+                            [ Html.text "Download" ]
                         ]
                     ]
                 , Html.div [ Html.Attributes.class "form-group document-details" ]
@@ -384,36 +441,35 @@ documentView state document offset =
         { countImages } =
             thumbnails
     in
-    case countImages > 1 of
-        True ->
-            [ pagination state document offset
-            , Html.img
-                [ Html.Attributes.alt original_file_name
-                , Html.Attributes.src
-                    ("/documents/{{ id }}/images/{{ image_id }}"
-                        |> String.Format.namedValue "id" id
-                        |> (String.Format.namedValue "image_id" <| String.fromInt <| Maybe.withDefault 0 offset)
-                    )
-                , Html.Attributes.class "img-fluid img-thumbnail"
-                , Html.Events.onClick <| Msgs.Main.ShowModal "showDocumentAsModal"
-                ]
-                []
-            , pagination state document offset
+    if countImages > 1 then
+        [ pagination state document offset
+        , Html.img
+            [ Html.Attributes.alt original_file_name
+            , Html.Attributes.src
+                ("/documents/{{ id }}/images/{{ image_id }}"
+                    |> String.Format.namedValue "id" id
+                    |> (String.Format.namedValue "image_id" <| String.fromInt <| Maybe.withDefault 0 offset)
+                )
+            , Html.Attributes.class "img-fluid img-thumbnail"
+            , Html.Events.onClick <| Msgs.Main.ShowModal "showDocumentAsModal"
             ]
+            []
+        , pagination state document offset
+        ]
 
-        False ->
-            [ Html.img
-                [ Html.Attributes.alt original_file_name
-                , Html.Attributes.src
-                    ("/documents/{{ id }}/images/{{ image_id }}"
-                        |> String.Format.namedValue "id" id
-                        |> (String.Format.namedValue "image_id" <| String.fromInt <| Maybe.withDefault 0 offset)
-                    )
-                , Html.Attributes.class "img-fluid img-thumbnail"
-                , Html.Events.onClick <| Msgs.Main.ShowModal "showDocumentAsModal"
-                ]
-                []
+    else
+        [ Html.img
+            [ Html.Attributes.alt original_file_name
+            , Html.Attributes.src
+                ("/documents/{{ id }}/images/{{ image_id }}"
+                    |> String.Format.namedValue "id" id
+                    |> (String.Format.namedValue "image_id" <| String.fromInt <| Maybe.withDefault 0 offset)
+                )
+            , Html.Attributes.class "img-fluid img-thumbnail"
+            , Html.Events.onClick <| Msgs.Main.ShowModal "showDocumentAsModal"
             ]
+            []
+        ]
 
 
 pagination : Models.State -> Models.DocumentResponse -> Maybe Int -> Html Msgs.Main.Msg
@@ -433,8 +489,8 @@ pagination { viewPort } { thumbnails, id } offset =
         (\x -> "/documents/{{ documentId }}?offset={{ offset }}" |> String.Format.namedValue "documentId" id |> (String.Format.namedValue "offset" <| String.fromInt x))
 
 
-internalUpdate : Models.State -> Msgs.Document.Msg -> Maybe String -> ( Models.State, Cmd Msgs.Main.Msg )
-internalUpdate state msg routeDocumentId =
+internalUpdate : Models.State -> Msgs.Document.Msg -> Maybe String -> Maybe Int -> ( Models.State, Cmd Msgs.Main.Msg )
+internalUpdate state msg routeDocumentId offset =
     case msg of
         Msgs.Document.ShowDocumentAsModal ->
             ( state, Cmd.none )
@@ -446,6 +502,9 @@ internalUpdate state msg routeDocumentId =
                         |> Maybe.andThen (\x -> x.documents)
                         |> Maybe.map2 (\id documents -> Dict.get id documents) routeDocumentId
                         |> Maybe.andThen (\x -> x)
+
+                localOffset =
+                    Maybe.withDefault 0 offset
 
                 { tagsLoaded } =
                     state
@@ -466,8 +525,14 @@ internalUpdate state msg routeDocumentId =
 
                                 Nothing ->
                                     ( state, [] )
+
+                carouselStateOptions =
+                    Bootstrap.Carousel.defaultStateOptions
+
+                carouselState =
+                    Bootstrap.Carousel.initialStateWithOptions { carouselStateOptions | startIndex = localOffset }
             in
-            ( newState
+            ( { newState | carouselState = Just carouselState }
             , Cmd.batch <| commands ++ [ Cmd.map Msgs.Main.ScrollToMsg <| ScrollTo.scrollToTop ]
             )
 
@@ -537,6 +602,20 @@ internalUpdate state msg routeDocumentId =
                 , runUpdateThumbnails document
                 ]
             )
+
+        Msgs.Document.CarouselMsg subMsg ->
+            let
+                { carouselState } =
+                    state
+            in
+            case carouselState of
+                Just x ->
+                    ( { state | carouselState = Just <| Bootstrap.Carousel.update subMsg x }
+                    , Cmd.none
+                    )
+
+                Nothing ->
+                    ( state, Cmd.none )
 
 
 didDeleteDocumentDecoder : Json.Decode.Decoder Models.DidDeleteDocumentResponse

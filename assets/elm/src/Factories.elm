@@ -23,6 +23,7 @@ stateFactory key url route navBarState =
     , userTimeZone = Nothing
     , isLoading = False
     , modalVisibility = Nothing
+    , carouselState = Nothing
     , searchState = Nothing
     , scrollTo = ScrollTo.init
     , queueInfo = Nothing

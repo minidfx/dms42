@@ -87,8 +87,8 @@ init flags url key =
                 Models.Documents offset ->
                     Views.Documents.init flags key initialState Msgs.Documents.Home offset
 
-                Models.Document documentId _ ->
-                    Views.Document.init flags key initialState Msgs.Document.Home (Just documentId)
+                Models.Document documentId offset ->
+                    Views.Document.init flags key initialState Msgs.Document.Home (Just documentId) offset
 
                 Models.Settings ->
                     Views.Settings.init initialState

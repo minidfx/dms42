@@ -1,5 +1,6 @@
 module Models exposing (..)
 
+import Bootstrap.Carousel
 import Bootstrap.Modal
 import Bootstrap.Navbar
 import Browser.Dom
@@ -149,6 +150,7 @@ type alias State =
     , userTimeZone : Maybe Time.Zone
     , isLoading : Bool
     , modalVisibility : Maybe Modal
+    , carouselState : Maybe Bootstrap.Carousel.State
     , searchState : Maybe SearchState
     , scrollTo : ScrollTo.State
     , queueInfo : Maybe QueueInfoResponse

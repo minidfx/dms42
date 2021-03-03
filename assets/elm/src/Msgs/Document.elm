@@ -1,5 +1,6 @@
 module Msgs.Document exposing (..)
 
+import Bootstrap.Carousel
 import Http
 import Models
 import Ports.Models
@@ -20,3 +21,4 @@ type Msg
     | DidRemoveTags (Result Http.Error ())
     | DidAddTags (Result Http.Error ())
     | GotDocument (Result Http.Error Models.DocumentResponse)
+    | CarouselMsg Bootstrap.Carousel.Msg

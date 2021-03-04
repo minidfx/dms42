@@ -1,30 +1,38 @@
 # Dms42
 
-Project under development to manage my documents at home.
+If you just need to save your files, add some tags to classify your documents and search for them on your tablet, this small app should be enough for you.  
 
-# Test
+![](docs/images/dms42.gif)
 
-To quickly test the application, just copy the [docker-compose.yml](https://github.com/minidfx/dms42/blob/master/docker-compose.yml) file and run the command `docker-compose pull` and `docker-compose up --no-build postgres alpha` and open your browser to http://localhost:4000.
+# Why?
 
-**WARNING**: This is just an image for test purpose not optimized and it doesn't persist any data.
+I really like the functional approach and I need a project to learn something then I created this small DMS.
 
-# Initial readme
+# Technologies
 
-To start your Phoenix server:
+[Elixir](https://elixir-lang.org/) for the backend, [ELM](https://elm-lang.org/) for the frontend, the filesystem as documents storage and [PostgreSQL](https://www.postgresql.org/) as configuration storage.
 
-  * Install dependencies with `mix deps.get`
-  * Create and migrate your database with `mix ecto.create && mix ecto.migrate`
-  * Install Node.js dependencies with `cd assets && npm install`
-  * Start Phoenix endpoint with `mix phx.server`
+# How to run it?
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+I bundled the application with [Docker](https://www.docker.com/), you just have to configure the **DB_** environment variables, set the path of the documents and its thumbnails and it's done !
 
-Ready to run in production? Please [check our deployment guides](http://www.phoenixframework.org/docs/deployment).
+```
+version: '3'
 
-## Learn more
-
-  * Official website: http://www.phoenixframework.org/
-  * Guides: http://phoenixframework.org/docs/overview
-  * Docs: https://hexdocs.pm/phoenix
-  * Mailing list: http://groups.google.com/group/phoenix-talk
-  * Source: https://github.com/phoenixframework/phoenix
+services:
+    dms42:
+        image: minidfx/dms42:alpha
+        ports:
+            - 80:4001
+        environment:
+            - DB_USER=<user>
+            - DB_PASS=<password>
+            - DB_HOST=<host>>
+            - DB_NAME=<db-name>
+            - PUID=1000
+            - GUID=100
+            - STOP_WORDS=au aux ce avec ces dans de des du elle en et eux il je la le leur lui ma mais me meme mes moi mon ne nos notre nous on ou par pas pour qu que qui sa se ses son sur ta te tes toi ton tu un une vos votre vous
+        volumes:
+            - <document-path>:/app/documents
+            - <thumbnails-path>:/app/thumbnails
+```
